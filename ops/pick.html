@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>受取消込</title>
+</head>
+<body>
+<h2>受取消込画面</h2>
+<input id="code" placeholder="受取コード"/>
+<button onclick="pickup()">受渡完了</button>
+<div id="msg"></div>
+<script>
+const API_BASE="https://your-vercel-url.vercel.app";
+async function pickup(){
+  const code=document.getElementById('code').value;
+  const r=await fetch(API_BASE+'/api/pickup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pickup_code:code})}).then(r=>r.json());
+  document.getElementById('msg').textContent=r.ok?'完了':'エラー';
+}
+</script>
+</body>
+</html>
