@@ -51,4 +51,6 @@ app.post('/api/pickup', async (req,res)=>{
   res.json({ok:true});
 });
 
-app.listen(process.env.PORT||3000, ()=>console.log('API ready'));
+// ✅ Vercel用エクスポート
+export default app;
+
