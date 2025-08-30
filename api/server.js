@@ -51,6 +51,6 @@ app.post('/api/pickup', async (req,res)=>{
   res.json({ok:true});
 });
 
-// ✅ Vercel用エクスポート
+
 export default app;
 
