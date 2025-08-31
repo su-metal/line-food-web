@@ -15,6 +15,12 @@
   <!-- QRコード生成用 (すでに利用している前提) -->
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
   <script src="https://unpkg.com/qr-scanner@1.4.2/qr-scanner.umd.min.js"></script>
+  <script>
+  if (window.QrScanner) {
+    QrScanner.WORKER_PATH = 'https://unpkg.com/qr-scanner@1.4.2/qr-scanner-worker.min.js';
+  }
+</script>
+
 
   <style>
   /* ベース */
@@ -54,6 +60,15 @@ body.modal-open .leaflet-top,
 body.modal-open .leaflet-bottom {
   z-index: 0 !important;
 }
+.live-scan{
+  display:none; position:fixed; inset:0; background:#000;
+  align-items:center; justify-content:center; flex-direction:column;
+  z-index:20000;
+}
+.live-scan.show{ display:flex; }
+.live-scan video{ max-width:100%; max-height:70vh; }
+.live-scan .close-btn{ margin-top:12px; }
+
 
 </style>
 
@@ -268,32 +283,43 @@ function render(list){
 }
 
 function renderMap(list) {
-  if (!g.pos) return;
-
+  // 1) 現在地がなくても地図を初期化（東京駅を仮センター）
   if (!map) {
-    map = L.map('map').setView([g.pos.lat, g.pos.lng], 14);
+    map = L.map('map', { zoomControl: true }).setView([35.6812, 139.7671], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
-
-    L.marker([g.pos.lat, g.pos.lng]).addTo(map).bindPopup("現在地").openPopup();
   }
 
-  // 既存マーカーをリセット（現在地は残す）
-  map.eachLayer(layer => {
-    if (layer instanceof L.Marker && !layer.getPopup()?.getContent().includes("現在地")) {
-      map.removeLayer(layer);
+  // 2) 既存マーカーだけ消す（タイルは残す）
+  const remove = [];
+  map.eachLayer(l => { if (l instanceof L.Marker) remove.push(l); });
+  remove.forEach(l => map.removeLayer(l));
+
+  // 3) 現在地と店舗マーカーを追加
+  const markers = [];
+  if (g.pos) {
+    markers.push(L.marker([g.pos.lat, g.pos.lng]).addTo(map).bindPopup('現在地'));
+  }
+  list.forEach(it => {
+    const s = it.shop || it.shops;
+    if (s?.lat && s?.lng) {
+      markers.push(
+        L.marker([s.lat, s.lng]).addTo(map)
+         .bindPopup(`<b>${s.name || '店舗'}</b><br>${s.address || ''}`)
+      );
     }
   });
 
-  list.forEach(it => {
-    const shop = it.shop || it.shops;
-    if (shop?.lat && shop?.lng) {
-      L.marker([shop.lat, shop.lng]).addTo(map)
-        .bindPopup(`<b>${shop.name}</b><br>${shop.address || ''}`);
-    }
-  });
+  // 4) 視点を自動調整
+  if (markers.length) {
+    const g1 = L.featureGroup(markers);
+    map.fitBounds(g1.getBounds(), { padding:[30,30], maxZoom:15 });
+  } else {
+    map.setView([35.6812, 139.7671], 12);
+  }
 }
+
 
 // 公式アカウントのベーシックID（@を含める）
 const BOT_BASIC_ID = "@862eqkrz"; // ←あなたのIDに変更可
@@ -421,11 +447,8 @@ async function favPost(shopId){
 
 // 既存: scanAndFav / scanByImage / openExternalScanner が定義済み前提
 document.getElementById('btn-scan')?.addEventListener('click', () => { scanAndFav(); });
-
-
 // （ensureFriend() は既存のままでOK。友だち追加URLで BOT_ID を使いたい場合は
 //   "https://line.me/R/ti/p/@862eqkrz" を `https://line.me/R/ti/p/${BOT_ID}` に置換してもOK）
-
 
 // ボタンで手動チェック
 document.getElementById('friendCheckBtn').onclick = checkFriendship;
@@ -433,9 +456,101 @@ document.getElementById('friendCheckBtn').onclick = checkFriendship;
 // 自動チェックしたい場合は init() 成功後に呼ぶ
 // init() の最後に ↓ を1行足してもOK
 // await checkFriendship();
+// 重複定義のparseShopIdは1つだけ残してください（同じ関数が2つあります）
+
+// 画像から読み取り（フォールバック）
+function scanByImage(){
+  const inp = document.getElementById('qr-file');
+  if (!inp) return alert('画像入力が見つかりません');
+  inp.onchange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const res = await QrScanner.scanImage(file);
+      const text = res?.data || res;
+      const shopId = parseShopId(text);
+      if (!shopId) return alert('QRの形式が不正です');
+      if (!(await ensureFriend())) return;
+      await favPost(shopId);
+      alert('お気に入り店舗に登録しました');
+    } catch (err) {
+      console.error(err);
+      alert('画像からQRを読み取れませんでした');
+    } finally {
+      e.target.value = '';
+    }
+  };
+  inp.click();
+}
+
+// ライブスキャン（アプリ内リアルタイム）
+let liveScanner = null;
+
+async function openLiveScan(){
+  try{
+    if (!(await ensureFriend())) return;
+
+    const box = document.getElementById('liveScan');
+    const video = document.getElementById('qrVideo');
+
+    box.classList.add('show');
+    document.body.classList.add('modal-open'); // 背景スクロール停止に既存のclassを流用
+
+    if (!window.QrScanner) {
+      alert('スキャナの読み込みに失敗しました'); 
+      return closeLiveScan();
+    }
+
+    liveScanner = new QrScanner(
+      video,
+      async (result) => {
+        try {
+          const text = result?.data || result;
+          const shopId = parseShopId(text);
+          if (!shopId) { alert('QRの形式が不正です'); return; }
+          await favPost(shopId);
+          alert('お気に入り店舗に登録しました');
+          closeLiveScan();
+        } catch (e) {
+          console.error(e);
+          alert('処理に失敗しました');
+        }
+      },
+      { preferredCamera: 'environment', highlightScanRegion: true, highlightCodeOutline: true }
+    );
+
+    await liveScanner.start();
+  }catch(e){
+    console.error(e);
+    const go = confirm('カメラを起動できませんでした。画像から読み取りますか？');
+    if (go) scanByImage();
+    closeLiveScan();
+  }
+}
+
+function closeLiveScan(){
+  const box = document.getElementById('liveScan');
+  box.classList.remove('show');
+  document.body.classList.remove('modal-open');
+  if (liveScanner){
+    liveScanner.stop();
+    liveScanner.destroy();
+    liveScanner = null;
+  }
+}
+
+// 「店舗QRを読み取る」ボタンにライブスキャンを割当
+document.getElementById('btn-scan')?.addEventListener('click', openLiveScan);
+document.getElementById('scanClose')?.addEventListener('click', closeLiveScan);
 
 
 init();
 </script>
+
+<div id="liveScan" class="live-scan" aria-hidden="true">
+  <video id="qrVideo" playsinline></video>
+  <button id="scanClose" class="primary close-btn">閉じる</button>
+</div>
+
 </body>
 </html>
