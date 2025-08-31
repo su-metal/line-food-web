@@ -1,21 +1,200 @@
 <!doctype html>
-<html>
+<html lang="ja">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>お得袋MVP</title>
+<title>近くのお得袋</title>
+<style>
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto; margin:0; padding:16px;}
+  header{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+  .grid{display:grid;grid-template-columns:1fr;gap:12px}
+  .card{border:1px solid #eee;border-radius:12px;padding:12px}
+  .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  button{padding:10px 14px;border:0;border-radius:10px;cursor:pointer}
+  .primary{background:#2b8a3e;color:#fff}
+  .muted{color:#777}
+  /* modal */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:16px}
+  .modal .box{background:#fff;border-radius:14px;max-width:420px;width:100%;padding:16px;text-align:center}
+  .code{font-size:26px;letter-spacing:4px;font-weight:700;margin:8px 0}
+</style>
+<!-- QR 生成ライブラリ（約10KB） -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
 <body>
-<h2>近くのお得袋</h2>
-<div id="list">読み込み中...</div>
+<header>
+  <h2 style="margin:0;">近くのお得袋</h2>
+  <span id="me" class="muted"></span>
+</header>
+
+<div id="notice" class="muted">位置情報を取得中…</div>
+<div id="list" class="grid"></div>
+
+<!-- 予約結果モーダル（QR表示） -->
+<div id="modal" class="modal" role="dialog" aria-modal="true">
+  <div class="box">
+    <h3 style="margin:0 0 8px 0">予約が完了しました</h3>
+    <div class="muted" style="font-size:14px">受取時にこのQRまたはコードをお店に提示してください</div>
+    <canvas id="qr" style="margin:12px auto;display:block"></canvas>
+    <div class="code" id="codeTxt">------</div>
+    <div class="muted" id="pickupWindow" style="margin-bottom:8px"></div>
+    <div class="row" style="margin-top:8px">
+      <button id="saveBtn">画像として保存</button>
+      <button class="primary" id="closeBtn">閉じる</button>
+    </div>
+  </div>
+</div>
+
 <script>
-const CONFIG={
-  LIFF_ID:"YOUR_LIFF_ID",
-  API_BASE:"https://your-vercel-url.vercel.app",
-  SUPABASE_URL:"https://xxxx.supabase.co",
-  SUPABASE_ANON_KEY:"your-anon-key"
+const CONFIG = {
+  LIFF_ID: "2008020661-mYj1EELk",                      // ←差し替え
+  API_BASE: "https://line-food-mvp.vercel.app", // ←あなたのAPIドメイン
+  SUPABASE_URL: "https://xxxx.supabase.co",     // ←差し替え
+  SUPABASE_ANON_KEY: "YOUR_ANON_PUBLIC_KEY"     // ←差し替え
 };
+
+let g = { userId: null, pos: null };
+
+function haversine(a,b){
+  const toRad = d => d*Math.PI/180;
+  const R=6371;
+  const dLat=toRad(b.lat-a.lat), dLng=toRad(b.lng-a.lng);
+  const sa=Math.sin(dLat/2)**2 + Math.cos(toRad(a.lat))*Math.cos(toRad(b.lat))*Math.sin(dLng/2)**2;
+  return 2*R*Math.asin(Math.sqrt(sa)); // km
+}
+
+async function init(){
+  await liff.init({ liffId: CONFIG.LIFF_ID });
+  if(!liff.isLoggedIn()){ liff.login(); return; }
+  const prof = await liff.getProfile();
+  g.userId = prof.userId;
+  document.getElementById('me').textContent = 'ログイン済み';
+
+  try{
+    const geo = await new Promise((ok, ng)=>navigator.geolocation.getCurrentPosition(ok, ng,{enableHighAccuracy:true, timeout:8000}));
+    g.pos = { lat: geo.coords.latitude, lng: geo.coords.longitude };
+    document.getElementById('notice').textContent = '近い順に表示中';
+  }catch(e){
+    g.pos = null;
+    document.getElementById('notice').textContent = '位置情報が拒否されました（距離順は概算表示）';
+  }
+  await loadOffers();
+}
+
+async function loadOffers(){
+  const url = new URL(CONFIG.SUPABASE_URL + '/rest/v1/offers');
+  url.searchParams.set('select','id,title,price,qty_available,pickup_start,pickup_end,shops:shop_id(id,name,lat,lng,address)');
+  url.searchParams.set('status','eq.active');
+  url.searchParams.set('qty_available','gt.0');
+  url.searchParams.set('order','created_at.desc');
+
+  const r = await fetch(url, { headers: { apikey: CONFIG.SUPABASE_ANON_KEY, Authorization: 'Bearer '+CONFIG.SUPABASE_ANON_KEY }});
+  const items = await r.json();
+
+  const list = items.map(it => {
+    const shop = it.shops;
+    const dist = (g.pos && shop?.lat && shop?.lng) ? haversine(g.pos,{lat:shop.lat,lng:shop.lng}) : null;
+    return {...it, shop, dist};
+  }).sort((a,b)=>{
+    if(a.dist==null && b.dist==null) return 0;
+    if(a.dist==null) return 1;
+    if(b.dist==null) return -1;
+    return a.dist-b.dist;
+  });
+
+  render(list);
+}
+
+function fmtTime(s){
+  const d = new Date(s);
+  const h = String(d.getHours()).padStart(2,'0');
+  const m = String(d.getMinutes()).padStart(2,'0');
+  return `${h}:${m}`;
+}
+
+async function reserve(offer, btn){
+  btn.disabled = true;
+  btn.textContent = '予約中…';
+  try{
+    const r = await fetch(CONFIG.API_BASE + '/api/reserve', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ offer_id: offer.id, user_liff_id: g.userId })
+    });
+    const data = await r.json();
+    if(!data.ok) throw new Error(data.error||'reserve_failed');
+
+    // 受取コードをQR化してモーダル表示
+    showQR({
+      code: data.reservation.pickup_code,
+      shopName: offer.shops?.name || '店舗',
+      windowText: `受取時間 ${fmtTime(offer.pickup_start)}–${fmtTime(offer.pickup_end)}`
+    });
+
+    await loadOffers(); // 在庫更新
+  }catch(e){
+    alert('予約に失敗しました：' + e.message);
+  }finally{
+    btn.disabled = false;
+    btn.textContent = '予約する';
+  }
+}
+
+function showQR({code, shopName, windowText}){
+  const modal = document.getElementById('modal');
+  const canvas = document.getElementById('qr');
+  const codeTxt = document.getElementById('codeTxt');
+  const pick = document.getElementById('pickupWindow');
+
+  // QR内容は「pickup_code」の文字列そのもの
+  QRCode.toCanvas(canvas, code, { width: 220, margin: 1 }, function (err) {});
+  codeTxt.textContent = code;
+  pick.textContent = windowText || '';
+  modal.style.display = 'flex';
+
+  document.getElementById('closeBtn').onclick = ()=> modal.style.display='none';
+  document.getElementById('saveBtn').onclick = ()=>{
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = `pickup_${code}.png`;
+    a.click();
+  };
+}
+
+function render(list){
+  const el = document.getElementById('list');
+  el.innerHTML = '';
+  if(list.length===0){
+    el.innerHTML = '<div class="muted">現在、近くにお得袋はありません。</div>';
+    return;
+  }
+  list.forEach(it=>{
+    const shop = it.shop || it.shops;
+    const dist = (it.dist!=null) ? `${it.dist.toFixed(1)}km` : '';
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.innerHTML = `
+      <div class="row">
+        <div>
+          <div style="font-weight:600">${shop?.name || '店舗'}</div>
+          <div class="muted" style="font-size:12px;">${shop?.address || ''}</div>
+        </div>
+        <div class="muted">${dist}</div>
+      </div>
+      <div style="margin:8px 0 4px 0">${it.title}</div>
+      <div class="row">
+        <div><b>¥${it.price}</b> / 残り${it.qty_available}</div>
+        <div class="muted">受取 ${fmtTime(it.pickup_start)}–${fmtTime(it.pickup_end)}</div>
+      </div>
+      <div style="margin-top:10px" class="row">
+        <button class="primary">予約する</button>
+      </div>`;
+    div.querySelector('button').onclick = (ev)=> reserve(it, ev.target);
+    el.appendChild(div);
+  });
+}
+
+init();
 </script>
 </body>
 </html>
