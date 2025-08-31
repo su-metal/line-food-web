@@ -10,14 +10,20 @@ async function readJson(req) {
   try { return JSON.parse(raw || '{}'); } catch { return {}; }
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    return res.status(204).end();
+  }
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
 
   const body = await readJson(req);
   const { offer_id, user_liff_id } = body || {};
   if (!offer_id || !user_liff_id) return res.status(400).json({ error: 'missing_params' });
 
-  // 1) 対象オファー取得
+  // 1) オファー取得
   const offerRes = await fetch(`${SB_URL}/rest/v1/offers?select=*&id=eq.${offer_id}`, {
     headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` }
   });
@@ -55,3 +61,15 @@ export default async function handler(req, res) {
 
   return res.status(200).json({ ok: true, reservation: { id: created[0].id, pickup_code } });
 }
+
+function allowCors(fn){
+  return async (req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    if (req.method === 'OPTIONS') { res.status(204).end(); return; }
+    return fn(req, res);
+  };
+}
+
+export default allowCors(handler);
