@@ -2,7 +2,10 @@
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;               // 例: https://abcdXXXX.supabase.co
-const SERVICE_ROLE   = process.env.SUPABASE_SERVICE_ROLE;     // service_role key（サーバ専用！クライアントに出さない）
+const SERVICE_ROLE =
+  process.env.SUPABASE_SERVICE_ROLE ||
+  process.env.SUPABASE_SERVICE_KEY ||         // ← 追加
+  process.env.SUPABASE_SERVICE_ROLE_KEY;      // ← 予備名   // service_role key（サーバ専用！クライアントに出さない）
 const LINE_CHANNEL_ID = process.env.LINE_CHANNEL_ID;          // 任意: IDトークン検証に使う
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
