@@ -16,13 +16,31 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
 
   <style>
-    body { font-family: sans-serif; margin: 16px; }
-    .card { border: 1px solid #ddd; border-radius: 12px; padding: 12px; margin: 10px 0; }
-    .row { display: flex; justify-content: space-between; align-items: center; }
-    .muted { color: #666; font-size: 0.9em; }
-    button.primary { background:#28a745; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; }
-    #map { height: 400px; margin-top:16px; border:1px solid #ccc; border-radius:8px; }
-  </style>
+  /* ベース */
+  body { font-family: sans-serif; margin: 16px; }
+  .card { border: 1px solid #ddd; border-radius: 12px; padding: 12px; margin: 10px 0; }
+  .row { display: flex; justify-content: space-between; align-items: center; }
+  .muted { color: #666; font-size: 0.9em; }
+  button.primary { background:#28a745; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; }
+
+  /* 地図：モーダルより下に配置するため z-index を低く */
+  #map { position: relative; z-index: 1; height: 400px; margin-top:16px; border:1px solid #ccc; border-radius:8px; }
+
+  /* モーダル（QR用）を最前面へ */
+  #modal{
+    display:none;                   /* JSで .style.display='flex' にします */
+    position:fixed;
+    inset:0;                        /* top/right/bottom/left:0 の短縮 */
+    background:rgba(0,0,0,.6);
+    align-items:center;
+    justify-content:center;
+    z-index:10000;                  /* ← これが重要：最前面 */
+  }
+
+  /* モーダル表示中は背景スクロールを停止 */
+  body.modal-open { overflow: hidden; }
+</style>
+
 </head>
 <body>
   <h1>近くのお得袋</h1>
@@ -139,25 +157,41 @@ async function reserve(offer, btn){
   }
 }
 
-function showQR({code, shopName, windowText}){
+function showQR({code, shopName, windowText}) {
   const modal = document.getElementById('modal');
   const canvas = document.getElementById('qr');
   const codeTxt = document.getElementById('codeTxt');
   const pick = document.getElementById('pickupWindow');
 
-  QRCode.toCanvas(canvas, code, { width: 220, margin: 1 }, function (err) {});
+  // QR を描画
+  QRCode.toCanvas(canvas, code, { width: 220, margin: 1 }, () => {});
   codeTxt.textContent = code;
   pick.textContent = windowText || '';
-  modal.style.display = 'flex';
 
-  document.getElementById('closeBtn').onclick = ()=> modal.style.display='none';
-  document.getElementById('saveBtn').onclick = ()=>{
+  // モーダルを最前面で表示 & 背景スクロール固定
+  modal.style.display = 'flex';
+  document.body.classList.add('modal-open');
+
+  const onClose = () => {
+    modal.style.display = 'none';
+    document.body.classList.remove('modal-open');
+    // 地図が裏でサイズ崩れした時の保険
+    if (typeof map !== 'undefined' && map) setTimeout(() => map.invalidateSize(), 0);
+  };
+
+  document.getElementById('closeBtn').onclick = onClose;
+
+  document.getElementById('saveBtn').onclick = () => {
     const a = document.createElement('a');
     a.href = canvas.toDataURL('image/png');
     a.download = `pickup_${code}.png`;
     a.click();
   };
+
+  // 暗幕クリックでも閉じる（任意）
+  modal.onclick = (e) => { if (e.target === modal) onClose(); };
 }
+
 
 function render(list){
   const el = document.getElementById('list');
