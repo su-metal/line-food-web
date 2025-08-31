@@ -1,36 +1,50 @@
 // api/reserve.js
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = process.env.SUPABASE_URL;               // 例: https://abcdXXXX.supabase.co
+// ── Env ───────────────────────────────────────────────────────────────
+const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_ROLE =
   process.env.SUPABASE_SERVICE_ROLE ||
-  process.env.SUPABASE_SERVICE_KEY ||         // ← 追加
-  process.env.SUPABASE_SERVICE_ROLE_KEY;      // ← 予備名   // service_role key（サーバ専用！クライアントに出さない）
-const LINE_CHANNEL_ID = process.env.LINE_CHANNEL_ID;          // 任意: IDトークン検証に使う
+  process.env.SUPABASE_SERVICE_KEY ||
+  process.env.SUPABASE_SERVICE_ROLE_KEY; // 互換
 
-const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
+// CORS: 許可オリジン（カンマ区切り）。未設定なら本番フロントだけ許可
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://line-food-web.vercel.app')
+  .split(',')
+  .map(s => s.trim());
 
-// 任意: LINE IDトークン検証（liff.getIDToken() を送ってくる場合）
-// 使うならフロントから Authorization: Bearer <idToken> を付けてPOSTしてください
-async function verifyLineIdToken(idToken) {
-  if (!idToken) return null;
-  try {
-    const res = await fetch('https://api.line.me/oauth2/v2.1/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ id_token: idToken, client_id: LINE_CHANNEL_ID }),
-    });
-    if (!res.ok) return null;
-    return await res.json(); // {sub, name, ...}
-  } catch {
-    return null;
-  }
+// ── CORS Helper ───────────────────────────────────────────────────────
+function applyCors(req, res) {
+  const origin = req.headers.origin;
+  const ok = ALLOWED_ORIGINS.includes('*') || ALLOWED_ORIGINS.includes(origin);
+  res.setHeader('Vary', 'Origin');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Origin', ok ? origin : ALLOWED_ORIGINS[0]);
 }
 
+// ── Handler（トップレベルで1回だけ export） ───────────────────────────
 export default async function handler(req, res) {
+  applyCors(req, res);
+  if (req.method === 'OPTIONS') return res.status(204).end();
+
+  // Env 未設定ならここで終了（export を if の中に置かない）
+  if (!SUPABASE_URL || !SERVICE_ROLE) {
+    return res.status(500).json({
+      ok: false,
+      error: 'env_missing',
+      detail: {
+        has_SUPABASE_URL: !!SUPABASE_URL,
+        has_SUPABASE_SERVICE_ROLE: !!SERVICE_ROLE
+      }
+    });
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ ok: false, error: 'method_not_allowed' });
   }
+
+  const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
 
   try {
     const { offer_id, user_liff_id } = req.body || {};
@@ -38,12 +52,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ ok: false, error: 'bad_request' });
     }
 
-    // （任意）LINE IDトークン検証
-    // const authz = req.headers.authorization?.split(' ')[1];
-    // const verified = await verifyLineIdToken(authz);
-    // if (!verified) return res.status(401).json({ ok:false, error:'invalid_id_token' });
-
-    // 1) 対象オファー取得（店舗表示などに使う）
+    // 1) 対象オファー取得
     const { data: offers, error: getErr } = await supabase
       .from('offers')
       .select('id, qty_available, pickup_start, pickup_end, shops:shop_id(id, name, address)')
@@ -52,10 +61,9 @@ export default async function handler(req, res) {
 
     if (getErr) throw getErr;
     const offer = offers?.[0];
-    if (!offer) return res.status(404).json({ ok:false, error:'offer_not_found' });
+    if (!offer) return res.status(404).json({ ok: false, error: 'offer_not_found' });
 
-    // 2) 在庫を「同時更新に強い」形で1減らす
-    //    → qty_available > 0 のときだけ減る。更新できなければ在庫切れ。
+    // 2) 在庫を同時更新に強く1減らす（qty_available > 0 の時のみ）
     const { data: updated, error: updErr } = await supabase
       .from('offers')
       .update({ qty_available: offer.qty_available - 1 })
@@ -65,14 +73,10 @@ export default async function handler(req, res) {
       .single();
 
     if (updErr) throw updErr;
-    if (!updated) {
-      return res.status(409).json({ ok:false, error:'sold_out' });
-    }
+    if (!updated) return res.status(409).json({ ok: false, error: 'sold_out' });
 
-    // 3) 受取コードを発行（簡易：6桁）
+    // 3) 予約作成
     const pickup_code = Math.random().toString().slice(2, 8);
-
-    // 4) 予約レコード作成
     const { data: reservation, error: insErr } = await supabase
       .from('reservations')
       .insert({
@@ -86,7 +90,6 @@ export default async function handler(req, res) {
 
     if (insErr) throw insErr;
 
-    // 5) 応答
     return res.status(200).json({
       ok: true,
       reservation: {
@@ -99,6 +102,6 @@ export default async function handler(req, res) {
     });
   } catch (e) {
     console.error(e);
-    return res.status(500).json({ ok:false, error:'internal_error' });
+    return res.status(500).json({ ok: false, error: 'internal_error', detail: e.message });
   }
 }
