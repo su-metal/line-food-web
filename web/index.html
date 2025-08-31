@@ -1,60 +1,59 @@
 <!doctype html>
 <html lang="ja">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>近くのお得袋</title>
-<style>
-  body{font-family:system-ui,-apple-system,Segoe UI,Roboto; margin:0; padding:16px;}
-  header{display:flex;align-items:center;gap:8px;margin-bottom:12px}
-  .grid{display:grid;grid-template-columns:1fr;gap:12px}
-  .card{border:1px solid #eee;border-radius:12px;padding:12px}
-  .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
-  button{padding:10px 14px;border:0;border-radius:10px;cursor:pointer}
-  .primary{background:#2b8a3e;color:#fff}
-  .muted{color:#777}
-  /* modal */
-  .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:16px}
-  .modal .box{background:#fff;border-radius:14px;max-width:420px;width:100%;padding:16px;text-align:center}
-  .code{font-size:26px;letter-spacing:4px;font-weight:700;margin:8px 0}
-</style>
-<!-- QR 生成ライブラリ（約10KB） -->
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>余剰食品ミニアプリ</title>
+
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <!-- LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <!-- QRコード生成用 (すでに利用している前提) -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+
+  <style>
+    body { font-family: sans-serif; margin: 16px; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 12px; margin: 10px 0; }
+    .row { display: flex; justify-content: space-between; align-items: center; }
+    .muted { color: #666; font-size: 0.9em; }
+    button.primary { background:#28a745; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; }
+    #map { height: 400px; margin-top:16px; border:1px solid #ccc; border-radius:8px; }
+  </style>
 </head>
 <body>
-<header>
-  <h2 style="margin:0;">近くのお得袋</h2>
-  <span id="me" class="muted"></span>
-</header>
+  <h1>近くのお得袋</h1>
+  <div id="me"></div>
+  <div id="notice" class="muted">読み込み中…</div>
+  <div id="list"></div>
+  <div id="map"></div>
 
-<div id="notice" class="muted">位置情報を取得中…</div>
-<div id="list" class="grid"></div>
-
-<!-- 予約結果モーダル（QR表示） -->
-<div id="modal" class="modal" role="dialog" aria-modal="true">
-  <div class="box">
-    <h3 style="margin:0 0 8px 0">予約が完了しました</h3>
-    <div class="muted" style="font-size:14px">受取時にこのQRまたはコードをお店に提示してください</div>
-    <canvas id="qr" style="margin:12px auto;display:block"></canvas>
-    <div class="code" id="codeTxt">------</div>
-    <div class="muted" id="pickupWindow" style="margin-bottom:8px"></div>
-    <div class="row" style="margin-top:8px">
-      <button id="saveBtn">画像として保存</button>
-      <button class="primary" id="closeBtn">閉じる</button>
+  <!-- QRモーダル -->
+  <div id="modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); align-items:center; justify-content:center;">
+    <div style="background:white; padding:20px; border-radius:12px; max-width:300px; text-align:center;">
+      <canvas id="qr"></canvas>
+      <div id="codeTxt" style="margin-top:8px; font-size:20px; font-weight:bold;"></div>
+      <div id="pickupWindow" class="muted" style="margin:8px 0;"></div>
+      <div style="margin-top:12px;">
+        <button id="closeBtn">閉じる</button>
+        <button id="saveBtn">保存</button>
+      </div>
     </div>
   </div>
-</div>
 
 <script>
 const CONFIG = {
-  LIFF_ID: "2008020661-mYj1EELk",                      // ←差し替え
-  API_BASE: "https://line-food-mvp.vercel.app", // ←あなたのAPIドメイン
+  LIFF_ID: "2008020661-mYj1EELk",               // ←あなたのLIFF ID
+  API_BASE: "https://line-food-mvp.vercel.app", // ←APIのドメイン
   SUPABASE_URL: "https://xxxx.supabase.co",     // ←差し替え
   SUPABASE_ANON_KEY: "YOUR_ANON_PUBLIC_KEY"     // ←差し替え
 };
 
 let g = { userId: null, pos: null };
+let map;  // Leafletマップを保持
 
 function haversine(a,b){
   const toRad = d => d*Math.PI/180;
@@ -124,14 +123,13 @@ async function reserve(offer, btn){
     const data = await r.json();
     if(!data.ok) throw new Error(data.error||'reserve_failed');
 
-    // 受取コードをQR化してモーダル表示
     showQR({
       code: data.reservation.pickup_code,
       shopName: offer.shops?.name || '店舗',
       windowText: `受取時間 ${fmtTime(offer.pickup_start)}–${fmtTime(offer.pickup_end)}`
     });
 
-    await loadOffers(); // 在庫更新
+    await loadOffers();
   }catch(e){
     alert('予約に失敗しました：' + e.message);
   }finally{
@@ -146,7 +144,6 @@ function showQR({code, shopName, windowText}){
   const codeTxt = document.getElementById('codeTxt');
   const pick = document.getElementById('pickupWindow');
 
-  // QR内容は「pickup_code」の文字列そのもの
   QRCode.toCanvas(canvas, code, { width: 220, margin: 1 }, function (err) {});
   codeTxt.textContent = code;
   pick.textContent = windowText || '';
@@ -191,6 +188,36 @@ function render(list){
       </div>`;
     div.querySelector('button').onclick = (ev)=> reserve(it, ev.target);
     el.appendChild(div);
+  });
+
+  renderMap(list); // ← マップ描画を追加
+}
+
+function renderMap(list) {
+  if (!g.pos) return;
+
+  if (!map) {
+    map = L.map('map').setView([g.pos.lat, g.pos.lng], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    L.marker([g.pos.lat, g.pos.lng]).addTo(map).bindPopup("現在地").openPopup();
+  }
+
+  // 既存マーカーをリセット（現在地は残す）
+  map.eachLayer(layer => {
+    if (layer instanceof L.Marker && !layer.getPopup()?.getContent().includes("現在地")) {
+      map.removeLayer(layer);
+    }
+  });
+
+  list.forEach(it => {
+    const shop = it.shop || it.shops;
+    if (shop?.lat && shop?.lng) {
+      L.marker([shop.lat, shop.lng]).addTo(map)
+        .bindPopup(`<b>${shop.name}</b><br>${shop.address || ''}`);
+    }
   });
 }
 
