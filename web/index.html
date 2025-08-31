@@ -420,18 +420,7 @@ async function favPost(shopId){
 }
 
 // 既存: scanAndFav / scanByImage / openExternalScanner が定義済み前提
-
-document.querySelector('.js-scan-line')?.addEventListener('click', () => {
-  scanAndFav(); // LINE内スキャン
-});
-
-document.querySelector('.js-scan-image')?.addEventListener('click', () => {
-  scanByImage(); // 画像から読み取り
-});
-
-document.querySelector('.js-scan-external')?.addEventListener('click', () => {
-  openExternalScanner(); // 外部スキャナを開く（主にAndroid）
-});
+document.getElementById('btn-scan')?.addEventListener('click', () => { scanAndFav(); });
 
 
 // （ensureFriend() は既存のままでOK。友だち追加URLで BOT_ID を使いたい場合は
