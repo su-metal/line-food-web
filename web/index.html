@@ -68,6 +68,7 @@ body.modal-open .leaflet-bottom {
   <div id="list"></div><div style="margin:8px 0;">
   <!-- もともとの btn-scan は残しつつクラスを追加 -->
   <button id="btn-scan" class="primary js-open-scan-chooser">店舗QRを読み取る</button>
+
   <input type="file" id="qr-file" accept="image/*" capture="environment" style="display:none" />
 
 </div>
@@ -444,10 +445,6 @@ document.getElementById('friendCheckBtn').onclick = checkFriendship;
 // init() の最後に ↓ を1行足してもOK
 // await checkFriendship();
 
-const prof = await liff.getProfile();
-g.userId = prof.userId;
-// ↓一時表示（確認したら消してください）
-document.getElementById('me').textContent = `ログインID: ${g.userId}`;
 
 init();
 </script>
