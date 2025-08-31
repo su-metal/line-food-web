@@ -39,6 +39,21 @@
 
   /* モーダル表示中は背景スクロールを停止 */
   body.modal-open { overflow: hidden; }
+  /* モーダルを絶対最前面へ & 表示中は地図をクリック不可に */
+#modal { z-index: 2147483647 !important; }  /* 32bit上限級 */
+
+body.modal-open #map,
+body.modal-open .leaflet-container {
+  pointer-events: none !important;          /* クリック抜け防止 */
+}
+
+/* Leaflet の各ペインが前面に来ないように、モーダル表示中だけ強制的に下げる */
+body.modal-open .leaflet-pane,
+body.modal-open .leaflet-top,
+body.modal-open .leaflet-bottom {
+  z-index: 0 !important;
+}
+
 </style>
 
 </head>
@@ -163,34 +178,34 @@ function showQR({code, shopName, windowText}) {
   const codeTxt = document.getElementById('codeTxt');
   const pick = document.getElementById('pickupWindow');
 
-  // QR を描画
+  // ★ 追加：モーダルを body 直下に移動（安全な最前面に）
+  if (modal.parentElement !== document.body) {
+    document.body.appendChild(modal);
+  }
+
   QRCode.toCanvas(canvas, code, { width: 220, margin: 1 }, () => {});
   codeTxt.textContent = code;
   pick.textContent = windowText || '';
 
-  // モーダルを最前面で表示 & 背景スクロール固定
   modal.style.display = 'flex';
   document.body.classList.add('modal-open');
 
   const onClose = () => {
     modal.style.display = 'none';
     document.body.classList.remove('modal-open');
-    // 地図が裏でサイズ崩れした時の保険
     if (typeof map !== 'undefined' && map) setTimeout(() => map.invalidateSize(), 0);
   };
 
   document.getElementById('closeBtn').onclick = onClose;
-
   document.getElementById('saveBtn').onclick = () => {
     const a = document.createElement('a');
     a.href = canvas.toDataURL('image/png');
     a.download = `pickup_${code}.png`;
     a.click();
   };
-
-  // 暗幕クリックでも閉じる（任意）
   modal.onclick = (e) => { if (e.target === modal) onClose(); };
 }
+
 
 
 function render(list){
