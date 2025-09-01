@@ -206,34 +206,50 @@ async function checkFriendship(){
 /* ============== 予約 & モーダル ============== */
 async function reserve(offer, btn){
   if (!(await ensureFriend())) return;
-  btn.disabled = true; btn.textContent = '予約中…';
+  btn.disabled = true;
+  btn.textContent = '予約中…';
   try{
     const idToken = liff.getIDToken();
-const r = await fetch(CONFIG.API_BASE + '/api/reserve', {
-  method:'POST',
-  headers:{
-    'Content-Type':'application/json',
-    'Authorization':'Bearer ' + idToken
-  },
-  body: JSON.stringify({ offer_id: offer.id })
-});
+    const r = await fetch(CONFIG.API_BASE + '/api/reserve', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':'Bearer ' + idToken
+      },
+      body: JSON.stringify({ offer_id: offer.id })   // ← UUIDのまま送る
+    });
 
     const data = await r.json();
-    if(!data.ok) throw new Error(data.error||'reserve_failed');
 
+    // ★ ここが追加：RPCの戻り値を判定
+    if (!data.ok && data.error === 'already_reserved') {
+      alert('このお得袋はすでに予約済みです。');
+      return;
+    }
+    if (!data.ok && data.error === 'sold_out_or_missing') {
+      alert('在庫切れ、または見つかりませんでした。');
+      return;
+    }
+    if (!data.ok) {
+      throw new Error(data.error || 'reserve_failed');
+    }
+
+    // 成功時はQR表示（RPCの返却をそのまま使用）
     showQR({
       code: data.reservation.pickup_code,
       shopName: offer.shops?.name || '店舗',
       windowText: `受取時間 ${fmtTime(offer.pickup_start)}–${fmtTime(offer.pickup_end)}`
     });
 
-    await loadOffers();
+    await loadOffers(); // 在庫など再取得
   }catch(e){
     alert('予約に失敗しました：' + e.message);
   }finally{
-    btn.disabled = false; btn.textContent = '予約する';
+    btn.disabled = false;
+    btn.textContent = '予約する';
   }
 }
+
 
 function showQR({code, shopName, windowText}){
   const modal = document.getElementById('modal');
