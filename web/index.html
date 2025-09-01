@@ -161,22 +161,35 @@
         background: var(--bg);
       }
 
+      .page-title {
+        margin: 6px 0 8px;
+        font-size: 22px;
+        line-height: 1.25;
+        font-weight: 800;
+        color: #222;
+      }
+
       .searchbar {
         background: #fff;
         border: 1px solid #e5e2dd;
-        border-radius: 999px;
-        padding: 10px 14px;
+        border-radius: 12px; /* 999px → 12px */
+        padding: 8px 10px; /* 10px 14px → 8px 10px */
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
       }
       .searchbar input {
         border: none;
         outline: none;
         width: 100%;
-        font-size: 15px;
+        font-size: 14px; /* 15px → 14px */
         background: transparent;
       }
+      .searchbar svg {
+        width: 18px;
+        height: 18px;
+      }
+
       .sec {
         margin: 16px 0 8px;
       }
@@ -299,7 +312,7 @@
   </head>
 
   <body>
-    <h1>近くのお得袋</h1>
+    <h1>近くのお店・お得情報</h1>
     <div id="friendStatus" class="muted" style="margin: 8px 0"></div>
     <button id="friendCheckBtn" class="primary" style="margin-bottom: 12px">
       友だち状態を確認
@@ -334,20 +347,7 @@
         </svg>
         <input id="q" placeholder="現在地・駅・店舗名などから探す" />
       </div>
-
-      <!-- 任意のガイドバナー -->
-      <div
-        style="
-          background: #ffc64b;
-          border-radius: 16px;
-          padding: 18px;
-          color: #3b2a00;
-          margin: 8px 0;
-        "
-      >
-        <div style="font-weight: 800; font-size: 20px">レスキュー指南書</div>
-        <div style="margin-top: 6px; font-size: 14px">初めての方はこちら</div>
-      </div>
+     
 
       <section class="sec">
         <div class="sec-head">
