@@ -1,459 +1,649 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>モッタイナ</title>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>モッタイナ</title>
 
-  <!-- Leaflet CSS & JS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-  <!-- LIFF SDK -->
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <!-- LIFF SDK -->
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
-  <!-- QR生成（予約完了時） -->
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <!-- QR生成（予約完了時） -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
 
-  <!-- アプリ内リアルタイムQRスキャン -->
-  <script src="https://unpkg.com/qr-scanner@1.4.2/qr-scanner.umd.min.js"></script>
-  <script>
-    if (window.QrScanner) {
-      QrScanner.WORKER_PATH = 'https://unpkg.com/qr-scanner@1.4.2/qr-scanner-worker.min.js';
-    }
-  </script>
+    <!-- アプリ内リアルタイムQRスキャン -->
+    <script src="https://unpkg.com/qr-scanner@1.4.2/qr-scanner.umd.min.js"></script>
+    <script>
+      if (window.QrScanner) {
+        QrScanner.WORKER_PATH =
+          "https://unpkg.com/qr-scanner@1.4.2/qr-scanner-worker.min.js";
+      }
+    </script>
 
-  <style>
-  /* ベース */
-  body { font-family: sans-serif; margin: 16px; }
-  .card { border: 1px solid #ddd; border-radius: 12px; padding: 12px; margin: 10px 0; }
-  .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-  .muted { color: #666; font-size: 0.9em; }
-  button.primary { background:#28a745; color:white; border:none; padding:8px 14px; border-radius:8px; cursor:pointer; }
-  button.primary:disabled { opacity:.6; cursor:not-allowed; }
+    <style>
+      /* ベース */
+      body {
+        font-family: sans-serif;
+        margin: 16px;
+      }
+      .card {
+        border: 1px solid #ddd;
+        border-radius: 12px;
+        padding: 12px;
+        margin: 10px 0;
+      }
+      .row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+      }
+      .muted {
+        color: #666;
+        font-size: 0.9em;
+      }
+      button.primary {
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 8px 14px;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      button.primary:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
 
-  /* 地図（常に表示） */
-  #map { position: relative; z-index: 1; height: 400px; margin-top:16px; border:1px solid #ccc; border-radius:8px; }
+      /* 地図（常に表示） */
+      #map {
+        position: relative;
+        z-index: 1;
+        height: 400px;
+        margin-top: 16px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+      }
 
-  /* 予約QRモーダル（ライブスキャンより下に） */
-  #modal{
-    display:none; position:fixed; inset:0;
-    background:rgba(0,0,0,.6);
-    align-items:center; justify-content:center;
-    z-index:2147483646;
-  }
-  body.modal-open { overflow: hidden; }
+      /* 予約QRモーダル（ライブスキャンより下に） */
+      #modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        align-items: center;
+        justify-content: center;
+        z-index: 2147483646;
+      }
+      body.modal-open {
+        overflow: hidden;
+      }
 
-  /* ライブスキャン（最前面） */
-  .live-scan{
-    display:none; position:fixed; inset:0; background:#000;
-    align-items:center; justify-content:center; flex-direction:column;
-    z-index:2147483647 !important;
-  }
-  .live-scan.show{ display:flex; }
-  .live-scan video{ max-width:100%; max-height:70vh; pointer-events:auto; }
-  .live-scan .close-btn{ margin-top:12px; position:relative; z-index:2147483647; }
+      /* ライブスキャン（最前面） */
+      .live-scan {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: #000;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        z-index: 2147483647 !important;
+      }
+      .live-scan.show {
+        display: flex;
+      }
+      .live-scan video {
+        max-width: 100%;
+        max-height: 70vh;
+        pointer-events: auto;
+      }
+      .live-scan .close-btn {
+        margin-top: 12px;
+        position: relative;
+        z-index: 2147483647;
+      }
 
-  /* モーダル／ライブスキャン中は背景（地図等）をクリック不可に */
-  body.modal-open #map,
-  body.modal-open .leaflet-container,
-  body.live-scan-open #map,
-  body.live-scan-open .leaflet-container { pointer-events:none !important; }
-  </style>
-</head>
+      /* モーダル／ライブスキャン中は背景（地図等）をクリック不可に */
+      body.modal-open #map,
+      body.modal-open .leaflet-container,
+      body.live-scan-open #map,
+      body.live-scan-open .leaflet-container {
+        pointer-events: none !important;
+      }
+    </style>
+  </head>
 
-<body>
-  <h1>近くのお得袋</h1>
-  <div id="friendStatus" class="muted" style="margin:8px 0;"></div>
-  <button id="friendCheckBtn" class="primary" style="margin-bottom:12px;">友だち状態を確認</button>
+  <body>
+    <h1>近くのお得袋</h1>
+    <div id="friendStatus" class="muted" style="margin: 8px 0"></div>
+    <button id="friendCheckBtn" class="primary" style="margin-bottom: 12px">
+      友だち状態を確認
+    </button>
 
-  <div id="me"></div>
-  <div id="notice" class="muted">読み込み中…</div>
+    <div id="me"></div>
+    <div id="notice" class="muted">読み込み中…</div>
 
-  <!-- スキャン起動 -->
-  <div style="margin:8px 0;">
-    <button id="btn-scan" class="primary">店舗QRを読み取る</button>
-    <!-- 画像フォールバック用（必要時のみ） -->
-    <input type="file" id="qr-file" accept="image/*" capture="environment" style="display:none" />
-  </div>
+    <!-- スキャン起動 -->
+    <div style="margin: 8px 0">
+      <button id="btn-scan" class="primary">店舗QRを読み取る</button>
+      <!-- 画像フォールバック用（必要時のみ） -->
+      <input
+        type="file"
+        id="qr-file"
+        accept="image/*"
+        capture="environment"
+        style="display: none"
+      />
+    </div>
 
-  <div id="list"></div>
-  <div id="map"></div>
+    <div id="list"></div>
+    <div id="map"></div>
 
-  <!-- 予約QRモーダル -->
-  <div id="modal" aria-hidden="true">
-    <div style="background:white; padding:20px; border-radius:12px; max-width:300px; text-align:center;">
-      <canvas id="qr"></canvas>
-      <div id="codeTxt" style="margin-top:8px; font-size:20px; font-weight:bold;"></div>
-      <div id="pickupWindow" class="muted" style="margin:8px 0;"></div>
-      <div style="margin-top:12px;">
-        <button id="closeBtn" class="primary" style="background:#666">閉じる</button>
-        <button id="saveBtn" class="primary">保存</button>
+    <!-- 予約QRモーダル -->
+    <div id="modal" aria-hidden="true">
+      <div
+        style="
+          background: white;
+          padding: 20px;
+          border-radius: 12px;
+          max-width: 300px;
+          text-align: center;
+        "
+      >
+        <canvas id="qr"></canvas>
+        <div
+          id="codeTxt"
+          style="margin-top: 8px; font-size: 20px; font-weight: bold"
+        ></div>
+        <div id="pickupWindow" class="muted" style="margin: 8px 0"></div>
+        <div style="margin-top: 12px">
+          <button id="closeBtn" class="primary" style="background: #666">
+            閉じる
+          </button>
+          <button id="saveBtn" class="primary">保存</button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- ライブスキャンのオーバーレイ（最前面） -->
-  <div id="liveScan" class="live-scan" aria-hidden="true">
-    <video id="qrVideo" playsinline></video>
-    <button id="scanClose" class="primary close-btn" onclick="closeLiveScan()">閉じる</button>
-  </div>
+    <!-- ライブスキャンのオーバーレイ（最前面） -->
+    <div id="liveScan" class="live-scan" aria-hidden="true">
+      <video id="qrVideo" playsinline></video>
+      <button
+        id="scanClose"
+        class="primary close-btn"
+        onclick="closeLiveScan()"
+      >
+        閉じる
+      </button>
+    </div>
 
-<script>
-/* ============== 設定 ============== */
-const CONFIG = {
-  LIFF_ID: "2008020661-mYj1EELk",
-  API_BASE: "https://line-food-mvp.vercel.app",
-  SUPABASE_URL: "https://wpxkjwnfofqdmfukrnqm.supabase.co",
-  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndweGtqd25mb2ZxZG1mdWtybnFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY1MzQ0OTcsImV4cCI6MjA3MjExMDQ5N30.Aiiuba6dNu_7ZMSns_6D1atbsIs9_PwmLpbVEpgG1yY"
-};
-const BOT_BASIC_ID = "@862eqkrz";
+    <script>
+      /* ============== 設定 ============== */
+      const CONFIG = {
+        LIFF_ID: "2008020661-mYj1EELk",
+        API_BASE: "https://line-food-mvp.vercel.app",
+        SUPABASE_URL: "https://wpxkjwnfofqdmfukrnqm.supabase.co",
+        SUPABASE_ANON_KEY:
+          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndweGtqd25mb2ZxZG1mdWtybnFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY1MzQ0OTcsImV4cCI6MjA3MjExMDQ5N30.Aiiuba6dNu_7ZMSns_6D1atbsIs9_PwmLpbVEpgG1yY",
+      };
+      const BOT_BASIC_ID = "@862eqkrz";
 
-/* ============== 状態 ============== */
-let g = { userId: null, pos: null };
-let map;
-var liveScanner = (typeof liveScanner === 'undefined') ? null : liveScanner; // 冪等宣言
+      /* ============== 状態 ============== */
+      let g = { userId: null, pos: null };
+      let map;
+      var liveScanner = typeof liveScanner === "undefined" ? null : liveScanner; // 冪等宣言
 
-/* ============== ユーティリティ ============== */
-function haversine(a,b){
-  const toRad = d => d*Math.PI/180, R=6371;
-  const dLat=toRad(b.lat-a.lat), dLng=toRad(b.lng-a.lng);
-  const sa=Math.sin(dLat/2)**2 + Math.cos(toRad(a.lat))*Math.cos(toRad(b.lat))*Math.sin(dLng/2)**2;
-  return 2*R*Math.asin(Math.sqrt(sa));
-}
-function fmtTime(s){
-  const d=new Date(s), h=String(d.getHours()).padStart(2,'0'), m=String(d.getMinutes()).padStart(2,'0');
-  return `${h}:${m}`;
-}
-function parseShopId(v){
-  try{
-    const s=String(v);
-    const m=s.match(/^shop:(\d+)$/); if (m) return Number(m[1]);
-    const o=JSON.parse(s); if (o && o.shop_id) return Number(o.shop_id);
-  }catch{} return null;
-}
+      /* ============== ユーティリティ ============== */
+      function haversine(a, b) {
+        const toRad = (d) => (d * Math.PI) / 180,
+          R = 6371;
+        const dLat = toRad(b.lat - a.lat),
+          dLng = toRad(b.lng - a.lng);
+        const sa =
+          Math.sin(dLat / 2) ** 2 +
+          Math.cos(toRad(a.lat)) *
+            Math.cos(toRad(b.lat)) *
+            Math.sin(dLng / 2) ** 2;
+        return 2 * R * Math.asin(Math.sqrt(sa));
+      }
+      function fmtTime(s) {
+        const d = new Date(s),
+          h = String(d.getHours()).padStart(2, "0"),
+          m = String(d.getMinutes()).padStart(2, "0");
+        return `${h}:${m}`;
+      }
+      function parseShopId(v) {
+        try {
+          const s = String(v);
+          const m = s.match(/^shop:(\d+)$/);
+          if (m) return Number(m[1]);
+          const o = JSON.parse(s);
+          if (o && o.shop_id) return Number(o.shop_id);
+        } catch {}
+        return null;
+      }
 
-/* ============== 初期化 ============== */
-async function init(){
-  await liff.init({ liffId: CONFIG.LIFF_ID });
-  if(!liff.isLoggedIn()){ liff.login(); return; }
+      /* ============== 初期化 ============== */
+      async function init() {
+        await liff.init({ liffId: CONFIG.LIFF_ID });
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
 
-  const prof = await liff.getProfile();
-  g.userId = prof.userId;
-  document.getElementById('me').textContent = 'ログイン済み';
+        const prof = await liff.getProfile();
+        g.userId = prof.userId;
+        document.getElementById("me").textContent = "ログイン済み";
 
-  try{
-    const geo = await new Promise((ok, ng)=>navigator.geolocation.getCurrentPosition(ok, ng, {enableHighAccuracy:true, timeout:8000}));
-    g.pos = { lat: geo.coords.latitude, lng: geo.coords.longitude };
-    document.getElementById('notice').textContent = '近い順に表示中';
-  }catch{
-    g.pos = null;
-    document.getElementById('notice').textContent = '位置情報が拒否されました（距離順は概算表示）';
-  }
+        try {
+          const geo = await new Promise((ok, ng) =>
+            navigator.geolocation.getCurrentPosition(ok, ng, {
+              enableHighAccuracy: true,
+              timeout: 8000,
+            })
+          );
+          g.pos = { lat: geo.coords.latitude, lng: geo.coords.longitude };
+          document.getElementById("notice").textContent = "近い順に表示中";
+        } catch {
+          g.pos = null;
+          document.getElementById("notice").textContent =
+            "位置情報が拒否されました（距離順は概算表示）";
+        }
 
-  await loadOffers();
-}
+        await loadOffers();
+      }
 
-async function loadOffers(){
-  const url = new URL(CONFIG.SUPABASE_URL + '/rest/v1/offers');
-  url.searchParams.set('select','id,title,price,qty_available,pickup_start,pickup_end,shops:shop_id(id,name,lat,lng,address)');
-  url.searchParams.set('status','eq.active');
-  url.searchParams.set('qty_available','gt.0');
-  url.searchParams.set('order','created_at.desc');
+      async function loadOffers() {
+        const url = new URL(CONFIG.SUPABASE_URL + "/rest/v1/offers");
+        url.searchParams.set(
+          "select",
+          "id,title,price,qty_available,pickup_start,pickup_end,shops:shop_id(id,name,lat,lng,address)"
+        );
+        url.searchParams.set("status", "eq.active");
+        // url.searchParams.set('qty_available','gt.0');
+        url.searchParams.set("order", "created_at.desc");
 
-  const r = await fetch(url, { headers: { apikey: CONFIG.SUPABASE_ANON_KEY, Authorization: 'Bearer '+CONFIG.SUPABASE_ANON_KEY }});
-  const items = await r.json();
+        const r = await fetch(url, {
+          headers: {
+            apikey: CONFIG.SUPABASE_ANON_KEY,
+            Authorization: "Bearer " + CONFIG.SUPABASE_ANON_KEY,
+          },
+        });
+        const items = await r.json();
 
-  const list = items.map(it => {
-    const shop = it.shops;
-    const dist = (g.pos && shop?.lat && shop?.lng) ? haversine(g.pos,{lat:shop.lat,lng:shop.lng}) : null;
-    return {...it, shop, dist};
-  }).sort((a,b)=>{
-    if(a.dist==null && b.dist==null) return 0;
-    if(a.dist==null) return 1;
-    if(b.dist==null) return -1;
-    return a.dist-b.dist;
-  });
+        const list = items
+          .map((it) => {
+            const shop = it.shops;
+            const dist =
+              g.pos && shop?.lat && shop?.lng
+                ? haversine(g.pos, { lat: shop.lat, lng: shop.lng })
+                : null;
+            return { ...it, shop, dist };
+          })
+          .sort((a, b) => {
+            if (a.dist == null && b.dist == null) return 0;
+            if (a.dist == null) return 1;
+            if (b.dist == null) return -1;
+            return a.dist - b.dist;
+          });
 
-  render(list);
-}
+        render(list);
+      }
 
-/* ============== 友だち確認 ============== */
-async function ensureFriend(){
-  try{
-    const { friendFlag } = await liff.getFriendship();
-    if (friendFlag) return true;
-    const go = confirm("公式アカウントを友だち追加してください。追加画面を開きますか？");
-    if (go) liff.openWindow({ url: `https://line.me/R/ti/p/${BOT_BASIC_ID}`, external: true });
-    return false;
-  }catch{
-    alert("友だち状態を確認できませんでした。後でもう一度お試しください。");
-    return false;
-  }
-}
-async function checkFriendship(){
-  try{
-    const { friendFlag } = await liff.getFriendship();
-    document.getElementById('friendStatus').textContent =
-      friendFlag ? "公式アカウントは『友だち』になっています。" : "まだ友だちではありません。";
-  }catch(e){
-    document.getElementById('friendStatus').textContent =
-      "友だち状態を取得できません（Mini App と Messaging API の関連付けを確認してください）";
-    console.error(e);
-  }
-}
+      /* ============== 友だち確認 ============== */
+      async function ensureFriend() {
+        try {
+          const { friendFlag } = await liff.getFriendship();
+          if (friendFlag) return true;
+          const go = confirm(
+            "公式アカウントを友だち追加してください。追加画面を開きますか？"
+          );
+          if (go)
+            liff.openWindow({
+              url: `https://line.me/R/ti/p/${BOT_BASIC_ID}`,
+              external: true,
+            });
+          return false;
+        } catch {
+          alert(
+            "友だち状態を確認できませんでした。後でもう一度お試しください。"
+          );
+          return false;
+        }
+      }
+      async function checkFriendship() {
+        try {
+          const { friendFlag } = await liff.getFriendship();
+          document.getElementById("friendStatus").textContent = friendFlag
+            ? "公式アカウントは『友だち』になっています。"
+            : "まだ友だちではありません。";
+        } catch (e) {
+          document.getElementById("friendStatus").textContent =
+            "友だち状態を取得できません（Mini App と Messaging API の関連付けを確認してください）";
+          console.error(e);
+        }
+      }
 
-/* ============== 予約 & モーダル ============== */
-async function reserve(offer, btn){
-  if (!(await ensureFriend())) return;
-  btn.disabled = true;
-  btn.textContent = '予約中…';
-  try{
-    const idToken = liff.getIDToken();
-    const r = await fetch(CONFIG.API_BASE + '/api/reserve', {
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'Authorization':'Bearer ' + idToken
-      },
-      body: JSON.stringify({ offer_id: offer.id })   // ← UUIDのまま送る
-    });
+      /* ============== 予約 & モーダル ============== */
+      async function reserve(offer, btn) {
+        if (offer.qty_available <= 0) {
+          const ok = confirm(
+            "この商品は在庫0です。サーバ側の sold_out 動作テストとして予約リクエストを送りますか？"
+          );
+          if (!ok) return;
+        }
+        if (!(await ensureFriend())) return;
+        btn.disabled = true;
+        btn.textContent = "予約中…";
+        try {
+          const idToken = liff.getIDToken();
+          const r = await fetch(CONFIG.API_BASE + "/api/reserve", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + idToken,
+            },
+            body: JSON.stringify({ offer_id: offer.id }), // ← UUIDのまま送る
+          });
 
-    const data = await r.json();
+          const data = await r.json();
 
-    // ★ ここが追加：RPCの戻り値を判定
-    if (!data.ok && data.error === 'already_reserved') {
-      alert('このお得袋はすでに予約済みです。');
-      return;
-    }
-    if (!data.ok && data.error === 'sold_out_or_missing') {
-      alert('在庫切れ、または見つかりませんでした。');
-      return;
-    }
-    if (!data.ok) {
-      throw new Error(data.error || 'reserve_failed');
-    }
+          // ★ ここが追加：RPCの戻り値を判定
+          if (!data.ok && data.error === "already_reserved") {
+            alert("このお得袋はすでに予約済みです。");
+            return;
+          }
+          if (!data.ok && data.error === "sold_out_or_missing") {
+            alert("在庫切れ、または見つかりませんでした。");
+            return;
+          }
+          if (!data.ok) {
+            throw new Error(data.error || "reserve_failed");
+          }
 
-    // 成功時はQR表示（RPCの返却をそのまま使用）
-    showQR({
-      code: data.reservation.pickup_code,
-      shopName: offer.shops?.name || '店舗',
-      windowText: `受取時間 ${fmtTime(offer.pickup_start)}–${fmtTime(offer.pickup_end)}`
-    });
+          // 成功時はQR表示（RPCの返却をそのまま使用）
+          showQR({
+            code: data.reservation.pickup_code,
+            shopName: offer.shops?.name || "店舗",
+            windowText: `受取時間 ${fmtTime(offer.pickup_start)}–${fmtTime(
+              offer.pickup_end
+            )}`,
+          });
 
-    await loadOffers(); // 在庫など再取得
-  }catch(e){
-    alert('予約に失敗しました：' + e.message);
-  }finally{
-    btn.disabled = false;
-    btn.textContent = '予約する';
-  }
-}
+          await loadOffers(); // 在庫など再取得
+        } catch (e) {
+          alert("予約に失敗しました：" + e.message);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "予約する";
+        }
+      }
 
+      function showQR({ code, shopName, windowText }) {
+        const modal = document.getElementById("modal");
+        const canvas = document.getElementById("qr");
+        const codeTxt = document.getElementById("codeTxt");
+        const pick = document.getElementById("pickupWindow");
 
-function showQR({code, shopName, windowText}){
-  const modal = document.getElementById('modal');
-  const canvas = document.getElementById('qr');
-  const codeTxt = document.getElementById('codeTxt');
-  const pick = document.getElementById('pickupWindow');
+        if (modal.parentElement !== document.body)
+          document.body.appendChild(modal);
 
-  if (modal.parentElement !== document.body) document.body.appendChild(modal);
+        QRCode.toCanvas(canvas, code, { width: 220, margin: 1 }, () => {});
+        codeTxt.textContent = code;
+        pick.textContent = windowText || "";
 
-  QRCode.toCanvas(canvas, code, { width: 220, margin: 1 }, () => {});
-  codeTxt.textContent = code;
-  pick.textContent = windowText || '';
+        modal.style.display = "flex";
+        document.body.classList.add("modal-open");
 
-  modal.style.display = 'flex';
-  document.body.classList.add('modal-open');
+        const onClose = () => {
+          modal.style.display = "none";
+          document.body.classList.remove("modal-open");
+          if (map) setTimeout(() => map.invalidateSize(), 0);
+        };
+        document.getElementById("closeBtn").onclick = onClose;
+        document.getElementById("saveBtn").onclick = () => {
+          const a = document.createElement("a");
+          a.href = canvas.toDataURL("image/png");
+          a.download = `pickup_${code}.png`;
+          a.click();
+        };
+        modal.onclick = (e) => {
+          if (e.target === modal) onClose();
+        };
+      }
 
-  const onClose = () => {
-    modal.style.display = 'none';
-    document.body.classList.remove('modal-open');
-    if (map) setTimeout(() => map.invalidateSize(), 0);
-  };
-  document.getElementById('closeBtn').onclick = onClose;
-  document.getElementById('saveBtn').onclick = () => {
-    const a = document.createElement('a');
-    a.href = canvas.toDataURL('image/png');
-    a.download = `pickup_${code}.png`;
-    a.click();
-  };
-  modal.onclick = (e) => { if (e.target === modal) onClose(); };
-}
-
-/* ============== 一覧 & 地図 ============== */
-function render(list){
-  const el = document.getElementById('list');
-  el.innerHTML = '';
-  if(list.length===0){
-    el.innerHTML = '<div class="muted">現在、近くにお得袋はありません。</div>';
-  } else {
-    list.forEach(it=>{
-      const shop = it.shop || it.shops;
-      const dist = (it.dist!=null) ? `${it.dist.toFixed(1)}km` : '';
-      const div = document.createElement('div');
-      div.className = 'card';
-      div.innerHTML = `
+      /* ============== 一覧 & 地図 ============== */
+      function render(list) {
+        const el = document.getElementById("list");
+        el.innerHTML = "";
+        if (list.length === 0) {
+          el.innerHTML =
+            '<div class="muted">現在、近くにお得袋はありません。</div>';
+        } else {
+          list.forEach((it) => {
+            const shop = it.shop || it.shops;
+            const dist = it.dist != null ? `${it.dist.toFixed(1)}km` : "";
+            const isSoldOut = it.qty_available <= 0;
+            const div = document.createElement("div");
+            div.className = "card";
+            div.innerHTML = `
         <div class="row">
           <div>
-            <div style="font-weight:600">${shop?.name || '店舗'}</div>
-            <div class="muted" style="font-size:12px;">${shop?.address || ''}</div>
+            <div style="font-weight:600">${shop?.name || "店舗"}</div>
+            <div class="muted" style="font-size:12px;">${
+              shop?.address || ""
+            }</div>
           </div>
           <div class="muted">${dist}</div>
         </div>
-        <div style="margin:8px 0 4px 0">${it.title}</div>
+
+        <div style="margin:8px 0 4px 0">
+       ${it.title}
+       ${
+         isSoldOut
+           ? '<span style="margin-left:8px; font-size:12px; color:#c00; font-weight:600;">［売切れ］</span>'
+           : ""
+       }     
+           </div>
+        
         <div class="row">
           <div><b>¥${it.price}</b> / 残り${it.qty_available}</div>
-          <div class="muted">受取 ${fmtTime(it.pickup_start)}–${fmtTime(it.pickup_end)}</div>
+          <div class="muted">受取 ${fmtTime(it.pickup_start)}–${fmtTime(
+              it.pickup_end
+            )}</div>
         </div>
         <div style="margin-top:10px" class="row">
-          <button class="primary">予約する</button>
+          <button class="primary">${isSoldOut ? '在庫なし（テスト予約）' : '予約する'}</button>
         </div>`;
-      div.querySelector('button').onclick = (ev)=> reserve(it, ev.target);
-      el.appendChild(div);
-    });
-  }
-  renderMap(list);
-}
+            div.querySelector("button").onclick = (ev) =>
+              reserve(it, ev.target);
+            el.appendChild(div);
+          });
+        }
+        renderMap(list);
+      }
 
-function renderMap(list){
-  if (!map) {
-    map = L.map('map', { zoomControl: true }).setView([35.6812, 139.7671], 12); // 東京駅
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
-  }
+      function renderMap(list) {
+        if (!map) {
+          map = L.map("map", { zoomControl: true }).setView(
+            [35.6812, 139.7671],
+            12
+          ); // 東京駅
+          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: "&copy; OpenStreetMap contributors",
+          }).addTo(map);
+        }
 
-  // 既存マーカー削除（タイルは残す）
-  const remove = [];
-  map.eachLayer(l => { if (l instanceof L.Marker) remove.push(l); });
-  remove.forEach(l => map.removeLayer(l));
+        // 既存マーカー削除（タイルは残す）
+        const remove = [];
+        map.eachLayer((l) => {
+          if (l instanceof L.Marker) remove.push(l);
+        });
+        remove.forEach((l) => map.removeLayer(l));
 
-  const markers = [];
-  if (g.pos) markers.push(L.marker([g.pos.lat, g.pos.lng]).addTo(map).bindPopup('現在地'));
-  list.forEach(it => {
-    const s = it.shop || it.shops;
-    if (s?.lat && s?.lng) {
-      markers.push(L.marker([s.lat, s.lng]).addTo(map).bindPopup(`<b>${s.name || '店舗'}</b><br>${s.address || ''}`));
-    }
-  });
+        const markers = [];
+        if (g.pos)
+          markers.push(
+            L.marker([g.pos.lat, g.pos.lng]).addTo(map).bindPopup("現在地")
+          );
+        list.forEach((it) => {
+          const s = it.shop || it.shops;
+          if (s?.lat && s?.lng) {
+            markers.push(
+              L.marker([s.lat, s.lng])
+                .addTo(map)
+                .bindPopup(`<b>${s.name || "店舗"}</b><br>${s.address || ""}`)
+            );
+          }
+        });
 
-  if (markers.length) {
-    const g1 = L.featureGroup(markers);
-    map.fitBounds(g1.getBounds(), { padding:[30,30], maxZoom:15 });
-  } else {
-    map.setView([35.6812, 139.7671], 12);
-  }
-}
+        if (markers.length) {
+          const g1 = L.featureGroup(markers);
+          map.fitBounds(g1.getBounds(), { padding: [30, 30], maxZoom: 15 });
+        } else {
+          map.setView([35.6812, 139.7671], 12);
+        }
+      }
 
-/* ============== ライブスキャン ============== */
-async function favPost(shopId){
-  const idToken = liff.getIDToken();
-  const res = await fetch(`${CONFIG.API_BASE}/api/favorite-add`, {
-    method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'Authorization': 'Bearer ' + idToken
-    },
-    body: JSON.stringify({ shop_id: shopId })
-  });
-  const j = await res.json();
-  if (!j.ok) throw new Error(j.error || 'favorite_failed');
-}
+      /* ============== ライブスキャン ============== */
+      async function favPost(shopId) {
+        const idToken = liff.getIDToken();
+        const res = await fetch(`${CONFIG.API_BASE}/api/favorite-add`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + idToken,
+          },
+          body: JSON.stringify({ shop_id: shopId }),
+        });
+        const j = await res.json();
+        if (!j.ok) throw new Error(j.error || "favorite_failed");
+      }
 
+      function scanByImage() {
+        const inp = document.getElementById("qr-file");
+        if (!inp) return alert("画像入力が見つかりません");
+        inp.onchange = async (e) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          try {
+            const res = await QrScanner.scanImage(file);
+            const text = res?.data || res;
+            const shopId = parseShopId(text);
+            if (!shopId) return alert("QRの形式が不正です");
+            if (!(await ensureFriend())) return;
+            await favPost(shopId);
+            alert("お気に入り店舗に登録しました");
+          } catch (err) {
+            console.error(err);
+            alert("画像からQRを読み取れませんでした");
+          } finally {
+            e.target.value = "";
+          }
+        };
+        inp.click();
+      }
 
-function scanByImage(){
-  const inp = document.getElementById('qr-file');
-  if (!inp) return alert('画像入力が見つかりません');
-  inp.onchange = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const res = await QrScanner.scanImage(file);
-      const text = res?.data || res;
-      const shopId = parseShopId(text);
-      if (!shopId) return alert('QRの形式が不正です');
-      if (!(await ensureFriend())) return;
-      await favPost(shopId);
-      alert('お気に入り店舗に登録しました');
-    } catch (err) {
-      console.error(err);
-      alert('画像からQRを読み取れませんでした');
-    } finally {
-      e.target.value = '';
-    }
-  };
-  inp.click();
-}
-
-async function openLiveScan(){
-  try{
-    if (!(await ensureFriend())) return;
-
-    const box = document.getElementById('liveScan');
-    const video = document.getElementById('qrVideo');
-    if (!box || !video) return alert('ライブスキャンの要素が見つかりません');
-
-    // 表示 & 背景ロック
-    box.classList.add('show');
-    document.body.classList.add('live-scan-open');
-
-    if (!window.QrScanner) { alert('スキャナを読み込めませんでした'); return closeLiveScan(); }
-
-    // 多重起動ガード
-    if (liveScanner) { try{ await liveScanner.stop(); }catch{} liveScanner.destroy(); liveScanner = null; }
-
-    liveScanner = new QrScanner(
-      video,
-      async (result) => {
+      async function openLiveScan() {
         try {
-          const text = result?.data || result;
-          const shopId = parseShopId(text);
-          if (!shopId) { alert('QRの形式が不正です'); return; }
-          await favPost(shopId);
-          alert('お気に入り店舗に登録しました');
-          closeLiveScan();
+          if (!(await ensureFriend())) return;
+
+          const box = document.getElementById("liveScan");
+          const video = document.getElementById("qrVideo");
+          if (!box || !video)
+            return alert("ライブスキャンの要素が見つかりません");
+
+          // 表示 & 背景ロック
+          box.classList.add("show");
+          document.body.classList.add("live-scan-open");
+
+          if (!window.QrScanner) {
+            alert("スキャナを読み込めませんでした");
+            return closeLiveScan();
+          }
+
+          // 多重起動ガード
+          if (liveScanner) {
+            try {
+              await liveScanner.stop();
+            } catch {}
+            liveScanner.destroy();
+            liveScanner = null;
+          }
+
+          liveScanner = new QrScanner(
+            video,
+            async (result) => {
+              try {
+                const text = result?.data || result;
+                const shopId = parseShopId(text);
+                if (!shopId) {
+                  alert("QRの形式が不正です");
+                  return;
+                }
+                await favPost(shopId);
+                alert("お気に入り店舗に登録しました");
+                closeLiveScan();
+              } catch (e) {
+                console.error(e);
+                alert("処理に失敗しました");
+              }
+            },
+            {
+              preferredCamera: "environment",
+              highlightScanRegion: true,
+              highlightCodeOutline: true,
+            }
+          );
+
+          await liveScanner.start();
         } catch (e) {
           console.error(e);
-          alert('処理に失敗しました');
+          const go = confirm(
+            "カメラを起動できませんでした。画像から読み取りますか？"
+          );
+          if (go) scanByImage();
+          closeLiveScan();
         }
-      },
-      { preferredCamera: 'environment', highlightScanRegion: true, highlightCodeOutline: true }
-    );
+      }
 
-    await liveScanner.start();
-  }catch(e){
-    console.error(e);
-    const go = confirm('カメラを起動できませんでした。画像から読み取りますか？');
-    if (go) scanByImage();
-    closeLiveScan();
-  }
-}
+      async function closeLiveScan() {
+        const box = document.getElementById("liveScan");
+        box?.classList.remove("show");
+        document.body.classList.remove("live-scan-open");
+        if (liveScanner) {
+          try {
+            await liveScanner.stop();
+          } catch {}
+          liveScanner.destroy();
+          liveScanner = null;
+        }
+      }
 
-async function closeLiveScan(){
-  const box = document.getElementById('liveScan');
-  box?.classList.remove('show');
-  document.body.classList.remove('live-scan-open');
-  if (liveScanner){
-    try { await liveScanner.stop(); } catch {}
-    liveScanner.destroy();
-    liveScanner = null;
-  }
-}
+      /* ============== イベント登録 ============== */
+      document.addEventListener("DOMContentLoaded", () => {
+        document
+          .getElementById("btn-scan")
+          ?.addEventListener("click", openLiveScan);
+        document
+          .getElementById("scanClose")
+          ?.addEventListener("click", closeLiveScan);
+        // 背景（黒帯）タップでも閉じる
+        document.getElementById("liveScan")?.addEventListener("click", (e) => {
+          if (e.target && e.target.id === "liveScan") closeLiveScan();
+        });
 
-/* ============== イベント登録 ============== */
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('btn-scan')?.addEventListener('click', openLiveScan);
-  document.getElementById('scanClose')?.addEventListener('click', closeLiveScan);
-  // 背景（黒帯）タップでも閉じる
-  document.getElementById('liveScan')?.addEventListener('click', (e) => {
-    if (e.target && e.target.id === 'liveScan') closeLiveScan();
-  });
+        document
+          .getElementById("friendCheckBtn")
+          ?.addEventListener("click", checkFriendship);
+      });
 
-  document.getElementById('friendCheckBtn')?.addEventListener('click', checkFriendship);
-});
-
-init();
-</script>
-</body>
+      init();
+    </script>
+  </body>
 </html>
