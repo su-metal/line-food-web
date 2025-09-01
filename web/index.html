@@ -1056,7 +1056,9 @@
           map = L.map("map", { zoomControl: true }).setView(
             [35.6812, 139.7671],
             12
-          ); // 東京駅
+          );
+          window.map = map; // ← 追加：以後のチェックが動くように
+
           L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
             attribution: "&copy; OpenStreetMap contributors",
           }).addTo(map);
@@ -1278,10 +1280,9 @@
             document.getElementById("page-home")?.classList.add("active");
           if (name === "discover") {
             document.getElementById("page-discover")?.classList.add("active");
-            // 地図を表示に切り替えたら Leaflet を再計算
             setTimeout(() => {
-              if (window.map) map.invalidateSize();
-            }, 50);
+              if (map) map.invalidateSize();
+            }, 80); // ← window.map ではなく map
           }
           document
             .querySelectorAll(".tabbar button")
@@ -1342,15 +1343,13 @@
 
       init();
       function fixMapSize() {
-        if (window.map)
+        if (map)
           setTimeout(() => {
             try {
               map.invalidateSize();
             } catch {}
-          }, 50);
+          }, 80);
       }
-
-      // 画面が描画された直後・リサイズ時・タブ復帰時にも再計算
       window.addEventListener("load", fixMapSize);
       window.addEventListener("resize", fixMapSize);
       document.addEventListener("visibilitychange", () => {
