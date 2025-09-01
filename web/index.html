@@ -30,6 +30,10 @@
         font-family: sans-serif;
         margin: 16px;
       }
+      :root {
+        --appbar-h: 56px;
+        --btn-radius: 12px;
+      }
       .card {
         border: 1px solid #ddd;
         border-radius: 12px;
@@ -100,6 +104,7 @@
         margin-top: 16px;
         border: 1px solid #ccc;
         border-radius: 8px;
+        min-height: 300px;
       }
 
       /* 予約QRモーダル（ライブスキャンより下に） */
@@ -317,6 +322,7 @@
       .btn-row > .primary,
       .btn-row > .secondary {
         flex: 1; /* 同じ幅で並べる */
+        border-radius: var(--btn-radius) !important;
       }
 
       /* （任意）フラットなグレーの補助ボタン */
@@ -327,9 +333,6 @@
       button.secondary:disabled {
         opacity: 0.6;
         cursor: not-allowed;
-      }
-      :root {
-        --appbar-h: 56px;
       }
 
       .page-title {
@@ -1059,6 +1062,12 @@
           L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
             attribution: "&copy; OpenStreetMap contributors",
           }).addTo(map);
+
+          setTimeout(() => {
+            try {
+              map.invalidateSize();
+            } catch {}
+          }, 0);
         }
 
         // 既存マーカー削除（タイルは残す）
@@ -1327,6 +1336,25 @@
       });
 
       init();
+      function fixMapSize() {
+        if (window.map)
+          setTimeout(() => {
+            try {
+              map.invalidateSize();
+            } catch {}
+          }, 50);
+      }
+
+      // 画面が描画された直後・リサイズ時・タブ復帰時にも再計算
+      window.addEventListener("load", fixMapSize);
+      window.addEventListener("resize", fixMapSize);
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) fixMapSize();
+      });
+
+      // （タブ切替を実装している場合）ページ表示を切り替えた直後にも
+      // showPage('discover') などで地図を表示にした直後に呼ぶと確実
+      // 例：setTimeout(fixMapSize, 60);
     </script>
   </body>
 </html>
