@@ -208,10 +208,16 @@ async function reserve(offer, btn){
   if (!(await ensureFriend())) return;
   btn.disabled = true; btn.textContent = '予約中…';
   try{
-    const r = await fetch(CONFIG.API_BASE + '/api/reserve', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ offer_id: offer.id, user_liff_id: g.userId })
-    });
+    const idToken = liff.getIDToken();
+const r = await fetch(CONFIG.API_BASE + '/api/reserve', {
+  method:'POST',
+  headers:{
+    'Content-Type':'application/json',
+    'Authorization':'Bearer ' + idToken
+  },
+  body: JSON.stringify({ offer_id: offer.id })
+});
+
     const data = await r.json();
     if(!data.ok) throw new Error(data.error||'reserve_failed');
 
@@ -326,13 +332,19 @@ function renderMap(list){
 
 /* ============== ライブスキャン ============== */
 async function favPost(shopId){
+  const idToken = liff.getIDToken();
   const res = await fetch(`${CONFIG.API_BASE}/api/favorite-add`, {
-    method:'POST', headers:{ 'Content-Type':'application/json' },
-    body: JSON.stringify({ shop_id: shopId, user_liff_id: g.userId })
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'Authorization': 'Bearer ' + idToken
+    },
+    body: JSON.stringify({ shop_id: shopId })
   });
   const j = await res.json();
   if (!j.ok) throw new Error(j.error || 'favorite_failed');
 }
+
 
 function scanByImage(){
   const inp = document.getElementById('qr-file');
