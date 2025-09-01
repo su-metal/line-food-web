@@ -59,6 +59,26 @@
         cursor: not-allowed;
       }
 
+      .badge {
+        display: inline-block;
+        margin-left: 8px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 12px;
+        vertical-align: middle;
+      }
+      .badge.soldout {
+        background: #ddd;
+        color: #555;
+      }
+      .badge.reserved {
+        background: #2e7d32;
+        color: #fff;
+      }
+      .badge.paid {
+        background: #1e88e5;
+        color: #fff;
+      }
       button.danger {
         background: #cc3333;
         color: #fff;
@@ -66,6 +86,10 @@
         padding: 6px 12px;
         border-radius: 6px;
         cursor: pointer;
+      }
+      button.danger:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
       }
 
       /* 地図（常に表示） */
@@ -265,6 +289,7 @@
             "位置情報が拒否されました（距離順は概算表示）";
         }
 
+        await loadMyReservations();
         await loadOffers();
       }
 
@@ -376,6 +401,11 @@
             throw new Error(data.error || "reserve_failed");
           }
 
+          myActive.set(offer.id, {
+            id: data.reservation.id,
+            status: "reserved",
+          });
+
           // 成功時はQR表示（RPCの返却をそのまま使用）
           showQR({
             code: data.reservation.pickup_code,
@@ -471,49 +501,88 @@
         if (list.length === 0) {
           el.innerHTML =
             '<div class="muted">現在、近くにお得袋はありません。</div>';
-        } else {
-          list.forEach((it) => {
-            const shop = it.shop || it.shops;
-            const dist = it.dist != null ? `${it.dist.toFixed(1)}km` : "";
-            const isSoldOut = it.qty_available <= 0;
-            const div = document.createElement("div");
-            div.className = "card";
-            div.innerHTML = `
-        <div class="row">
-          <div>
-            <div style="font-weight:600">${shop?.name || "店舗"}</div>
-            <div class="muted" style="font-size:12px;">${
-              shop?.address || ""
-            }</div>
-          </div>
-          <div class="muted">${dist}</div>
-        </div>
-
-        <div style="margin:8px 0 4px 0">
-       ${it.title}
-       ${
-         isSoldOut
-           ? '<span style="margin-left:8px; font-size:12px; color:#c00; font-weight:600;">［売切れ］</span>'
-           : ""
-       }     
-           </div>
-        
-        <div class="row">
-          <div><b>¥${it.price}</b> / 残り${it.qty_available}</div>
-          <div class="muted">受取 ${fmtTime(it.pickup_start)}–${fmtTime(
-              it.pickup_end
-            )}</div>
-        </div>
-        <div style="margin-top:10px" class="row">
-          <button class="primary">${
-            isSoldOut ? "在庫なし（テスト予約）" : "予約する"
-          }</button>
-        </div>`;
-            div.querySelector("button").onclick = (ev) =>
-              reserve(it, ev.target);
-            el.appendChild(div);
-          });
+          return;
         }
+        list.forEach((it) => {
+          const shop = it.shop || it.shops;
+          const dist = it.dist != null ? `${it.dist.toFixed(1)}km` : "";
+          const isSoldOut = it.qty_available <= 0;
+
+          const my = myActive.get(it.id); // ← 自分の予約がある？
+          const isMine = !!my;
+          const isPaid = isMine && my.status === "paid";
+
+          const div = document.createElement("div");
+          div.className = "card";
+          div.innerHTML = `
+      <div class="row">
+        <div>
+          <div style="font-weight:600">${shop?.name || "店舗"}</div>
+          <div class="muted" style="font-size:12px;">${
+            shop?.address || ""
+          }</div>
+        </div>
+        <div class="muted">${dist}</div>
+      </div>
+      <div style="margin:8px 0 4px 0">
+        ${it.title}
+        ${
+          isSoldOut && !isMine
+            ? '<span class="badge soldout">売切れ</span>'
+            : ""
+        }
+        ${isMine ? '<span class="badge reserved">予約済み</span>' : ""}
+        ${isPaid ? '<span class="badge paid">決済済み</span>' : ""}
+      </div>
+      <div class="row">
+        <div><b>¥${it.price}</b> / 残り${it.qty_available}</div>
+        <div class="muted">受取 ${fmtTime(it.pickup_start)}–${fmtTime(
+            it.pickup_end
+          )}</div>
+      </div>
+      <div style="margin-top:10px" class="row">
+        ${
+          isMine
+            ? `
+              <div>
+                <button class="danger btn-cancel">キャンセル</button>
+              </div>
+            `
+            : `
+              <div>
+                <button class="primary btn-reserve"${
+                  isSoldOut ? " disabled" : ""
+                }>
+                  ${isSoldOut ? "在庫なし" : "予約する"}
+                </button>
+              </div>
+            `
+        }
+      </div>`;
+
+          if (isMine) {
+            const btnCancel = div.querySelector(".btn-cancel");
+            // paid はキャンセル不可（RPCが not_cancellable を返す想定）
+            if (isPaid) btnCancel.disabled = true;
+            btnCancel.onclick = async () => {
+              try {
+                await cancelReservation(my.id); // 既存の cancelReservation を使う
+                myActive.delete(it.id); // 一覧の状態を更新
+                await loadOffers(); // 在庫が戻るので再描画
+              } catch (e) {
+                console.error(e);
+              }
+            };
+          } else {
+            const btnReserve = div.querySelector(".btn-reserve");
+            btnReserve?.addEventListener("click", (ev) =>
+              reserve(it, ev.target)
+            );
+          }
+
+          el.appendChild(div);
+        });
+
         renderMap(list);
       }
 
@@ -671,6 +740,25 @@
           } catch {}
           liveScanner.destroy();
           liveScanner = null;
+        }
+      }
+
+      let myActive = new Map(); // offer_id -> { id: reservation_id, status }
+      async function loadMyReservations() {
+        myActive.clear();
+        try {
+          const idToken = liff.getIDToken();
+          const r = await fetch(CONFIG.API_BASE + "/api/my-reservations", {
+            headers: { Authorization: "Bearer " + idToken },
+          });
+          const j = await r.json();
+          if (r.ok && j?.ok && Array.isArray(j.items)) {
+            j.items.forEach((x) => {
+              myActive.set(x.offer_id, { id: x.id, status: x.status });
+            });
+          }
+        } catch (e) {
+          console.warn("loadMyReservations failed", e);
         }
       }
 
