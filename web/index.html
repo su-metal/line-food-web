@@ -229,7 +229,7 @@
 
       /* ============== 状態 ============== */
       let g = { userId: null, pos: null };
-      let map, userMarker;  // ← 追加：現在地の円マーカー用
+      let map, userMarker; // ← 追加：現在地の円マーカー用
       var liveScanner = typeof liveScanner === "undefined" ? null : liveScanner; // 冪等宣言
 
       /* ============== ユーティリティ ============== */
@@ -461,6 +461,25 @@
         };
       }
 
+      async function payReservation(reservationId) {
+        const idToken = liff.getIDToken();
+        const r = await fetch(CONFIG.API_BASE + "/api/pay/fake-complete", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + idToken,
+          },
+          body: JSON.stringify({ reservation_id: reservationId }),
+        });
+        const j = await r.json().catch(() => null);
+        if (!r.ok || !j?.ok) {
+          const msg = j?.error || "pay_failed";
+          alert("決済（テスト）に失敗しました：" + msg);
+          throw new Error(msg);
+        }
+        alert("決済（テスト）が完了しました。");
+      }
+
       async function cancelReservation(reservationId, onClose) {
         if (!reservationId) return alert("予約IDが見つかりません");
         if (!confirm("この予約をキャンセルしますか？")) return;
@@ -545,6 +564,7 @@
           isMine
             ? `
               <div>
+                <button class="primary btn-pay">決済へ進む（テスト）</button>
                 <button class="danger btn-cancel">キャンセル</button>
               </div>
             `
@@ -561,6 +581,18 @@
       </div>`;
 
           if (isMine) {
+            const btnPay = div.querySelector(".btn-pay");
+            if (btnPay && !isPaid) {
+              btnPay.onclick = async () => {
+                try {
+                  await payReservation(my.id);
+                  await loadMyReservations();
+                  await loadOffers();
+                } catch (e) {
+                  console.error(e);
+                }
+              };
+            }
             const btnCancel = div.querySelector(".btn-cancel");
             // paid はキャンセル不可（RPCが not_cancellable を返す想定）
             if (isPaid) btnCancel.disabled = true;
