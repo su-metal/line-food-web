@@ -439,7 +439,7 @@
     <main id="page-discover" class="page">
       <div id="map" style="height: 58vh; border-radius: 12px"></div>
       <div style="margin: 12px 0">
-        <button id="btn-scan" class="primary" style="width: 100%">
+        <button id="btn-scan-discover" class="primary" style="width: 100%">
           店舗QRを読み取る
         </button>
       </div>
@@ -504,8 +504,6 @@
         <small>マイページ</small>
       </button>
     </nav>
-
-    <div id="map"></div>
 
     <!-- 予約QRモーダル -->
     <div id="modal" aria-hidden="true">
@@ -1312,6 +1310,13 @@
         document
           .getElementById("more-recent")
           ?.addEventListener("click", () => showPage("discover"));
+
+        document
+          .getElementById("btn-scan")
+          ?.addEventListener("click", openLiveScan);
+        document
+          .getElementById("btn-scan-discover")
+          ?.addEventListener("click", openLiveScan);
 
         // （※ 検索バーのフィルタ (d) を入れているなら、ここに q の input リスナーも追記）
         const q = document.getElementById("q");
