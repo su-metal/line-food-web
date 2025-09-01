@@ -373,7 +373,9 @@
           if (!ok) return;
         }
         if (!(await ensureFriend())) return;
+
         btn.disabled = true;
+        const prev = btn.textContent;
         btn.textContent = "予約中…";
         try {
           const idToken = liff.getIDToken();
@@ -383,45 +385,33 @@
               "Content-Type": "application/json",
               Authorization: "Bearer " + idToken,
             },
-            body: JSON.stringify({ offer_id: offer.id }), // ← UUIDのまま送る
+            body: JSON.stringify({ offer_id: offer.id }), // UUIDを送る
           });
-
           const data = await r.json();
 
-          // ★ ここが追加：RPCの戻り値を判定
-          if (!data.ok && data.error === "already_reserved") {
-            alert("このお得袋はすでに予約済みです。");
-            return;
-          }
-          if (!data.ok && data.error === "sold_out_or_missing") {
-            alert("在庫切れ、または見つかりませんでした。");
-            return;
-          }
           if (!data.ok) {
+            if (data.error === "already_reserved")
+              return alert("このお得袋はすでに予約済みです。");
+            if (data.error === "sold_out_or_missing")
+              return alert("在庫切れ、または見つかりませんでした。");
             throw new Error(data.error || "reserve_failed");
           }
 
+          // 予約は作れたので、状態だけ更新（ここではQRは表示しない）
           myActive.set(offer.id, {
             id: data.reservation.id,
             status: "reserved",
+            pickup_code: data.reservation.pickup_code || null,
           });
 
-          // 成功時はQR表示（RPCの返却をそのまま使用）
-          showQR({
-            code: data.reservation.pickup_code,
-            reservationId: data.reservation.id,
-            shopName: offer.shops?.name || "店舗",
-            windowText: `受取時間 ${fmtTime(offer.pickup_start)}–${fmtTime(
-              offer.pickup_end
-            )}`,
-          });
-
-          await loadOffers(); // 在庫など再取得
+          alert("予約を作成しました。続けて「決済へ進む」を押してください。");
+          await loadMyReservations();
+          await loadOffers();
         } catch (e) {
           alert("予約に失敗しました：" + e.message);
         } finally {
           btn.disabled = false;
-          btn.textContent = "予約する";
+          btn.textContent = prev;
         }
       }
 
@@ -461,7 +451,7 @@
         };
       }
 
-      async function payReservation(reservationId) {
+      async function payReservation(reservationId, offer) {
         const idToken = liff.getIDToken();
         const r = await fetch(CONFIG.API_BASE + "/api/pay/fake-complete", {
           method: "POST",
@@ -477,7 +467,30 @@
           alert("決済（テスト）に失敗しました：" + msg);
           throw new Error(msg);
         }
-        alert("決済（テスト）が完了しました。");
+
+        // RPCが返してくる予約情報で状態を更新
+        const resv = j.reservation;
+        myActive.set(resv.offer_id, {
+          id: resv.id,
+          status: "paid",
+          pickup_code:
+            resv.pickup_code ||
+            myActive.get(resv.offer_id)?.pickup_code ||
+            null,
+        });
+
+        // ここで QR を表示（ユーザーの希望フロー）
+        showQR({
+          code: myActive.get(resv.offer_id)?.pickup_code || resv.pickup_code,
+          reservationId: resv.id,
+          shopName: offer?.shops?.name || "店舗",
+          windowText: `受取時間 ${fmtTime(offer.pickup_start)}–${fmtTime(
+            offer.pickup_end
+          )}`,
+        });
+
+        await loadMyReservations();
+        await loadOffers();
       }
 
       async function cancelReservation(reservationId, onClose) {
@@ -527,7 +540,7 @@
           const dist = it.dist != null ? `${it.dist.toFixed(1)}km` : "";
           const isSoldOut = it.qty_available <= 0;
 
-          const my = myActive.get(it.id); // ← 自分の予約がある？
+          const my = myActive.get(it.id); // 自分の予約
           const isMine = !!my;
           const isPaid = isMine && my.status === "paid";
 
@@ -562,18 +575,25 @@
       <div style="margin-top:10px" class="row">
         ${
           isMine
-            ? `
-              <div>
-                <button class="primary btn-pay">決済へ進む（テスト）</button>
-                <button class="danger btn-cancel">キャンセル</button>
-              </div>
-            `
+            ? isPaid
+              ? `
+                  <div>
+                    <button class="primary btn-show-qr">QRを表示</button>
+                    <button class="danger btn-cancel" disabled>キャンセル</button>
+                  </div>
+                `
+              : `
+                  <div>
+                    <button class="primary btn-pay">決済へ進む（テスト）</button>
+                    <button class="danger btn-cancel">キャンセル</button>
+                  </div>
+                `
             : `
               <div>
                 <button class="primary btn-reserve"${
                   isSoldOut ? " disabled" : ""
                 }>
-                  ${isSoldOut ? "在庫なし" : "予約する"}
+                  ${isSoldOut ? "在庫なし" : "予約へ進む"}
                 </button>
               </div>
             `
@@ -581,11 +601,40 @@
       </div>`;
 
           if (isMine) {
+            // 決済へ
             const btnPay = div.querySelector(".btn-pay");
             if (btnPay && !isPaid) {
               btnPay.onclick = async () => {
                 try {
-                  await payReservation(my.id);
+                  await payReservation(my.id, it);
+                } catch (e) {
+                  console.error(e);
+                }
+              };
+            }
+            // QR表示（paid の時だけ）
+            const btnShow = div.querySelector(".btn-show-qr");
+            if (btnShow && isPaid) {
+              btnShow.onclick = () => {
+                if (!my.pickup_code)
+                  return alert("QRコードが見つかりませんでした");
+                showQR({
+                  code: my.pickup_code,
+                  reservationId: my.id,
+                  shopName: shop?.name || "店舗",
+                  windowText: `受取時間 ${fmtTime(it.pickup_start)}–${fmtTime(
+                    it.pickup_end
+                  )}`,
+                });
+              };
+            }
+            // キャンセル（paid は無効化済み）
+            const btnCancel = div.querySelector(".btn-cancel");
+            if (btnCancel && !isPaid) {
+              btnCancel.onclick = async () => {
+                try {
+                  await cancelReservation(my.id);
+                  myActive.delete(it.id);
                   await loadMyReservations();
                   await loadOffers();
                 } catch (e) {
@@ -593,18 +642,6 @@
                 }
               };
             }
-            const btnCancel = div.querySelector(".btn-cancel");
-            // paid はキャンセル不可（RPCが not_cancellable を返す想定）
-            if (isPaid) btnCancel.disabled = true;
-            btnCancel.onclick = async () => {
-              try {
-                await cancelReservation(my.id); // 既存の cancelReservation を使う
-                myActive.delete(it.id); // 一覧の状態を更新
-                await loadOffers(); // 在庫が戻るので再描画
-              } catch (e) {
-                console.error(e);
-              }
-            };
           } else {
             const btnReserve = div.querySelector(".btn-reserve");
             btnReserve?.addEventListener("click", (ev) =>
@@ -790,7 +827,8 @@
         }
       }
 
-      let myActive = new Map(); // offer_id -> { id: reservation_id, status }
+      let myActive = new Map(); // offer_id -> { id, status, pickup_code }
+
       async function loadMyReservations() {
         myActive.clear();
         try {
@@ -801,7 +839,11 @@
           const j = await r.json();
           if (r.ok && j?.ok && Array.isArray(j.items)) {
             j.items.forEach((x) => {
-              myActive.set(x.offer_id, { id: x.id, status: x.status });
+              myActive.set(x.offer_id, {
+                id: x.id,
+                status: x.status,
+                pickup_code: x.pickup_code || null,
+              });
             });
           }
         } catch (e) {
