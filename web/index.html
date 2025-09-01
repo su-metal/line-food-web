@@ -69,6 +69,21 @@ body.modal-open .leaflet-bottom {
 .live-scan video{ max-width:100%; max-height:70vh; }
 .live-scan .close-btn{ margin-top:12px; }
 
+/* ライブスキャン（最前面に & クリック可） */
+.live-scan{
+  display:none; position:fixed; inset:0; background:#000;
+  align-items:center; justify-content:center; flex-direction:column;
+  z-index: 2147483646 !important; /* 地図や他モーダルより前 */
+}
+.live-scan.show{ display:flex; }
+.live-scan video{ max-width:100%; max-height:70vh; pointer-events:auto; }
+.live-scan .close-btn{ margin-top:12px; position:relative; z-index:2147483647; }
+
+/* ライブスキャン中は背景をクリック不可にする（地図クリック抜け防止） */
+body.live-scan-open #map,
+body.live-scan-open .leaflet-container{
+  pointer-events: none !important;
+}
 
 </style>
 
@@ -539,10 +554,82 @@ function closeLiveScan(){
   }
 }
 
+// QrScanner のワーカー指定（未設定なら）
+if (window.QrScanner && !QrScanner.WORKER_PATH) {
+  QrScanner.WORKER_PATH = 'https://unpkg.com/qr-scanner@1.4.2/qr-scanner-worker.min.js';
+}
+
+
+async function openLiveScan(){
+  try{
+    if (!(await ensureFriend())) return;
+
+    const box = document.getElementById('liveScan');
+    const video = document.getElementById('qrVideo');
+    if (!box || !video) return alert('ライブスキャンの要素が見つかりません');
+
+    // 表示＆背景をロック
+    box.classList.add('show');
+    document.body.classList.add('live-scan-open');
+
+    if (!window.QrScanner) {
+      alert('スキャナを読み込めませんでした');
+      return closeLiveScan();
+    }
+
+    // 既存インスタンスがあれば破棄（多重起動対策）
+    if (liveScanner) { try { await liveScanner.stop(); } catch{} liveScanner.destroy(); liveScanner = null; }
+
+    liveScanner = new QrScanner(
+      video,
+      async (result) => {
+        try {
+          const text = result?.data || result;
+          const shopId = parseShopId(text);
+          if (!shopId) { alert('QRの形式が不正です'); return; }
+          await favPost(shopId);
+          alert('お気に入り店舗に登録しました');
+          closeLiveScan();
+        } catch (e) {
+          console.error(e);
+          alert('処理に失敗しました');
+        }
+      },
+      { preferredCamera: 'environment', highlightScanRegion: true, highlightCodeOutline: true }
+    );
+
+    await liveScanner.start();
+  }catch(e){
+    console.error(e);
+    alert('カメラを起動できませんでした');
+    closeLiveScan();
+  }
+}
+
+async function closeLiveScan(){
+  const box = document.getElementById('liveScan');
+  box?.classList.remove('show');
+  document.body.classList.remove('live-scan-open');
+  if (liveScanner){
+    try { await liveScanner.stop(); } catch {}
+    liveScanner.destroy();
+    liveScanner = null;
+  }
+}
+
+// クリックを“必ず”結び付ける（DOM構築後に実行）
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('btn-scan')?.addEventListener('click', openLiveScan);
+  document.getElementById('scanClose')?.addEventListener('click', closeLiveScan);
+  // 黒背景（オーバーレイ）をタップしても閉じられるように
+  document.getElementById('liveScan')?.addEventListener('click', (e) => {
+    if (e.target && e.target.id === 'liveScan') closeLiveScan();
+  });
+});
+
 // 「店舗QRを読み取る」ボタンにライブスキャンを割当
 document.getElementById('btn-scan')?.addEventListener('click', openLiveScan);
 document.getElementById('scanClose')?.addEventListener('click', closeLiveScan);
-
 
 init();
 </script>
