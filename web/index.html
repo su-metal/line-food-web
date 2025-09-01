@@ -856,131 +856,70 @@
 
       /* ============== 一覧 & 地図 ============== */
       function render(list) {
+        // 新ホームUI（横スワイプ）の描画
         renderHomeSections(list);
+
+        // 旧リストUIが無い環境では安全にスキップ
         const el = document.getElementById("list");
-        el.innerHTML = "";
-        if (list.length === 0) {
-          el.innerHTML =
-            '<div class="muted">現在、近くにお得袋はありません。</div>';
-          return;
-        }
-        list.forEach((it) => {
-          const shop = it.shop || it.shops;
-          const dist = it.dist != null ? `${it.dist.toFixed(1)}km` : "";
-          const isSoldOut = it.qty_available <= 0;
-
-          const my = myActive.get(it.id); // 自分の予約
-          const isMine = !!my;
-          const isPaid = isMine && my.status === "paid";
-
-          const div = document.createElement("div");
-          div.className = "card";
-          div.innerHTML = `
-      <div class="row">
-        <div>
-          <div style="font-weight:600">${shop?.name || "店舗"}</div>
-          <div class="muted" style="font-size:12px;">${
-            shop?.address || ""
-          }</div>
-        </div>
-        <div class="muted">${dist}</div>
-      </div>
-      <div style="margin:8px 0 4px 0">
-        ${it.title}
-        ${
-          isSoldOut && !isMine
-            ? '<span class="badge soldout">売切れ</span>'
-            : ""
-        }
-        ${isMine ? '<span class="badge reserved">予約済み</span>' : ""}
-        ${isPaid ? '<span class="badge paid">決済済み</span>' : ""}
-      </div>
-      <div class="row">
-        <div><b>¥${it.price}</b> / 残り${it.qty_available}</div>
-        <div class="muted">受取 ${fmtTime(it.pickup_start)}–${fmtTime(
-            it.pickup_end
-          )}</div>
-      </div>
-      <div style="margin-top:10px" class="row">
-        ${
-          isMine
-            ? isPaid
-              ? `
-                  <div>
-                    <button class="primary btn-show-qr">QRを表示</button>
-                    <button class="danger btn-cancel" disabled>キャンセル</button>
-                  </div>
-                `
-              : `
-                  <div>
-                    <button class="primary btn-pay">決済へ進む（テスト）</button>
-                    <button class="danger btn-cancel">キャンセル</button>
-                  </div>
-                `
-            : `
-              <div>
-                <button class="primary btn-reserve"${
-                  isSoldOut ? " disabled" : ""
-                }>
-                  ${isSoldOut ? "在庫なし" : "予約へ進む"}
-                </button>
-              </div>
-            `
-        }
-      </div>`;
-
-          if (isMine) {
-            // 決済へ
-            const btnPay = div.querySelector(".btn-pay");
-            if (btnPay && !isPaid) {
-              btnPay.onclick = async () => {
-                try {
-                  await payReservation(my.id, it);
-                } catch (e) {
-                  console.error(e);
-                }
-              };
-            }
-            // QR表示（paid の時だけ）
-            const btnShow = div.querySelector(".btn-show-qr");
-            if (btnShow && isPaid) {
-              btnShow.onclick = () => {
-                if (!my.pickup_code)
-                  return alert("QRコードが見つかりませんでした");
-                showQR({
-                  code: my.pickup_code,
-                  reservationId: my.id,
-                  shopName: shop?.name || "店舗",
-                  windowText: `受取時間 ${fmtTime(it.pickup_start)}–${fmtTime(
-                    it.pickup_end
-                  )}`,
-                });
-              };
-            }
-            // キャンセル（paid は無効化済み）
-            const btnCancel = div.querySelector(".btn-cancel");
-            if (btnCancel && !isPaid) {
-              btnCancel.onclick = async () => {
-                try {
-                  await cancelReservation(my.id);
-                  myActive.delete(it.id);
-                  await loadMyReservations();
-                  await loadOffers();
-                } catch (e) {
-                  console.error(e);
-                }
-              };
-            }
+        if (el) {
+          el.innerHTML = "";
+          if (list.length === 0) {
+            el.innerHTML =
+              '<div class="muted">現在、近くにお得袋はありません。</div>';
           } else {
-            const btnReserve = div.querySelector(".btn-reserve");
-            btnReserve?.addEventListener("click", (ev) =>
-              reserve(it, ev.target)
-            );
+            list.forEach((it) => {
+              const shop = it.shop || it.shops;
+              const dist = it.dist != null ? `${it.dist.toFixed(1)}km` : "";
+              const isSoldOut = it.qty_available <= 0;
+              const my = myActive.get(it.id);
+              const isPaid = my && my.status === "paid";
+
+              const div = document.createElement("div");
+              div.className = "card";
+              div.innerHTML = `
+          <div class="row">
+            <div>
+              <div style="font-weight:600">${shop?.name || "店舗"}</div>
+              <div class="muted" style="font-size:12px;">${
+                shop?.address || ""
+              }</div>
+            </div>
+            <div class="muted">${dist}</div>
+          </div>
+          <div style="margin:8px 0 4px 0">
+            ${it.title}
+            ${
+              isSoldOut && !my
+                ? '<span class="badge soldout">売切れ</span>'
+                : ""
+            }
+            ${my ? '<span class="badge reserved">予約済み</span>' : ""}
+            ${isPaid ? '<span class="badge paid">決済済み</span>' : ""}
+          </div>
+          <div class="row">
+            <div><b>¥${it.price}</b> / 残り${it.qty_available}</div>
+            <div class="muted">受取 ${fmtTime(it.pickup_start)}–${fmtTime(
+                it.pickup_end
+              )}</div>
+          </div>
+          <div style="margin-top:10px" class="row">
+            ${
+              my
+                ? isPaid
+                  ? `<div><button class="primary btn-show-qr">QRを表示</button><button class="danger btn-cancel" disabled>キャンセル</button></div>`
+                  : `<div><button class="primary btn-pay">決済へ進む（テスト）</button><button class="danger btn-cancel">キャンセル</button></div>`
+                : `<div><button class="primary btn-reserve" ${
+                    isSoldOut ? "disabled" : ""
+                  }>${isSoldOut ? "在庫なし" : "予約へ進む"}</button></div>`
+            }
+          </div>`;
+              // 必要ならここに各ボタンの addEventListener を付与
+              el.appendChild(div);
+            });
           }
+        }
 
-          el.appendChild(div);
-        });
-
+        // ★ 重要：必ず地図を更新
         renderMap(list);
       }
 
