@@ -8,6 +8,8 @@ const SERVICE_ROLE =
   process.env.SUPABASE_SERVICE_KEY ||
   process.env.SUPABASE_SERVICE_ROLE_KEY;
 const LINE_CHANNEL_ID = process.env.LINE_CHANNEL_ID;
+const LINE_LOGIN_CHANNEL_ID = process.env.LINE_LOGIN_CHANNEL_ID; // ←新規
+const LINE_MSG_CHANNEL_ID   = process.env.LINE_CHANNEL_ID;       // ←既存（Messaging API）
 
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://line-food-web.vercel.app')
   .split(',').map(s => s.trim());
@@ -23,23 +25,34 @@ function applyCors(req, res) {
 }
 
 // ── Auth: IDトークン→userId ─────────────────────────
+
+
 async function getUserIdFromIdToken(req) {
   const auth = req.headers.authorization || '';
   const idToken = auth.startsWith('Bearer ') ? auth.slice(7) : null;
   if (!idToken) throw new Error('no_id_token');
 
-  const resp = await fetch('https://api.line.me/oauth2/v2.1/verify', {
-    method: 'POST',
-    headers: { 'Content-Type':'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      id_token: idToken,
-      client_id: LINE_CHANNEL_ID, // Messaging APIのチャネルID
-    })
-  });
-  const v = await resp.json();
-  if (!resp.ok || !v.sub) throw new Error('verify_failed');
+  async function verifyWith(clientId) {
+    if (!clientId) return null;
+    const resp = await fetch('https://api.line.me/oauth2/v2.1/verify', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ id_token: idToken, client_id: clientId })
+    });
+    const v = await resp.json().catch(() => null);
+    return (resp.ok && v && v.sub) ? v : null;
+  }
+
+  // 1st: LIFF 親（LINE Login）で検証
+  let v = await verifyWith(LINE_LOGIN_CHANNEL_ID);
+
+  // 2nd: 念のため Messaging API のチャネルでも試す
+  if (!v) v = await verifyWith(LINE_MSG_CHANNEL_ID);
+
+  if (!v) throw new Error('verify_failed');
   return v.sub; // "U..." のユーザーID
 }
+
 
 // ── Handler ────────────────────────────────────────
 export default async function handler(req, res) {
