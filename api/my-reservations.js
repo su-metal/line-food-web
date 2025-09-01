@@ -57,7 +57,7 @@ export default async function handler(req, res) {
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, { auth:{ persistSession:false } });
     const { data, error } = await supabase
       .from('reservations')
-      .select('id, offer_id, status')
+      .select('id, offer_id, status, pickup_code')
       .eq('user_liff_id', user_liff_id)
       .in('status', ['reserved', 'paid']);
 
