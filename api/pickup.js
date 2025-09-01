@@ -10,8 +10,17 @@ async function readJson(req) {
   try { return JSON.parse(raw || '{}'); } catch { return {}; }
 }
 
-export default async function handler(req, res) {
+// ① "export default" を付けずに handler を定義
+async function handler(req, res) {
+  if (req.method === 'OPTIONS') { // 先にここで返してもOK
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    return res.status(204).end();
+  }
+
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
+
   const { pickup_code } = await readJson(req);
   if (!pickup_code) return res.status(400).json({ error: 'missing_code' });
 
@@ -37,3 +46,17 @@ export default async function handler(req, res) {
 
   return res.status(200).json({ ok: true });
 }
+
+// ② CORSラッパーを定義
+function allowCors(fn){
+  return async (req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    if (req.method === 'OPTIONS') { res.status(204).end(); return; }
+    return fn(req, res);
+  };
+}
+
+// ③ ラップしたものをデフォルトエクスポート
+export default allowCors(handler);
