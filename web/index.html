@@ -59,6 +59,15 @@
         cursor: not-allowed;
       }
 
+      button.danger {
+        background: #cc3333;
+        color: #fff;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+
       /* 地図（常に表示） */
       #map {
         position: relative;
@@ -166,6 +175,7 @@
             閉じる
           </button>
           <button id="saveBtn" class="primary">保存</button>
+          <button id="cancelBtn" class="danger">キャンセル</button>
         </div>
       </div>
     </div>
@@ -369,6 +379,7 @@
           // 成功時はQR表示（RPCの返却をそのまま使用）
           showQR({
             code: data.reservation.pickup_code,
+            reservationId: data.reservation.id,
             shopName: offer.shops?.name || "店舗",
             windowText: `受取時間 ${fmtTime(offer.pickup_start)}–${fmtTime(
               offer.pickup_end
@@ -384,7 +395,7 @@
         }
       }
 
-      function showQR({ code, shopName, windowText }) {
+      function showQR({ code, reservationId, shopName, windowText }) {
         const modal = document.getElementById("modal");
         const canvas = document.getElementById("qr");
         const codeTxt = document.getElementById("codeTxt");
@@ -412,9 +423,45 @@
           a.download = `pickup_${code}.png`;
           a.click();
         };
+        const cancelBtn = document.getElementById("cancelBtn");
+        if (cancelBtn)
+          cancelBtn.onclick = () => cancelReservation(reservationId, onClose);
         modal.onclick = (e) => {
           if (e.target === modal) onClose();
         };
+      }
+
+      async function cancelReservation(reservationId, onClose) {
+        if (!reservationId) return alert("予約IDが見つかりません");
+        if (!confirm("この予約をキャンセルしますか？")) return;
+        try {
+          const idToken = liff.getIDToken();
+          const r = await fetch(CONFIG.API_BASE + "/api/cancel", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + idToken,
+            },
+            body: JSON.stringify({ reservation_id: reservationId }),
+          });
+          let data;
+          try {
+            data = await r.json();
+          } catch {}
+          if (!r.ok || !data?.ok) {
+            const msg = data?.error || "cancel_failed";
+            if (msg === "too_late")
+              return alert("受取開始後はキャンセルできません。");
+            if (msg === "not_cancellable")
+              return alert("この予約はキャンセルできません。");
+            return alert("キャンセルに失敗しました：" + msg);
+          }
+          alert("キャンセルしました。");
+          if (typeof onClose === "function") onClose();
+          await loadOffers(); // 在庫を戻して再描画
+        } catch (e) {
+          alert("キャンセルに失敗しました：" + e.message);
+        }
       }
 
       /* ============== 一覧 & 地図 ============== */
@@ -458,7 +505,9 @@
             )}</div>
         </div>
         <div style="margin-top:10px" class="row">
-          <button class="primary">${isSoldOut ? '在庫なし（テスト予約）' : '予約する'}</button>
+          <button class="primary">${
+            isSoldOut ? "在庫なし（テスト予約）" : "予約する"
+          }</button>
         </div>`;
             div.querySelector("button").onclick = (ev) =>
               reserve(it, ev.target);
