@@ -605,10 +605,25 @@
         remove.forEach((l) => map.removeLayer(l));
 
         const markers = [];
-        if (g.pos)
-          markers.push(
-            L.marker([g.pos.lat, g.pos.lng]).addTo(map).bindPopup("現在地")
-          );
+
+        // 現在地は「円マーカー」で色を変える（店舗とは見分けやすく）
+        if (g.pos) {
+          if (!userMarker) {
+            userMarker = L.circleMarker([g.pos.lat, g.pos.lng], {
+              radius: 10,
+              color: "#2e7d32", // 枠線色（濃い緑）
+              fillColor: "#66bb6a", // 塗り色（明るい緑）
+              fillOpacity: 0.9,
+              weight: 3,
+            })
+              .addTo(map)
+              .bindPopup("現在地");
+          } else {
+            userMarker.setLatLng([g.pos.lat, g.pos.lng]);
+          }
+          markers.push(userMarker);
+        }
+
         list.forEach((it) => {
           const s = it.shop || it.shops;
           if (s?.lat && s?.lng) {
