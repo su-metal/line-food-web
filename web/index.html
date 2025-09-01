@@ -148,6 +148,153 @@
       body.live-scan-open .leaflet-container {
         pointer-events: none !important;
       }
+
+      /* ===== Home UI（検索バー / 横スワイプ / タブバー） ===== */
+      :root {
+        --brand: #6b1a16; /* お好みで */
+        --ink: #222;
+        --muted: #666;
+        --card: #fff;
+        --bg: #f6f3ef;
+      }
+      body {
+        background: var(--bg);
+      }
+
+      .searchbar {
+        background: #fff;
+        border: 1px solid #e5e2dd;
+        border-radius: 999px;
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .searchbar input {
+        border: none;
+        outline: none;
+        width: 100%;
+        font-size: 15px;
+        background: transparent;
+      }
+      .sec {
+        margin: 16px 0 8px;
+      }
+      .sec-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 10px 4px;
+      }
+      .sec-head h2 {
+        font-size: 18px;
+        margin: 0;
+      }
+      .sec-head a {
+        color: var(--brand);
+        font-size: 14px;
+        text-decoration: none;
+      }
+
+      /* 横スワイプ（ライブラリ不要） */
+      .carousel {
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: 80%;
+        gap: 12px;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        padding: 6px 4px 18px;
+      }
+      .card-lg {
+        position: relative;
+        background: #000;
+        color: #fff;
+        border-radius: 16px;
+        overflow: hidden;
+        height: 220px;
+        scroll-snap-align: start;
+      }
+      .card-lg img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        opacity: 0.95;
+      }
+      .card-lg .overlay {
+        position: absolute;
+        inset: auto 0 0 0;
+        padding: 12px;
+        background: linear-gradient(
+          180deg,
+          rgba(0, 0, 0, 0) 0%,
+          rgba(0, 0, 0, 0.65) 70%
+        );
+      }
+      .card-lg .title {
+        font-weight: 700;
+        font-size: 16px;
+        line-height: 1.2;
+      }
+      .card-lg .meta {
+        display: flex;
+        gap: 10px;
+        font-size: 12px;
+        opacity: 0.95;
+        margin-top: 4px;
+      }
+      .card-lg .price {
+        position: absolute;
+        right: 10px;
+        top: 10px;
+        background: rgba(0, 0, 0, 0.6);
+        border-radius: 10px;
+        padding: 4px 8px;
+        font-weight: 700;
+      }
+
+      /* 下部タブバー */
+      .tabbar {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 2000;
+        background: #fff;
+        border-top: 1px solid #e5e2dd;
+        display: flex;
+        justify-content: space-around;
+        padding: 8px calc(env(safe-area-inset-right, 0px))
+          calc(8px + env(safe-area-inset-bottom, 0px))
+          calc(env(safe-area-inset-left, 0px));
+      }
+      .tabbar button {
+        background: none;
+        border: none;
+        padding: 6px 8px;
+        color: #8a8278;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+      }
+      .tabbar button.active {
+        color: var(--brand);
+        font-weight: 700;
+      }
+      .tabbar svg {
+        width: 22px;
+        height: 22px;
+      }
+
+      /* ページ切替 */
+      .page {
+        display: none;
+      }
+      .page.active {
+        display: block;
+      }
     </style>
   </head>
 
@@ -174,7 +321,121 @@
       />
     </div>
 
-    <div id="list"></div>
+    <!-- ここからホームページ -->
+    <main id="page-home" class="page active">
+      <div class="searchbar" style="margin: 10px 0 12px">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path
+            d="M21 21l-3.8-3.8M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"
+            stroke="#8a8278"
+            stroke-width="1.6"
+            stroke-linecap="round"
+          />
+        </svg>
+        <input id="q" placeholder="現在地・駅・店舗名などから探す" />
+      </div>
+
+      <!-- 任意のガイドバナー -->
+      <div
+        style="
+          background: #ffc64b;
+          border-radius: 16px;
+          padding: 18px;
+          color: #3b2a00;
+          margin: 8px 0;
+        "
+      >
+        <div style="font-weight: 800; font-size: 20px">レスキュー指南書</div>
+        <div style="margin-top: 6px; font-size: 14px">初めての方はこちら</div>
+      </div>
+
+      <section class="sec">
+        <div class="sec-head">
+          <h2>現在地付近のお店</h2>
+          <a id="more-near">もっと見る ›</a>
+        </div>
+        <div id="near-carousel" class="carousel"></div>
+      </section>
+
+      <section class="sec">
+        <div class="sec-head">
+          <h2>最近追加されたお店</h2>
+          <a id="more-recent">もっと見る ›</a>
+        </div>
+        <div id="recent-carousel" class="carousel"></div>
+      </section>
+    </main>
+
+    <!-- ここから「お店を探す」ページ（地図） -->
+    <main id="page-discover" class="page">
+      <div id="map" style="height: 58vh; border-radius: 12px"></div>
+      <div style="margin: 12px 0">
+        <button id="btn-scan" class="primary" style="width: 100%">
+          店舗QRを読み取る
+        </button>
+      </div>
+    </main>
+
+    <!-- 下部タブバー（どの位置でもOK：bodyの末尾が無難） -->
+    <nav class="tabbar">
+      <button data-page="home" class="active">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path
+            d="M3 10.5 12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5Z"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <small>ホーム</small>
+      </button>
+      <button data-page="discover">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path
+            d="M21 21l-3.8-3.8M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+          />
+        </svg>
+        <small>お店を探す</small>
+      </button>
+      <button data-page="fav">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path
+            d="m12 21-1.45-1.32C6 15.36 3 12.61 3 9.28 3 6.5 5.24 4.5 7.88 4.5c1.45 0 2.87.64 3.78 1.67A5.2 5.2 0 0 1 15.44 4.5C18.08 4.5 20.3 6.5 20.3 9.28c0 3.33-3 6.08-7.55 10.4L12 21Z"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <small>お気に入り</small>
+      </button>
+      <button id="nav-scan">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path
+            d="M4 7V4h3M20 7V4h-3M4 17v3h3M20 17v3h-3M6 10h12v4H6z"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <small>レスキュー</small>
+      </button>
+      <button data-page="me">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path
+            d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm8 9a8 8 0 1 0-16 0"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+          />
+        </svg>
+        <small>マイページ</small>
+      </button>
+    </nav>
+
     <div id="map"></div>
 
     <!-- 予約QRモーダル -->
@@ -326,7 +587,7 @@
             if (b.dist == null) return -1;
             return a.dist - b.dist;
           });
-
+        window.__lastOffers = list; // 検索バーのフィルタで再利用
         render(list);
       }
 
@@ -528,6 +789,7 @@
 
       /* ============== 一覧 & 地図 ============== */
       function render(list) {
+        renderHomeSections(list);
         const el = document.getElementById("list");
         el.innerHTML = "";
         if (list.length === 0) {
@@ -653,6 +915,73 @@
         });
 
         renderMap(list);
+      }
+
+      function imgFor(it) {
+        // 画像URLの候補（なければプレースホルダ）
+        return (
+          it.image_url ||
+          it.shops?.image_url ||
+          `https://placehold.co/800x600/j5b09d/ffffff?text=${encodeURIComponent(
+            it.shops?.name || "Shop"
+          )}`
+        );
+      }
+
+      function buildCardHTML(it) {
+        const shop = it.shop || it.shops;
+        const time = `${fmtTime(it.pickup_start)}–${fmtTime(it.pickup_end)}`;
+        const dist = it.dist != null ? `${it.dist.toFixed(1)}km` : "";
+        const sold = it.qty_available <= 0;
+        return `
+  <article class="card-lg" data-offer="${it.id}">
+    <img src="${imgFor(it)}" alt="">
+    <div class="price">¥${it.price}</div>
+    <div class="overlay">
+      <div class="title">${shop?.name || "店舗"}</div>
+      <div class="meta">
+        <span>のこり${it.qty_available}</span>
+        <span>${time}</span>
+        <span>${dist}</span>
+      </div>
+      <div style="margin-top:8px">
+        <button class="primary btn-resv" ${sold ? "disabled" : ""}>${
+          sold ? "在庫なし" : "予約へ進む"
+        }</button>
+      </div>
+    </div>
+  </article>`;
+      }
+
+      function renderHomeSections(list) {
+        // 近い順 / 最近追加
+        const near = [...list]
+          .sort((a, b) => {
+            if (a.dist == null && b.dist == null) return 0;
+            if (a.dist == null) return 1;
+            if (b.dist == null) return -1;
+            return a.dist - b.dist;
+          })
+          .slice(0, 12);
+
+        const recent = [...list].slice(0, 12); // APIで created_at.desc にしている想定
+
+        const nearEl = document.getElementById("near-carousel");
+        const recEl = document.getElementById("recent-carousel");
+        nearEl.innerHTML = near.map(buildCardHTML).join("");
+        recEl.innerHTML = recent.map(buildCardHTML).join("");
+
+        // 各カードのボタンにイベント付与
+        [
+          ...nearEl.querySelectorAll(".card-lg"),
+          ...recEl.querySelectorAll(".card-lg"),
+        ].forEach((card) => {
+          const id = card.getAttribute("data-offer");
+          const offer = list.find((x) => x.id === id);
+          card
+            .querySelector(".btn-resv")
+            ?.addEventListener("click", (ev) => reserve(offer, ev.target));
+        });
       }
 
       function renderMap(list) {
@@ -853,20 +1182,82 @@
 
       /* ============== イベント登録 ============== */
       document.addEventListener("DOMContentLoaded", () => {
+        // 既存：スキャン系のイベント
         document
           .getElementById("btn-scan")
           ?.addEventListener("click", openLiveScan);
         document
           .getElementById("scanClose")
           ?.addEventListener("click", closeLiveScan);
-        // 背景（黒帯）タップでも閉じる
         document.getElementById("liveScan")?.addEventListener("click", (e) => {
           if (e.target && e.target.id === "liveScan") closeLiveScan();
         });
-
         document
           .getElementById("friendCheckBtn")
           ?.addEventListener("click", checkFriendship);
+
+        // 追加：ページ切り替え用ヘルパー
+        function showPage(name) {
+          document
+            .querySelectorAll(".page")
+            .forEach((p) => p.classList.remove("active"));
+          if (name === "home")
+            document.getElementById("page-home")?.classList.add("active");
+          if (name === "discover") {
+            document.getElementById("page-discover")?.classList.add("active");
+            // 地図を表示に切り替えたら Leaflet を再計算
+            setTimeout(() => {
+              if (window.map) map.invalidateSize();
+            }, 50);
+          }
+          document
+            .querySelectorAll(".tabbar button")
+            .forEach((b) => b.classList.remove("active"));
+          document
+            .querySelector(`.tabbar button[data-page="${name}"]`)
+            ?.classList.add("active");
+        }
+
+        // 追加：タブをタップしたらページを切り替え
+        document
+          .querySelectorAll(".tabbar button[data-page]")
+          .forEach((btn) => {
+            btn.addEventListener("click", () => showPage(btn.dataset.page));
+          });
+
+        // 追加：「レスキュー」タブはスキャン起動
+        document
+          .getElementById("nav-scan")
+          ?.addEventListener("click", openLiveScan);
+
+        // 追加：「もっと見る」は地図ページへ
+        document
+          .getElementById("more-near")
+          ?.addEventListener("click", () => showPage("discover"));
+        document
+          .getElementById("more-recent")
+          ?.addEventListener("click", () => showPage("discover"));
+
+        // （※ 検索バーのフィルタ (d) を入れているなら、ここに q の input リスナーも追記）
+        const q = document.getElementById("q");
+        if (q) {
+          q.addEventListener("input", () => {
+            const kw = q.value.trim().toLowerCase();
+            if (!window.__lastOffers) return;
+            const base = window.__lastOffers;
+            const filtered = kw
+              ? base.filter((it) => {
+                  const shop = it.shop || it.shops;
+                  return (
+                    (it.title || "").toLowerCase().includes(kw) ||
+                    (shop?.name || "").toLowerCase().includes(kw) ||
+                    (shop?.address || "").toLowerCase().includes(kw)
+                  );
+                })
+              : base;
+            renderHomeSections(filtered);
+          });
+        }
       });
 
       init();
