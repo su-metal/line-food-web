@@ -229,7 +229,7 @@
 
       /* ============== 状態 ============== */
       let g = { userId: null, pos: null };
-      let map;
+      let map, userMarker;  // ← 追加：現在地の円マーカー用
       var liveScanner = typeof liveScanner === "undefined" ? null : liveScanner; // 冪等宣言
 
       /* ============== ユーティリティ ============== */
