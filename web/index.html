@@ -33,6 +33,8 @@
       :root {
         --appbar-h: 56px;
         --btn-radius: 12px;
+        /* ===== タブバーの被り対策：下マージンを常に確保 ===== */
+        --tabbar-h: 80px; /* フォールバック値（JSで上書き） */
       }
       .card {
         border: 1px solid #ddd;
@@ -356,6 +358,18 @@
         background: #fff;
         border-bottom: 1px solid #e5e2dd;
         z-index: 1800;
+      }
+
+      :root {
+        /* ===== タブバーの被り対策：下マージンを常に確保 ===== */
+        --tabbar-h: 80px; /* フォールバック値（JSで上書き） */
+      }
+
+      body,
+      .page {
+        padding-bottom: calc(
+          var(--tabbar-h) + env(safe-area-inset-bottom, 0px)
+        );
       }
 
       /* ヘッダー内の検索バー（小ぶり） */
@@ -1221,6 +1235,7 @@
             document.getElementById("page-discover")?.classList.add("active");
             setTimeout(() => {
               if (map) map.invalidateSize();
+              updateTabbarInset();
             }, 80); // ← window.map ではなく map
           }
           document
@@ -1298,6 +1313,26 @@
       // （タブ切替を実装している場合）ページ表示を切り替えた直後にも
       // showPage('discover') などで地図を表示にした直後に呼ぶと確実
       // 例：setTimeout(fixMapSize, 60);
+      function updateTabbarInset() {
+        const tb = document.querySelector(".tabbar");
+        if (!tb) return;
+        const h = Math.ceil(tb.getBoundingClientRect().height);
+        // 端末のセーフエリア込みで高さが変わるので実寸をCSS変数に反映
+        document.documentElement.style.setProperty("--tabbar-h", h + "px");
+      }
+
+      // 起動時・回転/リサイズ時・復帰時に更新
+      window.addEventListener("load", updateTabbarInset);
+      window.addEventListener("resize", updateTabbarInset);
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) updateTabbarInset();
+      });
+
+      // タブバーの高さが動的に変わっても追従
+      if (window.ResizeObserver) {
+        const tb = document.querySelector(".tabbar");
+        if (tb) new ResizeObserver(updateTabbarInset).observe(tb);
+      }
     </script>
   </body>
 </html>
