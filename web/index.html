@@ -1635,6 +1635,41 @@
           mapAutoFitDone = false;
           fitToUserAndNearest(window.__lastOffers || [], true);
         });
+        document
+          .getElementById("btn-locate")
+          ?.addEventListener("click", async () => {
+            try {
+              const geo = await new Promise((ok, ng) =>
+                navigator.geolocation.getCurrentPosition(ok, ng, {
+                  enableHighAccuracy: true,
+                  timeout: 8000,
+                })
+              );
+              g.pos = { lat: geo.coords.latitude, lng: geo.coords.longitude };
+
+              // マーカー更新
+              if (!userMarker) {
+                userMarker = L.circleMarker([g.pos.lat, g.pos.lng], {
+                  radius: 10,
+                  color: "#2e7d32",
+                  fillColor: "#66bb6a",
+                  fillOpacity: 0.9,
+                  weight: 3,
+                })
+                  .addTo(map)
+                  .bindPopup("現在地");
+              } else {
+                userMarker.setLatLng([g.pos.lat, g.pos.lng]);
+              }
+
+              // 現在地＋近隣店舗にフィット
+              fitToUserAndNearest(window.__lastOffers || [], true);
+            } catch (e) {
+              alert(
+                "現在地を取得できませんでした。端末の位置情報設定をご確認ください。"
+              );
+            }
+          });
 
         // （※ 検索バーのフィルタ (d) を入れているなら、ここに q の input リスナーも追記）
         const q = document.getElementById("q");
