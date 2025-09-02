@@ -602,6 +602,7 @@
       /* ============== 状態 ============== */
       let g = { userId: null, pos: null };
       let map, userMarker; // ← 追加：現在地の円マーカー用
+      let mapAutoFitDone = false; // 最初の1回だけ自動フィット
       var liveScanner = typeof liveScanner === "undefined" ? null : liveScanner; // 冪等宣言
 
       /* ============== ユーティリティ ============== */
@@ -1097,11 +1098,26 @@
         map.on("click", hideMapSheet);
         map.on("movestart", hideMapSheet);
 
-        if (markers.length) {
-          const g1 = L.featureGroup(markers);
-          map.fitBounds(g1.getBounds(), { padding: [30, 30], maxZoom: 15 });
-        } else {
-          map.setView([35.6812, 139.7671], 12);
+        // 店舗だけの座標を集める（現在地は含めない）
+        const shopLatLngs = list
+          .map((it) => it.shop || it.shops)
+          .filter((s) => s?.lat && s?.lng)
+          .map((s) => [s.lat, s.lng]);
+
+        if (!mapAutoFitDone) {
+          if (shopLatLngs.length >= 2) {
+            const bounds = L.latLngBounds(shopLatLngs);
+            map.fitBounds(bounds, { padding: [30, 30] });
+            // ズームし過ぎを防ぐ（数字を 12〜14 の間でお好みで）
+            if (map.getZoom() > 13) map.setZoom(13);
+          } else if (shopLatLngs.length === 1) {
+            map.setView(shopLatLngs[0], 13);
+          } else if (g.pos) {
+            map.setView([g.pos.lat, g.pos.lng], 12);
+          } else {
+            map.setView([35.6812, 139.7671], 11);
+          }
+          mapAutoFitDone = true; // 以後はユーザー操作を尊重
         }
       }
 
@@ -1294,6 +1310,8 @@
             document.getElementById("page-home")?.classList.add("active");
           if (name === "discover") {
             document.getElementById("page-discover")?.classList.add("active");
+            // ★追加：次回の renderMap で初回フィットを有効にする
+            mapAutoFitDone = false;
             setTimeout(() => {
               if (map) map.invalidateSize();
               updateTabbarInset();
