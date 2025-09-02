@@ -859,6 +859,14 @@
         return null;
       }
 
+      // 既存の parseShopId の下あたりに追加
+      function goToShop(offer) {
+        const sid = offer?.shops?.id || offer?.shop?.id;
+        if (!sid) return;
+        // 店舗ページに遷移（shop.html を用意している前提）
+        location.href = `shop.html?sid=${encodeURIComponent(sid)}`;
+      }
+
       /* ============== マップ API（Leaflet実装） ============== */
       function createLeafletAPI() {
         let _map,
@@ -1250,15 +1258,20 @@
         ].forEach((card) => {
           const id = card.getAttribute("data-offer");
           const offer = list.find((x) => String(x.id) === String(id));
-          card
-            .querySelector(".btn-resv")
-            ?.addEventListener("click", (ev) => reserve(offer, ev.target));
-        });
-        // カード全体タップで店舗ページへ
-        card.addEventListener("click", (ev) => {
-          if (ev.target.closest(".btn-resv")) return; // ボタンタップとは分離
-          const shopId = offer?.shops?.id || offer?.shop?.id;
-          if (shopId) openShopPage(shopId, offer);
+          if (!offer) return;
+
+          // カード全体タップで店舗ページへ
+          card.addEventListener("click", (e) => {
+            // 「予約へ進む」ボタンのクリックは遷移させない
+            if (e.target.closest(".btn-resv")) return;
+            goToShop(offer);
+          });
+
+          // 予約ボタンは従来通り
+          card.querySelector(".btn-resv")?.addEventListener("click", (ev) => {
+            ev.stopPropagation();
+            reserve(offer, ev.target);
+          });
         });
       }
 
@@ -1279,17 +1292,16 @@
         const html = `<div class="handle"></div>${buildCardHTML(offer)}`;
         mapSheetEl.innerHTML = html;
         mapSheetEl.classList.add("show");
+
         mapSheetEl
           .querySelector(".btn-resv")
           ?.addEventListener("click", (ev) => reserve(offer, ev.target));
+
         // カード全体タップで店舗ページへ
-        mapSheetEl
-          .querySelector(".card-lg")
-          ?.addEventListener("click", (ev) => {
-            if (ev.target.closest(".btn-resv")) return;
-            const shopId = offer?.shops?.id || offer?.shop?.id;
-            if (shopId) openShopPage(shopId, offer);
-          });
+        mapSheetEl.querySelector(".card-lg")?.addEventListener("click", (e) => {
+          if (e.target.closest(".btn-resv")) return;
+          goToShop(offer);
+        });
       }
 
       function renderMap(list) {
@@ -1713,6 +1725,7 @@
 
         // ページ切り替え
         function showPage(name) {
+          // ページの表示/非表示
           document
             .querySelectorAll(".page")
             .forEach((p) => p.classList.remove("active"));
@@ -1723,6 +1736,7 @@
           if (name === "shop")
             document.getElementById("page-shop")?.classList.add("active");
 
+          // タブのON/OFF（home / discover のみ）
           document
             .querySelectorAll(".tabbar button")
             .forEach((b) => b.classList.remove("active"));
@@ -1733,15 +1747,31 @@
           }
 
           if (name === "discover") {
+            // フルスクリーン化（既存処理）
             document.body.classList.add("discover-full");
             document.getElementById("page-discover")?.classList.add("fullmap");
-            mapAutoFitDone = false;
-            setTimeout(() => mapApi && mapApi.invalidateSize(), 80);
+
+            // ★ 追加1: 地図が未初期化ならここで必ず初期化
+            if (!mapApi) {
+              renderMap(window.__lastOffers || []);
+            }
+
+            // ★ 追加2: サイズ再計算 → 現在地＋近隣店舗に自動フィット
+            setTimeout(() => {
+              if (mapApi) {
+                mapApi.invalidateSize();
+                mapAutoFitDone = false; // 一度は必ずフィットさせる
+                fitToUserAndNearest(window.__lastOffers || [], true);
+              }
+            }, 80);
           } else {
+            // discover 以外
             document.body.classList.remove("discover-full");
             document
               .getElementById("page-discover")
               ?.classList.remove("fullmap");
+
+            // shop ページでは子マップのサイズ補正（既存処理を保持）
             if (name === "shop") {
               setTimeout(() => shopMapApi && shopMapApi.invalidateSize(), 80);
             }
