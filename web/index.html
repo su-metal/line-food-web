@@ -420,6 +420,18 @@
         border-radius: 16px;
         box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
       }
+      .map-fab {
+        position: fixed;
+        right: 16px;
+        bottom: calc(var(--tabbar-h) + 96px); /* タブバーに被らない高さに */
+        z-index: 2100; /* タブバー(2000)より前面・スキャンより背面 */
+        border: none;
+        border-radius: 999px;
+        padding: 10px 14px;
+        background: #1e88e5;
+        color: #fff;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+      }
     </style>
   </head>
 
@@ -480,6 +492,7 @@
     <!-- ここから「お店を探す」ページ（地図） -->
     <main id="page-discover" class="page">
       <div id="map" style="height: 58vh; border-radius: 12px"></div>
+      <button id="fitMeBtn" class="map-fab">現在地と周辺</button>
       <!-- 追加：マップのピンをタップしたときに出すボトムシート -->
       <div id="mapSheet" class="map-sheet" aria-hidden="true"></div>
       <div style="margin: 12px 0">
@@ -1411,6 +1424,16 @@
         document
           .getElementById("btn-scan-discover")
           ?.addEventListener("click", openLiveScan);
+        document
+          .getElementById("fitMeBtn")
+          ?.addEventListener("click", async () => {
+            // 位置情報を取り直したい場合は以下の2行を有効化
+            // try {
+            //   const geo = await new Promise((ok, ng) => navigator.geolocation.getCurrentPosition(ok, ng, { enableHighAccuracy: true, timeout: 8000 }));
+            //   g.pos = { lat: geo.coords.latitude, lng: geo.coords.longitude };
+            // } catch {}
+            fitToUserAndNearest(window.__lastOffers || [], true);
+          });
 
         // （※ 検索バーのフィルタ (d) を入れているなら、ここに q の input リスナーも追記）
         const q = document.getElementById("q");
