@@ -445,6 +445,126 @@
       body.live-scan-open .leaflet-container {
         pointer-events: none !important;
       }
+      /* ===== 店舗ページ ===== */
+      #page-shop {
+        padding-bottom: calc(var(--tabbar-h) + 72px);
+      }
+
+      .shop-hero {
+        position: relative;
+        height: 220px;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #eee;
+      }
+      .shop-hero img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .shop-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 12px 0 8px;
+      }
+      .shop-title h1 {
+        font-size: 20px;
+        margin: 0;
+      }
+      .heart {
+        background: #fff;
+        border: 1px solid #e5e2dd;
+        width: 40px;
+        height: 40px;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+      }
+
+      .meta-row {
+        display: flex;
+        gap: 10px;
+        font-size: 13px;
+        color: #666;
+        flex-wrap: wrap;
+      }
+
+      .offer-list .offer {
+        display: flex;
+        gap: 12px;
+        padding: 10px 0;
+        border-bottom: 1px solid #eee;
+      }
+      .offer img {
+        width: 88px;
+        height: 88px;
+        border-radius: 10px;
+        object-fit: cover;
+        background: #f2f2f2;
+      }
+      .offer .info {
+        flex: 1;
+        min-width: 0;
+      }
+      .offer .info .name {
+        font-weight: 600;
+      }
+      .offer .info .time {
+        color: #666;
+        font-size: 12px;
+      }
+
+      .qty {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .qty button {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        border: 1px solid #e5e2dd;
+        background: #fff;
+      }
+
+      .cart-bar {
+        position: fixed;
+        left: 12px;
+        right: 12px;
+        bottom: calc(var(--tabbar-h) + 8px);
+        background: #fff;
+        border: 1px solid #e5e2dd;
+        border-radius: 12px;
+        padding: 10px 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.15);
+        z-index: 2100;
+      }
+      .cart-bar .btn {
+        background: #28a745;
+        color: #fff;
+        border: none;
+        padding: 10px 14px;
+        border-radius: 10px;
+      }
+
+      .section {
+        margin: 14px 0;
+      }
+      .contact a {
+        color: var(--brand);
+        text-decoration: none;
+      }
+
+      #shop-map {
+        height: 180px;
+        border-radius: 12px;
+        border: 1px solid #e5e2dd;
+      }
     </style>
   </head>
 
@@ -539,6 +659,55 @@
       </div>
 
       <div id="mapSheet" class="map-sheet" aria-hidden="true"></div>
+    </main>
+
+    <!-- 店舗ページ -->
+    <main id="page-shop" class="page">
+      <div class="shop-hero"><img id="shop-photo" alt="" /></div>
+
+      <div class="shop-title">
+        <h1 id="shop-name"></h1>
+        <button id="btn-fav" class="heart" aria-label="お気に入り">
+          <svg viewBox="0 0 24 24" width="22" height="22">
+            <path
+              d="m12 21-1.45-1.32C6 15.36 3 12.61 3 9.28 3 6.5 5.24 4.5 7.88 4.5c1.45 0 2.87.64 3.78 1.67A5.2 5.2 0 0 1 15.44 4.5C18.08 4.5 20.3 6.5 20.3 9.28c0 3.33-3 6.08-7.55 10.4L12 21Z"
+              stroke="currentColor"
+              fill="none"
+              stroke-width="1.6"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </button>
+      </div>
+
+      <div class="meta-row">
+        <span id="shop-category"></span>
+        <span id="shop-station"></span>
+        <span id="shop-distance"></span>
+      </div>
+
+      <div class="section">
+        <h3>提供中の商品</h3>
+        <div id="offer-list" class="offer-list"></div>
+      </div>
+
+      <div class="section contact">
+        <h3>店舗情報</h3>
+        <div id="shop-address"></div>
+        <div id="shop-tel"></div>
+        <div id="shop-links"></div>
+      </div>
+
+      <div class="section">
+        <h3>マップ</h3>
+        <div id="shop-map"></div>
+      </div>
+
+      <!-- カートバー -->
+      <div id="cart-bar" class="cart-bar" style="display: none">
+        <div><b id="cart-total">¥0</b>・<span id="cart-count">0</span>点</div>
+        <button id="btn-order" class="btn">注文する</button>
+      </div>
     </main>
 
     <!-- タブバー -->
@@ -657,6 +826,7 @@
       let map; // Leafletインスタンス（互換のため保持）
       let userMarker; // 現在地マーカー
       let mapAutoFitDone = false; // 初回/強制時のみ自動フィット
+      let shopMapApi; // 店舗ページ用のミニマップ
       var liveScanner = typeof liveScanner === "undefined" ? null : liveScanner;
 
       /* ============== ユーティリティ ============== */
@@ -1084,6 +1254,12 @@
             .querySelector(".btn-resv")
             ?.addEventListener("click", (ev) => reserve(offer, ev.target));
         });
+        // カード全体タップで店舗ページへ
+        card.addEventListener("click", (ev) => {
+          if (ev.target.closest(".btn-resv")) return; // ボタンタップとは分離
+          const shopId = offer?.shops?.id || offer?.shop?.id;
+          if (shopId) openShopPage(shopId, offer);
+        });
       }
 
       function render(list) {
@@ -1106,6 +1282,14 @@
         mapSheetEl
           .querySelector(".btn-resv")
           ?.addEventListener("click", (ev) => reserve(offer, ev.target));
+        // カード全体タップで店舗ページへ
+        mapSheetEl
+          .querySelector(".card-lg")
+          ?.addEventListener("click", (ev) => {
+            if (ev.target.closest(".btn-resv")) return;
+            const shopId = offer?.shops?.id || offer?.shop?.id;
+            if (shopId) openShopPage(shopId, offer);
+          });
       }
 
       function renderMap(list) {
@@ -1139,6 +1323,222 @@
 
         // 初回は自動フィット
         if (!mapAutoFitDone) fitToUserAndNearest(list, false);
+      }
+
+      async function fetchShopDetail(shopId) {
+        // ある分だけ返す（存在しない列は無視される）
+        const url = new URL(CONFIG.SUPABASE_URL + "/rest/v1/shops");
+        url.searchParams.set("id", "eq." + shopId);
+        url.searchParams.set(
+          "select",
+          "id,name,lat,lng,address,category,station,photo_url,tel,website,instagram,twitter,facebook"
+        );
+        const r = await fetch(url, {
+          headers: {
+            apikey: CONFIG.SUPABASE_ANON_KEY,
+            Authorization: "Bearer " + CONFIG.SUPABASE_ANON_KEY,
+          },
+        });
+        const items = await r.json().catch(() => []);
+        return items?.[0] || null;
+      }
+
+      async function openShopPage(shopId, offerHint) {
+        // オファー一覧（同一店舗）の抽出
+        const all = window.__lastOffers || [];
+        const offers = all.filter(
+          (o) => String(o.shop?.id ?? o.shops?.id) === String(shopId)
+        );
+
+        // ショップの基本情報（オファーに含まれる最小情報 + 詳細をフェッチ）
+        let baseShop =
+          offerHint?.shops ||
+          offerHint?.shop ||
+          offers[0]?.shops ||
+          offers[0]?.shop ||
+          {};
+        let detail = null;
+        try {
+          detail = await fetchShopDetail(shopId);
+        } catch {}
+        const shop = Object.assign({}, baseShop || {}, detail || {});
+
+        renderShopPage(shop, offers);
+        // ページ切替（showPage がこの後の(c)で shop 対応する）
+        const evt = new CustomEvent("app:showPage", {
+          detail: { name: "shop" },
+        });
+        document.dispatchEvent(evt);
+      }
+
+      function renderShopPage(shop, offers) {
+        // 見出し・基本
+        document.getElementById("shop-name").textContent = shop?.name || "店舗";
+        document.getElementById("shop-category").textContent = shop?.category
+          ? `業種：${shop.category}`
+          : "";
+        document.getElementById("shop-station").textContent = shop?.station
+          ? `最寄り：${shop.station}`
+          : "";
+
+        const dist =
+          g.pos && shop?.lat && shop?.lng
+            ? haversine(g.pos, { lat: shop.lat, lng: shop.lng })
+            : null;
+        document.getElementById("shop-distance").textContent =
+          dist != null ? `距離：${dist.toFixed(1)}km` : "";
+
+        const hero = document.getElementById("shop-photo");
+        hero.src =
+          shop?.photo_url ||
+          (shop?.name
+            ? `https://placehold.co/1200x600/j5b09d/ffffff?text=${encodeURIComponent(
+                shop.name
+              )}`
+            : `https://placehold.co/1200x600`);
+
+        document.getElementById("shop-address").textContent =
+          shop?.address || "";
+
+        document.getElementById("shop-tel").innerHTML = shop?.tel
+          ? `TEL：<a href="tel:${shop.tel}">${shop.tel}</a>`
+          : "";
+
+        const links = [];
+        if (shop?.website)
+          links.push(
+            `<a href="${shop.website}" target="_blank" rel="noopener">公式サイト</a>`
+          );
+        if (shop?.instagram)
+          links.push(
+            `<a href="${shop.instagram}" target="_blank" rel="noopener">Instagram</a>`
+          );
+        if (shop?.twitter)
+          links.push(
+            `<a href="${shop.twitter}" target="_blank" rel="noopener">X</a>`
+          );
+        if (shop?.facebook)
+          links.push(
+            `<a href="${shop.facebook}" target="_blank" rel="noopener">Facebook</a>`
+          );
+        document.getElementById("shop-links").innerHTML = links.join(" / ");
+
+        // 商品一覧＋カート
+        const listEl = document.getElementById("offer-list");
+        listEl.innerHTML = "";
+        const cart = {}; // { offerId: qty }
+
+        const updateCartBar = () => {
+          let count = 0,
+            total = 0;
+          for (const id in cart) {
+            const of = offers.find((o) => String(o.id) === id);
+            const q = cart[id] || 0;
+            count += q;
+            total += (of?.price || 0) * q;
+          }
+          const bar = document.getElementById("cart-bar");
+          if (count > 0) {
+            bar.style.display = "flex";
+          } else {
+            bar.style.display = "none";
+          }
+          document.getElementById("cart-total").textContent = "¥" + total;
+          document.getElementById("cart-count").textContent = String(count);
+        };
+
+        offers.forEach((of) => {
+          const el = document.createElement("div");
+          el.className = "offer";
+          el.innerHTML = `
+      <img src="${imgFor(of)}" alt="">
+      <div class="info">
+        <div class="name">${of.title || "商品"}</div>
+        <div class="time">受取 ${fmtTime(of.pickup_start)}–${fmtTime(
+            of.pickup_end
+          )}</div>
+        <div class="price">¥${of.price} ・ 残り${of.qty_available}</div>
+      </div>
+      <div class="qty">
+        <button class="dec" aria-label="減らす">–</button>
+        <b class="q">0</b>
+        <button class="inc" aria-label="増やす">＋</button>
+      </div>
+    `;
+          const qEl = el.querySelector(".q");
+          const setQ = (q) => {
+            cart[of.id] = q;
+            if (q <= 0) delete cart[of.id];
+            qEl.textContent = String(q);
+            updateCartBar();
+          };
+          el.querySelector(".inc").onclick = () => {
+            const cur = cart[of.id] || 0;
+            if (cur < of.qty_available) setQ(cur + 1);
+          };
+          el.querySelector(".dec").onclick = () => {
+            const cur = cart[of.id] || 0;
+            if (cur > 0) setQ(cur - 1);
+          };
+          listEl.appendChild(el);
+        });
+
+        // お気に入り（ハート）
+        document.getElementById("btn-fav").onclick = async () => {
+          try {
+            if (!(await ensureFriend())) return;
+            await favPost(shop.id);
+            alert("お気に入りに追加しました");
+          } catch {
+            alert("登録に失敗しました");
+          }
+        };
+
+        // 注文ボタン（簡易：選択量ぶん予約APIを順に叩く）
+        document.getElementById("btn-order").onclick = async () => {
+          const ids = Object.keys(cart);
+          if (ids.length === 0) return;
+          if (!(await ensureFriend())) return;
+          for (const id of ids) {
+            const of = offers.find((o) => String(o.id) === id);
+            const qty = cart[id];
+            for (let i = 0; i < qty; i++) {
+              // reserve(of, btn) はボタンUI前提なのでダミーボタンを渡す
+              const btnShim = {
+                disabled: false,
+                get textContent() {
+                  return "";
+                },
+                set textContent(v) {},
+              };
+              await reserve(of, btnShim);
+            }
+          }
+          alert("予約を作成しました。マイページから決済へお進みください。");
+        };
+
+        // ミニマップ
+        setTimeout(() => {
+          shopMapApi = createLeafletAPI();
+          shopMapApi.init("shop-map", {
+            center: [shop?.lat || 35.6812, shop?.lng || 139.7671],
+            zoom: shop?.lat ? 15 : 11,
+          });
+          if (shop?.lat && shop?.lng) {
+            shopMapApi.addShopMarker(shop.lat, shop.lng);
+            if (g.pos) {
+              shopMapApi.addUserMarker(g.pos.lat, g.pos.lng);
+              shopMapApi.fitToBounds(
+                [
+                  [shop.lat, shop.lng],
+                  [g.pos.lat, g.pos.lng],
+                ],
+                { maxZoom: 14, padding: [20, 20] }
+              );
+            }
+          }
+          shopMapApi.invalidateSize();
+        }, 0);
       }
 
       // 現在地 + 近隣店舗にフィット
@@ -1320,13 +1720,17 @@
             document.getElementById("page-home")?.classList.add("active");
           if (name === "discover")
             document.getElementById("page-discover")?.classList.add("active");
+          if (name === "shop")
+            document.getElementById("page-shop")?.classList.add("active");
 
           document
             .querySelectorAll(".tabbar button")
             .forEach((b) => b.classList.remove("active"));
-          document
-            .querySelector(`.tabbar button[data-page="${name}"]`)
-            ?.classList.add("active");
+          if (name === "home" || name === "discover") {
+            document
+              .querySelector(`.tabbar button[data-page="${name}"]`)
+              ?.classList.add("active");
+          }
 
           if (name === "discover") {
             document.body.classList.add("discover-full");
@@ -1338,8 +1742,16 @@
             document
               .getElementById("page-discover")
               ?.classList.remove("fullmap");
+            if (name === "shop") {
+              setTimeout(() => shopMapApi && shopMapApi.invalidateSize(), 80);
+            }
           }
         }
+
+        // ページ外から呼べるようイベントもフック
+        document.addEventListener("app:showPage", (e) =>
+          showPage(e.detail?.name)
+        );
 
         document
           .querySelectorAll(".tabbar button[data-page]")
