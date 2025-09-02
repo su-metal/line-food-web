@@ -326,6 +326,12 @@
         flex: 1; /* 同じ幅で並べる */
         border-radius: var(--btn-radius) !important;
       }
+      /* 既存 .btn-row 定義の下あたりに追記 */
+      .btn-row > button {
+        flex: 1;
+        border-radius: var(--btn-radius) !important;
+        min-width: 0; /* 改行や長文でもはみ出さない */
+      }
 
       /* （任意）フラットなグレーの補助ボタン */
       button.secondary {
@@ -495,10 +501,9 @@
       <button id="fitMeBtn" class="map-fab">現在地と周辺</button>
       <!-- 追加：マップのピンをタップしたときに出すボトムシート -->
       <div id="mapSheet" class="map-sheet" aria-hidden="true"></div>
-      <div style="margin: 12px 0">
-        <button id="btn-scan-discover" class="primary" style="width: 100%">
-          店舗QRを読み取る
-        </button>
+      <div class="btn-row" style="margin: 12px 0">
+        <button id="btn-scan-discover" class="primary">店舗QRを読み取る</button>
+        <button id="btn-fit" class="secondary">現在地と周辺</button>
       </div>
     </main>
 
@@ -1434,6 +1439,14 @@
             // } catch {}
             fitToUserAndNearest(window.__lastOffers || [], true);
           });
+        document
+          .getElementById("btn-fit")
+          ?.addEventListener(
+            "click",
+            () =>
+              window.__lastOffers &&
+              fitToUserAndNearest(window.__lastOffers, true)
+          );
 
         // （※ 検索バーのフィルタ (d) を入れているなら、ここに q の input リスナーも追記）
         const q = document.getElementById("q");
