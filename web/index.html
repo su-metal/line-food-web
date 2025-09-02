@@ -828,6 +828,7 @@
       let mapAutoFitDone = false; // 初回/強制時のみ自動フィット
       let shopMapApi; // 店舗ページ用のミニマップ
       var liveScanner = typeof liveScanner === "undefined" ? null : liveScanner;
+      let currentShopOffer = null;
 
       /* ============== ユーティリティ ============== */
       function haversine(a, b) {
@@ -857,14 +858,6 @@
           if (o && o.shop_id) return Number(o.shop_id);
         } catch {}
         return null;
-      }
-
-      // 既存の parseShopId の下あたりに追加
-      function goToShop(offer) {
-        const sid = offer?.shops?.id || offer?.shop?.id;
-        if (!sid) return;
-        // 店舗ページに遷移（shop.html を用意している前提）
-        location.href = `shop.html?sid=${encodeURIComponent(sid)}`;
       }
 
       /* ============== マップ API（Leaflet実装） ============== */
@@ -1258,19 +1251,17 @@
         ].forEach((card) => {
           const id = card.getAttribute("data-offer");
           const offer = list.find((x) => String(x.id) === String(id));
-          if (!offer) return;
 
-          // カード全体タップで店舗ページへ
-          card.addEventListener("click", (e) => {
-            // 「予約へ進む」ボタンのクリックは遷移させない
-            if (e.target.closest(".btn-resv")) return;
-            goToShop(offer);
-          });
+          // 予約ボタン
+          card
+            .querySelector(".btn-resv")
+            ?.addEventListener("click", (ev) => reserve(offer, ev.target));
 
-          // 予約ボタンは従来通り
-          card.querySelector(".btn-resv")?.addEventListener("click", (ev) => {
-            ev.stopPropagation();
-            reserve(offer, ev.target);
+          // ★カード全体タップで店舗ページ表示（ボタンのクリックは除外）
+          card.addEventListener("click", (ev) => {
+            if (ev.target.closest("button")) return;
+            const sid = offer?.shop?.id ?? offer?.shops?.id;
+            if (sid) openShopPage(sid, offer);
           });
         });
       }
@@ -1295,13 +1286,17 @@
 
         mapSheetEl
           .querySelector(".btn-resv")
-          ?.addEventListener("click", (ev) => reserve(offer, ev.target));
+          ?.addEventListener("click", (ev) => {
+            reserve(offer, ev.target);
+          });
 
-        // カード全体タップで店舗ページへ
-        mapSheetEl.querySelector(".card-lg")?.addEventListener("click", (e) => {
-          if (e.target.closest(".btn-resv")) return;
-          goToShop(offer);
-        });
+        mapSheetEl
+          .querySelector(".card-lg")
+          ?.addEventListener("click", (ev) => {
+            if (ev.target.closest("button")) return;
+            const sid = offer?.shop?.id ?? offer?.shops?.id;
+            if (sid) openShopPage(sid, offer);
+          });
       }
 
       function renderMap(list) {
@@ -1381,6 +1376,14 @@
           detail: { name: "shop" },
         });
         document.dispatchEvent(evt);
+        history.pushState(
+          { page: "shop", id: String(shopId) },
+          "",
+          "#shop:" + shopId
+        );
+        document.dispatchEvent(
+          new CustomEvent("app:showPage", { detail: { name: "shop" } })
+        );
       }
 
       function renderShopPage(shop, offers) {
@@ -1854,6 +1857,18 @@
               e.target.blur();
             }
           });
+        // ハッシュ遷移 (#shop:123) からの表示
+        window.addEventListener("hashchange", () => {
+          const m = location.hash.match(/^#shop:(.+)$/);
+          if (m && window.__lastOffers) {
+            const offer = window.__lastOffers.find(
+              (o) => String(o.id) === m[1]
+            );
+            if (offer) openShopPage(offer, { push: false });
+          } else if (location.hash === "" || location.hash === "#home") {
+            showPage("home");
+          }
+        });
       });
 
       // 起動
