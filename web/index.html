@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>モッタイナ</title>
 
-    <!-- Leaflet CSS & JS（Google Maps は読み込まない） -->
+    <!-- Leaflet CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
@@ -26,259 +26,180 @@
 
     <style>
       /* ===== ベース ===== */
-      :root {
-        --appbar-h: 56px;
-        --btn-radius: 12px;
-        --brand: #6b1a16;
-        --ink: #222;
-        --muted: #666;
-        --card: #fff;
-        --bg: #f6f3ef;
-        /* タブバーの被り対策: 実寸で上書き */
-        --tabbar-h: 80px;
+      :root{
+        --appbar-h:56px;
+        --btn-radius:12px;
+
+        /* カラートークン */
+        --brand:#6b1a16;
+        --ink:#222;
+        --muted:#666;
+        --card:#fff;
+        --bg:#f6f3ef;
+
+        /* タブバー高さ（JSで実寸を上書き） */
+        --tabbar-h:80px;
       }
-      * { box-sizing: border-box; }
-      body {
-        font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", "メイリオ", Meiryo, sans-serif;
-        background: var(--bg);
-        color: var(--ink);
-        margin: 16px;
-        padding-top: calc(var(--appbar-h) + env(safe-area-inset-top, 0) + 8px);
-      }
-      body, .page {
-        padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0));
+      *{box-sizing:border-box}
+      html,body{height:100%}
+      body{
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        margin:16px;
+        color:var(--ink);
+        background:var(--bg);
+        padding-top:calc(var(--appbar-h) + env(safe-area-inset-top,0) + 8px);
+        /* タブバー分の下余白（全ページ） */
+        padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0));
       }
 
-      .muted { color: var(--muted); font-size: 0.9em; }
+      h1{margin:10px 0 6px;font-size:28px}
+      .muted{color:var(--muted)}
+      .row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+      .card{border:1px solid #ddd;border-radius:12px;padding:12px;margin:10px 0;background:#fff}
 
-      .card {
-        border: 1px solid #e5e2dd;
-        border-radius: 12px;
-        background: #fff;
-        padding: 12px;
-        margin: 10px 0;
+      button{font:inherit}
+      button.primary{
+        background:#28a745;color:#fff;border:none;padding:8px 14px;border-radius:8px;cursor:pointer
       }
+      button.primary:disabled{opacity:.6;cursor:not-allowed}
+      button.secondary{
+        background:#6c757d;color:#fff;border:none;padding:8px 14px;border-radius:8px;cursor:pointer
+      }
+      button.secondary:disabled{opacity:.6;cursor:not-allowed}
+      button.danger{
+        background:#cc3333;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer
+      }
+      button.danger:disabled{opacity:.6;cursor:not-allowed}
 
-      .row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 8px;
-      }
+      .badge{display:inline-block;margin-left:8px;padding:2px 8px;border-radius:999px;font-size:12px;vertical-align:middle}
+      .badge.soldout{background:#ddd;color:#555}
+      .badge.reserved{background:#2e7d32;color:#fff}
+      .badge.paid{background:#1e88e5;color:#fff}
 
-      button.primary {
-        background: #28a745;
-        color: white;
-        border: none;
-        padding: 8px 14px;
-        border-radius: 8px;
-        cursor: pointer;
+      /* ===== 検索バー（ヘッダー内） ===== */
+      .appbar{
+        position:fixed;top:0;left:0;right:0;height:var(--appbar-h);
+        display:flex;align-items:center;padding:8px 12px calc(8px + env(safe-area-inset-right,0)) calc(12px + env(safe-area-inset-left,0));
+        background:#fff;border-bottom:1px solid #e5e2dd;z-index:1800
       }
-      button.primary:disabled { opacity: .6; cursor: not-allowed; }
+      .searchbar{
+        width:100%;display:flex;align-items:center;gap:6px;
+        background:#fff;border:1px solid #e5e2dd;border-radius:12px;padding:8px 10px
+      }
+      .searchbar svg{width:18px;height:18px}
+      .searchbar input{
+        width:100%;border:none;outline:none;background:transparent;font-size:14px;color:var(--ink)
+      }
+      .searchbar input::placeholder{color:#9b9288;opacity:1}
 
-      button.secondary {
-        background: #6c757d;
-        color: #fff;
-        border: none;
-        padding: 8px 14px;
-        border-radius: 8px;
-        cursor: pointer;
-      }
-      button.secondary:disabled { opacity: .6; cursor: not-allowed; }
+      /* ===== ホームの横スワイプカード ===== */
+      .sec{margin:16px 0 8px}
+      .sec-head{display:flex;align-items:center;justify-content:space-between;margin:10px 4px}
+      .sec-head h2{font-size:18px;margin:0}
+      .sec-head a{color:var(--brand);font-size:14px;text-decoration:none}
 
-      button.danger {
-        background: #cc3333;
-        color: #fff;
-        border: none;
-        padding: 6px 12px;
-        border-radius: 6px;
-        cursor: pointer;
+      .carousel{
+        display:grid;grid-auto-flow:column;grid-auto-columns:80%;
+        gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:6px 4px 18px
       }
-      button.danger:disabled { opacity: .6; cursor: not-allowed; }
+      .card-lg{
+        position:relative;background:#000;color:#fff;border-radius:16px;overflow:hidden;height:220px;scroll-snap-align:start
+      }
+      .card-lg img{width:100%;height:100%;object-fit:cover;display:block;opacity:.95}
+      .card-lg .overlay{
+        position:absolute;inset:auto 0 0 0;padding:12px;
+        background:linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,.65) 70%)
+      }
+      .card-lg .title{font-weight:700;font-size:16px;line-height:1.2}
+      .card-lg .meta{display:flex;gap:10px;font-size:12px;opacity:.95;margin-top:4px}
+      .card-lg .price{position:absolute;right:10px;top:10px;background:rgba(0,0,0,.6);border-radius:10px;padding:4px 8px;font-weight:700}
 
-      .badge {
-        display: inline-block;
-        margin-left: 8px;
-        padding: 2px 8px;
-        border-radius: 999px;
-        font-size: 12px;
-        vertical-align: middle;
-      }
-      .badge.soldout { background: #ddd; color: #555; }
-      .badge.reserved { background: #2e7d32; color: #fff; }
-      .badge.paid { background: #1e88e5; color: #fff; }
+      /* ===== ページ切替 ===== */
+      .page{display:none}
+      .page.active{display:block}
 
-      /* 検索バー */
-      .searchbar {
-        background: #fff;
-        border: 1px solid #e5e2dd;
-        border-radius: 12px;
-        padding: 8px 10px;
-        display: flex;
-        align-items: center;
-        gap: 6px;
+      /* ===== タブバー ===== */
+      .tabbar{
+        position:fixed;left:0;right:0;bottom:0;z-index:2000;background:#fff;border-top:1px solid #e5e2dd;
+        display:flex;justify-content:space-around;
+        padding:8px calc(env(safe-area-inset-right,0)) calc(8px + env(safe-area-inset-bottom,0)) calc(env(safe-area-inset-left,0))
       }
-      .searchbar input {
-        border: none; outline: none; width: 100%; font-size: 14px; background: transparent;
-      }
-      .searchbar svg { width: 18px; height: 18px; }
+      .tabbar button{background:none;border:none;padding:6px 8px;color:#8a8278;display:flex;flex-direction:column;align-items:center;gap:4px}
+      .tabbar button.active{color:var(--brand);font-weight:700}
+      .tabbar svg{width:22px;height:22px}
 
-      /* 固定ヘッダー */
-      .appbar {
-        position: fixed; top: 0; left: 0; right: 0;
-        height: var(--appbar-h);
-        display: flex; align-items: center;
-        padding: 8px 12px calc(8px + env(safe-area-inset-right, 0)) calc(12px + env(safe-area-inset-left, 0));
-        background: #fff; border-bottom: 1px solid #e5e2dd; z-index: 1800;
-      }
+      /* ===== ボタン行（友だち確認 / 店舗QR） ===== */
+      .btn-row{display:flex;gap:8px;margin:8px 0 12px}
+      .btn-row>.primary,.btn-row>.secondary{flex:1;border-radius:var(--btn-radius)!important}
 
-      /* タブバー */
-      .tabbar {
-        position: fixed; left: 0; right: 0; bottom: 0; z-index: 2000;
-        background: #fff; border-top: 1px solid #e5e2dd;
-        display: flex; justify-content: space-around;
-        padding: 8px calc(env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) calc(env(safe-area-inset-left, 0px));
-      }
-      .tabbar button {
-        background: none; border: none; padding: 6px 8px; color: #8a8278;
-        display: flex; flex-direction: column; align-items: center; gap: 4px;
-      }
-      .tabbar button.active { color: var(--brand); font-weight: 700; }
-      .tabbar svg { width: 22px; height: 22px; }
-
-      /* ページ切替 */
-      .page { display: none; }
-      .page.active { display: block; }
-
-      /* ホーム：横スワイプカード */
-      .carousel {
-        display: grid; grid-auto-flow: column; grid-auto-columns: 80%;
-        gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory;
-        padding: 6px 4px 18px;
-      }
-      .card-lg {
-        position: relative; background: #000; color: #fff; border-radius: 16px; overflow: hidden; height: 220px; scroll-snap-align: start;
-      }
-      .card-lg img { width: 100%; height: 100%; object-fit: cover; display: block; opacity: .95; }
-      .card-lg .overlay {
-        position: absolute; inset: auto 0 0 0; padding: 12px;
-        background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.65) 70%);
-      }
-      .card-lg .title { font-weight: 700; font-size: 16px; line-height: 1.2; }
-      .card-lg .meta { display: flex; gap: 10px; font-size: 12px; opacity: .95; margin-top: 4px; }
-      .card-lg .price {
-        position: absolute; right: 10px; top: 10px;
-        background: rgba(0,0,0,.6); border-radius: 10px; padding: 4px 8px; font-weight: 700;
-      }
-
-      /* 地図（初期は通常だが Discover では全画面） */
-      #map {
-        position: relative;
-        z-index: 1;
-        height: 58vh; /* Discoverの全画面時はCSSで上書き */
-        margin-top: 12px;
-        border: 1px solid #ccc;
-        border-radius: 12px;
-        min-height: 300px;
-      }
-
-      /* Discover = フルスクリーン地図モード */
-      body.discover-full { overflow: hidden; padding-top: 0 !important; }
-      body.discover-full .appbar { display: none !important; }
-
-      #page-discover.fullmap {
-        position: fixed;
-        top: env(safe-area-inset-top, 0);
-        left: 0; right: 0;
-        bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0));
-        z-index: 1500;
-        background: var(--bg);
-        margin: 0; padding: 0;
-      }
-      #page-discover.fullmap #map {
-        position: absolute; inset: 0;
-        height: auto !important; border-radius: 0; border: none; margin: 0;
-      }
-
-      /* マップ上のUI（画像②風） */
-      #page-discover { position: relative; }
-      .map-ui {
-        position: fixed;
-        left: 12px; right: 12px;
-        top: calc(var(--appbar-h) + env(safe-area-inset-top, 0) + 8px);
-        z-index: 2100;
-        display: grid;
-        grid-template-columns: auto 1fr auto; /* 左:フィルタ 中央:検索 右:現在地 */
-        gap: 10px;
-        pointer-events: none; /* 自身は透過 */
-      }
-      .map-ui > * { pointer-events: auto; } /* 子要素は操作可 */
-      .fab {
-        display: grid; place-items: center;
-        width: 44px; height: 44px; border-radius: 999px;
-        background: #fff; border: 1px solid #e5e2dd;
-        box-shadow: 0 6px 18px rgba(0,0,0,.12);
-        color: #6b1a16;
-      }
-      .map-search {
-        display: flex; align-items: center; gap: 8px;
-        background: #fff; border: 1px solid #e5e2dd;
-        border-radius: 999px; padding: 10px 12px;
-        box-shadow: 0 6px 18px rgba(0,0,0,.12);
-      }
-      .map-search input {
-        width: 100%; border: 0; outline: none; font-size: 14px; background: transparent;
-      }
-      .map-search input::placeholder { color: #8a8278; opacity: 1; }
-
-      /* マップ用ボトムシート（カード再利用） */
-      .map-sheet {
-        position: fixed; left: 0; right: 0; bottom: calc(var(--tabbar-h) + 8px);
-        padding: 0 12px; z-index: 2100; display: none;
-      }
-      .map-sheet.show { display: block; }
-      .map-sheet .handle {
-        width: 40px; height: 4px; border-radius: 2px; background: #d0ccc7; margin: 6px auto 8px;
-      }
-      .map-sheet .card-lg {
-        width: 100%; height: 210px; border-radius: 16px; box-shadow: 0 10px 28px rgba(0,0,0,.18);
-      }
-
-      /* ボタン行 */
-      .btn-row { display: flex; gap: 8px; margin: 8px 0 12px; }
-      .btn-row > button { flex: 1; border-radius: var(--btn-radius) !important; min-width: 0; }
-
-      /* モーダル／ライブスキャン */
-      #modal {
-        display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6);
-        align-items: center; justify-content: center; z-index: 2147483646;
-      }
-      body.modal-open { overflow: hidden; }
-      .live-scan {
-        display: none; position: fixed; inset: 0; background: #000;
-        align-items: center; justify-content: center; flex-direction: column; z-index: 2147483647 !important;
-      }
-      .live-scan.show { display: flex; }
-      .live-scan video { max-width: 100%; max-height: 70vh; pointer-events: auto; }
-      .live-scan .close-btn { margin-top: 12px; position: relative; z-index: 2147483647; }
+      /* ====== Map（共通） ====== */
+      #map{height:100%;width:100%}
+      /* 地図クリック無効化（モーダル/ライブスキャン表示時） */
       body.modal-open #map, body.modal-open .leaflet-container,
-      body.live-scan-open #map, body.live-scan-open .leaflet-container { pointer-events: none !important; }
+      body.live-scan-open #map, body.live-scan-open .leaflet-container{pointer-events:none!important}
+
+      /* ====== Discover: フルスクリーンマップ ====== */
+      #page-discover{margin:0;padding:0}
+      .map-screen{
+        position:fixed;left:0;right:0;
+        top:calc(var(--appbar-h) + env(safe-area-inset-top,0));
+        bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0));
+        z-index:1500; /* タブバーより下・ヘッダーより下でOK */
+        background:#ddd;
+      }
+      .map-controls{
+        position:absolute;left:12px;right:12px;top:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;z-index:1600;
+        pointer-events:none; /* 子要素で個別に有効化 */
+      }
+      .fab{
+        width:48px;height:48px;border-radius:999px;background:#fff;box-shadow:0 4px 18px rgba(0,0,0,.15);
+        display:grid;place-items:center;pointer-events:auto;
+      }
+      .fab svg{width:22px;height:22px}
+      .search-pill{
+        flex:1;height:48px;border-radius:999px;background:#fff;border:1px solid #eee;padding:0 14px;display:flex;align-items:center;gap:8px;
+        box-shadow:0 4px 18px rgba(0,0,0,.08);pointer-events:auto;
+      }
+      .search-pill input{
+        width:100%;border:none;outline:none;background:transparent;font-size:14px;color:var(--ink)
+      }
+      .search-pill input::placeholder{color:#9b9288}
+      .map-sheet{
+        position:fixed;left:0;right:0;bottom:calc(var(--tabbar-h) + 8px);
+        padding:0 12px;z-index:1700;display:none;
+      }
+      .map-sheet.show{display:block}
+      .map-sheet .handle{width:40px;height:4px;border-radius:2px;background:#d0ccc7;margin:6px auto 8px}
+      .map-sheet .card-lg{width:100%;height:210px;border-radius:16px;box-shadow:0 10px 28px rgba(0,0,0,.18)}
+
+      /* ====== 予約QRモーダル / ライブスキャン ====== */
+      #modal{
+        display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);
+        align-items:center;justify-content:center;z-index:2147483646
+      }
+      .live-scan{
+        display:none;position:fixed;inset:0;background:#000;align-items:center;justify-content:center;flex-direction:column;z-index:2147483647!important
+      }
+      .live-scan.show{display:flex}
+      .live-scan video{max-width:100%;max-height:70vh;pointer-events:auto}
+      .live-scan .close-btn{margin-top:12px;position:relative;z-index:2147483647}
     </style>
   </head>
-
   <body>
-    <!-- ヘッダー -->
+    <!-- 固定ヘッダー -->
     <header class="appbar">
-      <div class="searchbar">
+      <div class="searchbar" aria-label="サイト内検索">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M21 21l-3.8-3.8M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" stroke="#8a8278" stroke-width="1.6" stroke-linecap="round" />
+          <path d="M21 21l-3.8-3.8M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"
+                stroke="#8a8278" stroke-width="1.6" stroke-linecap="round"/>
         </svg>
         <input id="q" placeholder="現在地・駅・店舗名などから探す" />
       </div>
     </header>
 
+    <!-- ヘッダー直下の情報＆ボタン -->
     <h1>近くのお店・お得情報</h1>
-    <div id="friendStatus" class="muted" style="margin: 8px 0"></div>
+    <div id="friendStatus" class="muted" style="margin:8px 0"></div>
 
     <div class="btn-row">
       <button id="friendCheckBtn" class="secondary">友達情報を確認</button>
@@ -308,68 +229,95 @@
       </section>
     </main>
 
-    <!-- Discover（地図フルスクリーン） -->
+    <!-- お店を探す（フルスクリーン地図） -->
     <main id="page-discover" class="page">
-      <div id="map"></div>
+      <div class="map-screen">
+        <div id="map"></div>
 
-      <!-- マップ上の操作UI -->
-      <div class="map-ui">
-        <button id="btn-filter" class="fab fab-left" aria-label="絞り込み">
-          <svg viewBox="0 0 24 24" width="22" height="22">
-            <path d="M3 6h18M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-        </button>
+        <!-- マップのオーバーレイUI -->
+        <div class="map-controls" aria-hidden="false">
+          <!-- 左：フィルタ（ダミー動作） -->
+          <button class="fab" id="btn-filter" title="条件を絞り込む">
+            <!-- sliders icon -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="#824" stroke-width="1.8" stroke-linecap="round">
+              <path d="M4 6h10M4 12h16M4 18h7"/>
+              <circle cx="16" cy="6" r="2.2" stroke="#824" />
+              <circle cx="12" cy="12" r="2.2" stroke="#824" />
+              <circle cx="13" cy="18" r="2.2" stroke="#824" />
+            </svg>
+          </button>
 
-        <label class="map-search">
-          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-            <path d="M21 21l-3.8-3.8M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" stroke="#8a8278" stroke-width="1.6" stroke-linecap="round" />
-          </svg>
-          <input id="q-map" type="search" placeholder="現在地・駅・店舗名などから探す" />
-        </label>
+          <!-- 中央：検索ピル -->
+          <div class="search-pill">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M21 21l-3.8-3.8M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"
+                    stroke="#8a8278" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+            <input id="mapSearch" placeholder="駅名から探す" />
+          </div>
 
-        <button id="btn-locate" class="fab fab-right" aria-label="現在地と周辺">
-          <!-- コンパスアイコン -->
-          <svg viewBox="0 0 24 24" width="22" height="22">
-            <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/>
-            <path d="M14.5 9.5l-2.7 6-1.3-1.3-1.3-1.3 5.3-3.4z" fill="currentColor"/>
-          </svg>
-        </button>
+          <!-- 右：現在地と周辺にリセンター（コンパス） -->
+          <button class="fab" id="btn-recenter" title="現在地と周辺">
+            <!-- compass icon -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="#0b63ce" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9"></circle>
+              <path d="M14.5 9.5 12 14l-2.5-1.5L14.5 9.5z"></path>
+              <circle cx="12" cy="12" r="1.2" fill="#0b63ce" stroke="none"></circle>
+            </svg>
+          </button>
+        </div>
+
+        <!-- ピンタップ時のボトムシート -->
+        <div id="mapSheet" class="map-sheet" aria-hidden="true"></div>
       </div>
-
-      <div id="mapSheet" class="map-sheet" aria-hidden="true"></div>
     </main>
 
     <!-- タブバー -->
     <nav class="tabbar">
-      <button data-page="home" class="active">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M3 10.5 12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      <button data-page="home" class="active" aria-label="ホーム">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M3 10.5 12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5Z"
+                stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+        </svg>
         <small>ホーム</small>
       </button>
-      <button data-page="discover">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M21 21l-3.8-3.8M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <button data-page="discover" aria-label="お店を探す">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M21 21l-3.8-3.8M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"
+                stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
         <small>お店を探す</small>
       </button>
-      <button data-page="fav">
-        <svg viewBox="0 0 24 24" fill="none"><path d="m12 21-1.45-1.32C6 15.36 3 12.61 3 9.28 3 6.5 5.24 4.5 7.88 4.5c1.45 0 2.87.64 3.78 1.67A5.2 5.2 0 0 1 15.44 4.5C18.08 4.5 20.3 6.5 20.3 9.28c0 3.33-3 6.08-7.55 10.4L12 21Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      <button data-page="fav" aria-label="お気に入り">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="m12 21-1.45-1.32C6 15.36 3 12.61 3 9.28 3 6.5 5.24 4.5 7.88 4.5c1.45 0 2.87.64 3.78 1.67A5.2 5.2 0 0 1 15.44 4.5C18.08 4.5 20.3 6.5 20.3 9.28c0 3.33-3 6.08-7.55 10.4L12 21Z"
+                stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+        </svg>
         <small>お気に入り</small>
       </button>
-      <button id="nav-scan">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M4 7V4h3M20 7V4h-3M4 17v3h3M20 17v3h-3M6 10h12v4H6z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <button id="nav-scan" aria-label="レスキュー">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M4 7V4h3M20 7V4h-3M4 17v3h3M20 17v3h-3M6 10h12v4H6z"
+                stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
         <small>レスキュー</small>
       </button>
-      <button data-page="me">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm8 9a8 8 0 1 0-16 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <button data-page="me" aria-label="マイページ">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm8 9a8 8 0 1 0-16 0"
+                stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
         <small>マイページ</small>
       </button>
     </nav>
 
     <!-- 予約QRモーダル -->
     <div id="modal" aria-hidden="true">
-      <div style="background:#fff; padding:20px; border-radius:12px; max-width:300px; text-align:center;">
+      <div style="background:#fff;padding:20px;border-radius:12px;max-width:300px;text-align:center">
         <canvas id="qr"></canvas>
-        <div id="codeTxt" style="margin-top:8px; font-size:20px; font-weight:bold"></div>
+        <div id="codeTxt" style="margin-top:8px;font-size:20px;font-weight:bold"></div>
         <div id="pickupWindow" class="muted" style="margin:8px 0"></div>
-        <div style="margin-top:12px;">
+        <div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
           <button id="closeBtn" class="primary" style="background:#666">閉じる</button>
           <button id="saveBtn" class="primary">保存</button>
           <button id="cancelBtn" class="danger">キャンセル</button>
@@ -384,638 +332,505 @@
     </div>
 
     <script>
-      /* ============== 設定 ============== */
+      /* ========= 設定 ========= */
       const CONFIG = {
         LIFF_ID: "2008020661-mYj1EELk",
         API_BASE: "https://line-food-mvp.vercel.app",
         SUPABASE_URL: "https://wpxkjwnfofqdmfukrnqm.supabase.co",
-        SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndweGtqd25mb2ZxZG1mdWtybnFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY1MzQ0OTcsImV4cCI6MjA3MjExMDQ5N30.Aiiuba6dNu_7ZMSns_6D1atbsIs9_PwmLpbVEpgG1yY",
+        SUPABASE_ANON_KEY:
+          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndweGtqd25mb2ZxZG1mdWtybnFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY1MzQ0OTcsImV4cCI6MjA3MjExMDQ5N30.Aiiuba6dNu_7ZMSns_6D1atbsIs9_PwmLpbVEpgG1yY",
       };
       const BOT_BASIC_ID = "@862eqkrz";
 
-      /* ============== 状態 ============== */
+      /* ========= 状態 ========= */
       let g = { userId: null, pos: null };
-      let mapApi;              // 抽象化API
-      let map;                 // Leafletインスタンス（互換のため保持）
-      let userMarker;          // 現在地マーカー
-      let mapAutoFitDone = false; // 初回/強制時のみ自動フィット
+      let map, userMarker;
+      let mapAutoFitDone = false; // 自動フィットは初回/強制時のみ
       var liveScanner = typeof liveScanner === "undefined" ? null : liveScanner;
 
-      /* ============== ユーティリティ ============== */
-      function haversine(a, b) {
-        const toRad = (d) => (d * Math.PI) / 180, R = 6371;
-        const dLat = toRad(b.lat - a.lat), dLng = toRad(b.lng - a.lng);
-        const sa = Math.sin(dLat/2)**2 + Math.cos(toRad(a.lat))*Math.cos(toRad(b.lat))*Math.sin(dLng/2)**2;
-        return 2 * R * Math.asin(Math.sqrt(sa));
+      /* ========= ユーティリティ ========= */
+      const toRad = (d)=> (d*Math.PI)/180;
+      function haversine(a,b){ const R=6371,dLat=toRad(b.lat-a.lat),dLng=toRad(b.lng-a.lng);
+        const sa=Math.sin(dLat/2)**2 + Math.cos(toRad(a.lat))*Math.cos(toRad(b.lat))*Math.sin(dLng/2)**2;
+        return 2*R*Math.asin(Math.sqrt(sa));
       }
-      function fmtTime(s) {
-        const d = new Date(s), h = String(d.getHours()).padStart(2,"0"), m = String(d.getMinutes()).padStart(2,"0");
-        return `${h}:${m}`;
-      }
-      function parseShopId(v) {
-        try {
-          const s = String(v);
-          const m = s.match(/^shop:(\d+)$/);
-          if (m) return Number(m[1]);
-          const o = JSON.parse(s);
-          if (o && o.shop_id) return Number(o.shop_id);
-        } catch {}
-        return null;
-      }
+      function fmtTime(s){ const d=new Date(s); const h=String(d.getHours()).padStart(2,"0"); const m=String(d.getMinutes()).padStart(2,"0"); return `${h}:${m}`; }
+      function parseShopId(v){ try{ const s=String(v); const m=s.match(/^shop:(\d+)$/); if(m) return Number(m[1]); const o=JSON.parse(s); if(o && o.shop_id) return Number(o.shop_id);}catch{} return null; }
 
-      /* ============== マップ API（Leaflet実装） ============== */
-      function createLeafletAPI() {
-        let _map, _markers = [], _userMarker = null;
-        return {
-          init(id, { center=[35.6812,139.7671], zoom=12 } = {}) {
-            _map = L.map(id, { zoomControl: true }).setView(center, zoom);
-            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-              attribution: "&copy; OpenStreetMap contributors",
-            }).addTo(_map);
-            return _map;
-          },
-          addUserMarker(lat, lng) {
-            if (!_userMarker) {
-              _userMarker = L.circleMarker([lat, lng], {
-                radius: 10, color: "#2e7d32", fillColor: "#66bb6a", fillOpacity: 0.9, weight: 3,
-              }).addTo(_map).bindPopup("現在地");
-            } else {
-              _userMarker.setLatLng([lat, lng]);
-            }
-            return _userMarker;
-          },
-          addShopMarker(lat, lng, onClick) {
-            const m = L.marker([lat, lng]).addTo(_map);
-            if (onClick) m.on("click", onClick);
-            _markers.push(m);
-            return m;
-          },
-          clearMarkers() { _markers.forEach(m => _map.removeLayer(m)); _markers = []; },
-          fitToBounds(latlngs, { maxZoom=14, padding=[30,30] } = {}) {
-            if (!latlngs || !latlngs.length) return;
-            const b = L.latLngBounds(latlngs);
-            _map.fitBounds(b, { maxZoom, padding });
-          },
-          setCenter(lat, lng, zoom) { _map.setView([lat, lng], zoom ?? _map.getZoom()); },
-          invalidateSize() { setTimeout(() => _map && _map.invalidateSize(), 0); },
-          on(ev, handler) { _map.on(ev, handler); },
-          off(ev, handler) { _map.off(ev, handler); },
-          raw() { return _map; }
-        };
-      }
-
-      /* ============== 初期化 ============== */
-      async function init() {
+      /* ========= 初期化 ========= */
+      async function init(){
         await liff.init({ liffId: CONFIG.LIFF_ID });
-        if (!liff.isLoggedIn()) { liff.login(); return; }
+        if (!liff.isLoggedIn()){ liff.login(); return; }
 
         const prof = await liff.getProfile();
         g.userId = prof.userId;
-        document.getElementById("me").textContent = "ログイン済み";
+        const me = document.getElementById("me"); if(me) me.textContent = "ログイン済み";
 
-        // 位置先取り（取得でき次第、地図＆リストに反映）
-        try {
-          const geo = await new Promise((ok, ng) =>
-            navigator.geolocation.getCurrentPosition(ok, ng, { enableHighAccuracy: true, timeout: 8000 })
-          );
+        try{
+          const geo = await new Promise((ok,ng)=> navigator.geolocation.getCurrentPosition(ok,ng,{enableHighAccuracy:true,timeout:8000}));
           g.pos = { lat: geo.coords.latitude, lng: geo.coords.longitude };
-          document.getElementById("notice").textContent = "近い順に表示中";
-          if (mapApi && map && window.__lastOffers) {
-            mapAutoFitDone = false;
-            fitToUserAndNearest(window.__lastOffers, true);
-          }
-        } catch {
+          const nt = document.getElementById("notice"); if(nt) nt.textContent = "近い順に表示中";
+          /* ★位置が取れたら即フィット（地図が出来上がっていれば） */
+          if (window.map && window.__lastOffers){ fitToUserAndNearest(window.__lastOffers, true); }
+        }catch{
           g.pos = null;
-          document.getElementById("notice").textContent = "位置情報が拒否されました（距離順は概算表示）";
+          const nt = document.getElementById("notice"); if(nt) nt.textContent = "位置情報が拒否されました（距離順は概算表示）";
         }
 
         await loadMyReservations();
         await loadOffers();
       }
 
-      async function loadOffers() {
+      async function loadOffers(){
         const url = new URL(CONFIG.SUPABASE_URL + "/rest/v1/offers");
         url.searchParams.set("select","id,title,price,qty_available,pickup_start,pickup_end,shops:shop_id(id,name,lat,lng,address)");
         url.searchParams.set("status","eq.active");
         url.searchParams.set("order","created_at.desc");
 
-        const r = await fetch(url, {
-          headers: { apikey: CONFIG.SUPABASE_ANON_KEY, Authorization: "Bearer " + CONFIG.SUPABASE_ANON_KEY },
-        });
+        const r = await fetch(url, { headers:{ apikey: CONFIG.SUPABASE_ANON_KEY, Authorization:"Bearer "+CONFIG.SUPABASE_ANON_KEY } });
         const items = await r.json();
 
-        const list = items.map((it) => {
+        const list = items.map(it=>{
           const shop = it.shops;
-          const dist = (g.pos && shop?.lat && shop?.lng) ? haversine(g.pos, { lat: shop.lat, lng: shop.lng }) : null;
-          return { ...it, shop, dist };
-        }).sort((a,b) => {
-          if (a.dist == null && b.dist == null) return 0;
-          if (a.dist == null) return 1;
-          if (b.dist == null) return -1;
+          const dist = g.pos && shop?.lat && shop?.lng ? haversine(g.pos,{lat:shop.lat,lng:shop.lng}) : null;
+          return {...it, shop, dist};
+        }).sort((a,b)=>{
+          if(a.dist==null && b.dist==null) return 0;
+          if(a.dist==null) return 1;
+          if(b.dist==null) return -1;
           return a.dist - b.dist;
         });
 
         window.__lastOffers = list;
         render(list);
-
-        // 地図があればもう一度フィット（データ揃ってから）
-        if (mapApi && map) fitToUserAndNearest(list, true);
       }
 
-      /* ============== 友だち確認 ============== */
-      async function ensureFriend() {
-        try {
+      /* ========= 友だち確認 ========= */
+      async function ensureFriend(){
+        try{
           const { friendFlag } = await liff.getFriendship();
           if (friendFlag) return true;
           const go = confirm("公式アカウントを友だち追加してください。追加画面を開きますか？");
-          if (go) liff.openWindow({ url: `https://line.me/R/ti/p/${BOT_BASIC_ID}`, external: true });
+          if(go) liff.openWindow({ url:`https://line.me/R/ti/p/${BOT_BASIC_ID}`, external:true });
           return false;
-        } catch {
+        }catch{
           alert("友だち状態を確認できませんでした。後でもう一度お試しください。");
           return false;
         }
       }
-      async function checkFriendship() {
-        try {
+      async function checkFriendship(){
+        try{
           const { friendFlag } = await liff.getFriendship();
           document.getElementById("friendStatus").textContent = friendFlag ? "公式アカウントは『友だち』になっています。" : "まだ友だちではありません。";
-        } catch (e) {
+        }catch(e){
           document.getElementById("friendStatus").textContent = "友だち状態を取得できません（Mini App と Messaging API の関連付けを確認してください）";
           console.error(e);
         }
       }
 
-      /* ============== 予約・決済・モーダル ============== */
+      /* ========= 予約・決済・QR ========= */
       let myActive = new Map(); // offer_id -> { id, status, pickup_code }
 
-      async function reserve(offer, btn) {
-        if (offer.qty_available <= 0) {
+      async function reserve(offer, btn){
+        if(offer.qty_available<=0){
           const ok = confirm("この商品は在庫0です。サーバ側の sold_out 動作テストとして予約リクエストを送りますか？");
-          if (!ok) return;
+          if(!ok) return;
         }
-        if (!(await ensureFriend())) return;
+        if(!(await ensureFriend())) return;
 
-        btn.disabled = true;
-        const prev = btn.textContent;
-        btn.textContent = "予約中…";
-        try {
+        btn.disabled = true; const prev=btn.textContent; btn.textContent="予約中…";
+        try{
           const idToken = liff.getIDToken();
           const r = await fetch(CONFIG.API_BASE + "/api/reserve", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: "Bearer " + idToken },
-            body: JSON.stringify({ offer_id: offer.id }),
+            method:"POST", headers:{ "Content-Type":"application/json", Authorization:"Bearer "+idToken },
+            body: JSON.stringify({ offer_id: offer.id })
           });
           const data = await r.json();
 
-          if (!data.ok) {
-            if (data.error === "already_reserved") return alert("このお得袋はすでに予約済みです。");
-            if (data.error === "sold_out_or_missing") return alert("在庫切れ、または見つかりませんでした。");
+          if(!data.ok){
+            if(data.error==="already_reserved") return alert("このお得袋はすでに予約済みです。");
+            if(data.error==="sold_out_or_missing") return alert("在庫切れ、または見つかりませんでした。");
             throw new Error(data.error || "reserve_failed");
           }
 
-          myActive.set(offer.id, {
-            id: data.reservation.id,
-            status: "reserved",
-            pickup_code: data.reservation.pickup_code || null,
-          });
-
+          myActive.set(offer.id,{ id:data.reservation.id, status:"reserved", pickup_code:data.reservation.pickup_code || null });
           alert("予約を作成しました。続けて「決済へ進む」を押してください。");
           await loadMyReservations();
           await loadOffers();
-        } catch (e) {
-          alert("予約に失敗しました：" + e.message);
-        } finally {
-          btn.disabled = false;
-          btn.textContent = prev;
-        }
+        }catch(e){ alert("予約に失敗しました：" + e.message); }
+        finally{ btn.disabled=false; btn.textContent=prev; }
       }
 
-      function showQR({ code, reservationId, shopName, windowText }) {
-        const modal = document.getElementById("modal");
-        const canvas = document.getElementById("qr");
-        const codeTxt = document.getElementById("codeTxt");
-        const pick = document.getElementById("pickupWindow");
+      function showQR({ code, reservationId, shopName, windowText }){
+        const modal=document.getElementById("modal");
+        const canvas=document.getElementById("qr");
+        const codeTxt=document.getElementById("codeTxt");
+        const pick=document.getElementById("pickupWindow");
 
-        if (modal.parentElement !== document.body) document.body.appendChild(modal);
-
-        QRCode.toCanvas(canvas, code, { width: 220, margin: 1 }, () => {});
+        QRCode.toCanvas(canvas, code, { width:220, margin:1 }, ()=>{});
         codeTxt.textContent = code;
         pick.textContent = windowText || "";
 
-        modal.style.display = "flex";
+        modal.style.display="flex";
         document.body.classList.add("modal-open");
 
-        const onClose = () => {
-          modal.style.display = "none";
+        const onClose = ()=>{
+          modal.style.display="none";
           document.body.classList.remove("modal-open");
-          if (mapApi) mapApi.invalidateSize();
+          if(map) setTimeout(()=>map.invalidateSize(),0);
         };
         document.getElementById("closeBtn").onclick = onClose;
-        document.getElementById("saveBtn").onclick = () => {
-          const a = document.createElement("a");
+        document.getElementById("saveBtn").onclick = ()=>{
+          const a=document.createElement("a");
           a.href = canvas.toDataURL("image/png");
           a.download = `pickup_${code}.png`;
           a.click();
         };
-        const cancelBtn = document.getElementById("cancelBtn");
-        if (cancelBtn) cancelBtn.onclick = () => cancelReservation(reservationId, onClose);
-        modal.onclick = (e) => { if (e.target === modal) onClose(); };
+        const cancelBtn=document.getElementById("cancelBtn");
+        if(cancelBtn) cancelBtn.onclick = ()=> cancelReservation(reservationId, onClose);
+        modal.onclick = (e)=>{ if(e.target===modal) onClose(); };
       }
 
-      async function payReservation(reservationId, offer) {
+      async function payReservation(reservationId, offer){
         const idToken = liff.getIDToken();
         const r = await fetch(CONFIG.API_BASE + "/api/pay/fake-complete", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: "Bearer " + idToken },
-          body: JSON.stringify({ reservation_id: reservationId }),
+          method:"POST", headers:{ "Content-Type":"application/json", Authorization:"Bearer "+idToken },
+          body: JSON.stringify({ reservation_id: reservationId })
         });
-        const j = await r.json().catch(() => null);
-        if (!r.ok || !j?.ok) {
+        const j = await r.json().catch(()=>null);
+        if(!r.ok || !j?.ok){
           const msg = j?.error || "pay_failed";
           alert("決済（テスト）に失敗しました：" + msg);
           throw new Error(msg);
         }
 
         const resv = j.reservation;
-        myActive.set(resv.offer_id, {
-          id: resv.id,
-          status: "paid",
-          pickup_code: resv.pickup_code || myActive.get(resv.offer_id)?.pickup_code || null,
-        });
+        myActive.set(resv.offer_id,{ id:resv.id, status:"paid", pickup_code: resv.pickup_code || myActive.get(resv.offer_id)?.pickup_code || null });
 
         showQR({
           code: myActive.get(resv.offer_id)?.pickup_code || resv.pickup_code,
           reservationId: resv.id,
           shopName: offer?.shops?.name || "店舗",
-          windowText: `受取時間 ${fmtTime(offer.pickup_start)}–${fmtTime(offer.pickup_end)}`,
+          windowText: `受取時間 ${fmtTime(offer.pickup_start)}–${fmtTime(offer.pickup_end)}`
         });
 
         await loadMyReservations();
         await loadOffers();
       }
 
-      async function cancelReservation(reservationId, onClose) {
-        if (!reservationId) return alert("予約IDが見つかりません");
-        if (!confirm("この予約をキャンセルしますか？")) return;
-        try {
+      async function cancelReservation(reservationId, onClose){
+        if(!reservationId) return alert("予約IDが見つかりません");
+        if(!confirm("この予約をキャンセルしますか？")) return;
+        try{
           const idToken = liff.getIDToken();
           const r = await fetch(CONFIG.API_BASE + "/api/cancel", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: "Bearer " + idToken },
-            body: JSON.stringify({ reservation_id: reservationId }),
+            method:"POST", headers:{ "Content-Type":"application/json", Authorization:"Bearer "+idToken },
+            body: JSON.stringify({ reservation_id: reservationId })
           });
-          let data; try { data = await r.json(); } catch {}
-          if (!r.ok || !data?.ok) {
-            const msg = data?.error || "cancel_failed";
-            if (msg === "too_late") return alert("受取開始後はキャンセルできません。");
-            if (msg === "not_cancellable") return alert("この予約はキャンセルできません。");
+          let data; try{ data=await r.json(); }catch{}
+          if(!r.ok || !data?.ok){
+            const msg=data?.error || "cancel_failed";
+            if(msg==="too_late") return alert("受取開始後はキャンセルできません。");
+            if(msg==="not_cancellable") return alert("この予約はキャンセルできません。");
             return alert("キャンセルに失敗しました：" + msg);
           }
           alert("キャンセルしました。");
-          if (typeof onClose === "function") onClose();
+          if(typeof onClose==="function") onClose();
           await loadOffers();
-        } catch (e) {
-          alert("キャンセルに失敗しました：" + e.message);
-        }
+        }catch(e){ alert("キャンセルに失敗しました：" + e.message); }
       }
 
-      /* ============== ホーム描画 & 地図描画 ============== */
-      function imgFor(it) {
-        return it.image_url || it.shops?.image_url ||
-          `https://placehold.co/800x600/j5b09d/ffffff?text=${encodeURIComponent(it.shops?.name || "Shop")}`;
-      }
-
-      function buildCardHTML(it) {
-        const shop = it.shop || it.shops;
-        const time = `${fmtTime(it.pickup_start)}–${fmtTime(it.pickup_end)}`;
-        const dist = it.dist != null ? `${it.dist.toFixed(1)}km` : "";
-        const sold = it.qty_available <= 0;
-        return `
-          <article class="card-lg" data-offer="${it.id}">
-            <img src="${imgFor(it)}" alt="">
-            <div class="price">¥${it.price}</div>
-            <div class="overlay">
-              <div class="title">${shop?.name || "店舗"}</div>
-              <div class="meta">
-                <span>のこり${it.qty_available}</span>
-                <span>${time}</span>
-                <span>${dist}</span>
-              </div>
-              <div style="margin-top:8px">
-                <button class="primary btn-resv" ${sold ? "disabled" : ""}>${sold ? "在庫なし" : "予約へ進む"}</button>
-              </div>
-            </div>
-          </article>`;
-      }
-
-      function renderHomeSections(list) {
-        const near = [...list].sort((a,b) => {
-          if (a.dist == null && b.dist == null) return 0;
-          if (a.dist == null) return 1;
-          if (b.dist == null) return -1;
-          return a.dist - b.dist;
-        }).slice(0, 12);
-        const recent = [...list].slice(0, 12);
-
-        const nearEl = document.getElementById("near-carousel");
-        const recEl = document.getElementById("recent-carousel");
-        nearEl.innerHTML = near.map(buildCardHTML).join("");
-        recEl.innerHTML = recent.map(buildCardHTML).join("");
-
-        [...nearEl.querySelectorAll(".card-lg"), ...recEl.querySelectorAll(".card-lg")].forEach((card) => {
-          const id = card.getAttribute("data-offer");
-          const offer = list.find((x) => String(x.id) === String(id));
-          card.querySelector(".btn-resv")?.addEventListener("click", (ev) => reserve(offer, ev.target));
-        });
-      }
-
-      function render(list) {
+      /* ========= レンダリング ========= */
+      function render(list){
         renderHomeSections(list);
         renderMap(list);
       }
 
-      // ボトムシート
-      const mapSheetEl = document.getElementById("mapSheet");
-      function hideMapSheet() {
-        if (!mapSheetEl) return;
-        mapSheetEl.classList.remove("show");
-        mapSheetEl.innerHTML = "";
-      }
-      function showMapSheet(offer) {
-        if (!mapSheetEl) return;
-        const html = `<div class="handle"></div>${buildCardHTML(offer)}`;
-        mapSheetEl.innerHTML = html;
-        mapSheetEl.classList.add("show");
-        mapSheetEl.querySelector(".btn-resv")?.addEventListener("click", (ev) => reserve(offer, ev.target));
+      function imgFor(it){
+        return it.image_url || it.shops?.image_url ||
+          `https://placehold.co/800x600/j5b09d/ffffff?text=${encodeURIComponent(it.shops?.name || "Shop")}`;
       }
 
-      function renderMap(list) {
-        if (!mapApi) {
-          mapApi = createLeafletAPI();
-          map = mapApi.init("map", { center: [35.6812, 139.7671], zoom: 12 });
-          // サイズ補正
-          setTimeout(() => mapApi.invalidateSize(), 0);
-          // 地図タッチでシートを閉じる
-          mapApi.off("click", hideMapSheet);
-          mapApi.off("movestart", hideMapSheet);
-          mapApi.on("click", hideMapSheet);
-          mapApi.on("movestart", hideMapSheet);
+      function buildCardHTML(it){
+        const shop = it.shop || it.shops;
+        const time = `${fmtTime(it.pickup_start)}–${fmtTime(it.pickup_end)}`;
+        const dist = it.dist!=null ? `${it.dist.toFixed(1)}km` : "";
+        const sold = it.qty_available<=0;
+        return `
+  <article class="card-lg" data-offer="${it.id}">
+    <img src="${imgFor(it)}" alt="">
+    <div class="price">¥${it.price}</div>
+    <div class="overlay">
+      <div class="title">${shop?.name || "店舗"}</div>
+      <div class="meta">
+        <span>のこり${it.qty_available}</span>
+        <span>${time}</span>
+        <span>${dist}</span>
+      </div>
+      <div style="margin-top:8px">
+        <button class="primary btn-resv" ${sold ? "disabled":""}>${sold ? "在庫なし":"予約へ進む"}</button>
+      </div>
+    </div>
+  </article>`;
+      }
+
+      function renderHomeSections(list){
+        const near = [...list].sort((a,b)=>{
+          if(a.dist==null && b.dist==null) return 0;
+          if(a.dist==null) return 1;
+          if(b.dist==null) return -1;
+          return a.dist - b.dist;
+        }).slice(0,12);
+        const recent = [...list].slice(0,12);
+
+        const nearEl=document.getElementById("near-carousel");
+        const recEl=document.getElementById("recent-carousel");
+        if(nearEl) nearEl.innerHTML = near.map(buildCardHTML).join("");
+        if(recEl) recEl.innerHTML = recent.map(buildCardHTML).join("");
+
+        [...(nearEl?.querySelectorAll(".card-lg")||[]), ...(recEl?.querySelectorAll(".card-lg")||[])]
+          .forEach(card=>{
+            const id = card.getAttribute("data-offer");
+            const offer = list.find(x=> String(x.id)===String(id));
+            card.querySelector(".btn-resv")?.addEventListener("click",(ev)=> reserve(offer, ev.target));
+          });
+      }
+
+      /* ========= 地図 ========= */
+      function fitToUserAndNearest(list, force=false){
+        if(!map) return;
+
+        const shops = (list||[]).filter(it => it?.shops?.lat && it?.shops?.lng);
+        const targets = [];
+        if(g.pos) targets.push(L.latLng(g.pos.lat, g.pos.lng));
+
+        const sorted = g.pos ? [...shops].sort((a,b)=> (a.dist ?? Infinity) - (b.dist ?? Infinity)) : shops;
+        sorted.slice(0, Math.min(6, sorted.length)).forEach(it => targets.push(L.latLng(it.shops.lat, it.shops.lng)));
+
+        if(!targets.length) return;
+
+        if(!mapAutoFitDone || force){
+          const bounds = L.latLngBounds(targets);
+          map.fitBounds(bounds, { padding:[30,30], maxZoom:14 });
+          mapAutoFitDone = true;
+        }
+      }
+
+      function renderMap(list){
+        if(!map){
+          map = L.map("map", { zoomControl:true }).setView([35.6812,139.7671], 12);
+          window.map = map;
+
+          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution:"&copy; OpenStreetMap contributors"
+          }).addTo(map);
+
+          setTimeout(()=>{ try{ map.invalidateSize(); }catch{} }, 0);
         }
 
-        // 既存マーカークリア（現在地は addUserMarker で管理）
-        mapApi.clearMarkers();
+        // 既存の店舗マーカー削除（タイルは残す）
+        const remove=[];
+        map.eachLayer(l=>{ if(l instanceof L.Marker || l instanceof L.CircleMarker) remove.push(l); });
+        remove.forEach(l=> map.removeLayer(l));
 
-        // 現在地マーカー
-        if (g.pos) {
-          userMarker = mapApi.addUserMarker(g.pos.lat, g.pos.lng);
+        // 現在地
+        if(g.pos){
+          userMarker = L.circleMarker([g.pos.lat, g.pos.lng], {
+            radius:10,color:"#2e7d32",fillColor:"#66bb6a",fillOpacity:.9,weight:3
+          }).addTo(map).bindPopup("現在地");
         }
 
         // 店舗マーカー
-        (list || []).forEach((it) => {
+        (list||[]).forEach(it=>{
           const s = it.shop || it.shops;
-          if (s?.lat && s?.lng) {
-            mapApi.addShopMarker(s.lat, s.lng, () => showMapSheet(it));
+          if(s?.lat && s?.lng){
+            const marker = L.marker([s.lat, s.lng]).addTo(map);
+            marker.on("click", ()=> showMapSheet(it));
           }
         });
 
-        // 初回は自動フィット
-        if (!mapAutoFitDone) fitToUserAndNearest(list, false);
+        // 地図のどこかをタップ/ドラッグしたらシートを閉じる
+        map.off("click", hideMapSheet);
+        map.off("movestart", hideMapSheet);
+        map.on("click", hideMapSheet);
+        map.on("movestart", hideMapSheet);
+
+        // 初回自動フィット
+        if(!mapAutoFitDone){ fitToUserAndNearest(list, true); }
       }
 
-      // 現在地 + 近隣店舗にフィット
-      function fitToUserAndNearest(list, force = false) {
-        if (!mapApi || !map) return;
-        if (mapAutoFitDone && !force) return;
-
-        const targets = [];
-        if (g.pos) targets.push([g.pos.lat, g.pos.lng]);
-
-        const shops = (list || [])
-          .filter((it) => it?.shops?.lat && it?.shops?.lng)
-          .sort((a, b) => (a.dist ?? Infinity) - (b.dist ?? Infinity))
-          .slice(0, 6);
-
-        shops.forEach((it) => targets.push([it.shops.lat, it.shops.lng]));
-
-        if (targets.length >= 2) {
-          mapApi.fitToBounds(targets, { maxZoom: 14, padding: [30, 30] });
-        } else if (targets.length === 1) {
-          mapApi.setCenter(targets[0][0], targets[0][1], 13);
-        } else {
-          mapApi.setCenter(35.6812, 139.7671, 11);
-        }
-        mapAutoFitDone = true;
+      // === マップ用ボトムシート ===
+      const mapSheetEl = document.getElementById("mapSheet");
+      function hideMapSheet(){ if(!mapSheetEl) return; mapSheetEl.classList.remove("show"); mapSheetEl.innerHTML=""; }
+      function showMapSheet(offer){
+        if(!mapSheetEl) return;
+        const html = `<div class="handle"></div>${buildCardHTML(offer)}`;
+        mapSheetEl.innerHTML = html;
+        mapSheetEl.classList.add("show");
+        mapSheetEl.querySelector(".btn-resv")?.addEventListener("click",(ev)=> reserve(offer, ev.target));
       }
 
-      /* ============== スキャン ============== */
-      async function favPost(shopId) {
+      /* ========= スキャン ========= */
+      async function favPost(shopId){
         const idToken = liff.getIDToken();
-        const res = await fetch(`${CONFIG.API_BASE}/api/favorite-add`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: "Bearer " + idToken },
-          body: JSON.stringify({ shop_id: shopId }),
+        const res = await fetch(`${CONFIG.API_BASE}/api/favorite-add`,{
+          method:"POST", headers:{ "Content-Type":"application/json", Authorization:"Bearer "+idToken },
+          body: JSON.stringify({ shop_id: shopId })
         });
         const j = await res.json();
-        if (!j.ok) throw new Error(j.error || "favorite_failed");
+        if(!j.ok) throw new Error(j.error || "favorite_failed");
       }
-      function scanByImage() {
-        const inp = document.getElementById("qr-file");
-        if (!inp) return alert("画像入力が見つかりません");
-        inp.onchange = async (e) => {
+
+      function scanByImage(){
+        const inp=document.getElementById("qr-file");
+        if(!inp) return alert("画像入力が見つかりません");
+        inp.onchange = async (e)=>{
           const file = e.target.files?.[0];
-          if (!file) return;
-          try {
+          if(!file) return;
+          try{
             const res = await QrScanner.scanImage(file);
             const text = res?.data || res;
             const shopId = parseShopId(text);
-            if (!shopId) return alert("QRの形式が不正です");
-            if (!(await ensureFriend())) return;
+            if(!shopId) return alert("QRの形式が不正です");
+            if(!(await ensureFriend())) return;
             await favPost(shopId);
             alert("お気に入り店舗に登録しました");
-          } catch (err) {
+          }catch(err){
             console.error(err);
             alert("画像からQRを読み取れませんでした");
-          } finally {
-            e.target.value = "";
-          }
+          }finally{ e.target.value=""; }
         };
         inp.click();
       }
-      async function openLiveScan() {
-        try {
-          if (!(await ensureFriend())) return;
-          const box = document.getElementById("liveScan");
-          const video = document.getElementById("qrVideo");
-          if (!box || !video) return alert("ライブスキャンの要素が見つかりません");
+
+      async function openLiveScan(){
+        try{
+          if(!(await ensureFriend())) return;
+
+          const box=document.getElementById("liveScan");
+          const video=document.getElementById("qrVideo");
+          if(!box || !video) return alert("ライブスキャンの要素が見つかりません");
 
           box.classList.add("show");
           document.body.classList.add("live-scan-open");
 
-          if (!window.QrScanner) { alert("スキャナを読み込めませんでした"); return closeLiveScan(); }
+          if(!window.QrScanner){ alert("スキャナを読み込めませんでした"); return closeLiveScan(); }
 
-          if (liveScanner) { try { await liveScanner.stop(); } catch {} liveScanner.destroy(); liveScanner = null; }
+          if(liveScanner){ try{ await liveScanner.stop(); }catch{} liveScanner.destroy(); liveScanner=null; }
 
-          liveScanner = new QrScanner(
-            video,
-            async (result) => {
-              try {
-                const text = result?.data || result;
-                const shopId = parseShopId(text);
-                if (!shopId) { alert("QRの形式が不正です"); return; }
-                await favPost(shopId);
-                alert("お気に入り店舗に登録しました");
-                closeLiveScan();
-              } catch (e) {
-                console.error(e);
-                alert("処理に失敗しました");
-              }
-            },
-            { preferredCamera: "environment", highlightScanRegion: true, highlightCodeOutline: true }
-          );
+          liveScanner = new QrScanner(video, async (result)=>{
+            try{
+              const text=result?.data || result;
+              const shopId=parseShopId(text);
+              if(!shopId){ alert("QRの形式が不正です"); return; }
+              await favPost(shopId);
+              alert("お気に入り店舗に登録しました");
+              closeLiveScan();
+            }catch(e){ console.error(e); alert("処理に失敗しました"); }
+          },{
+            preferredCamera:"environment", highlightScanRegion:true, highlightCodeOutline:true
+          });
+
           await liveScanner.start();
-        } catch (e) {
+        }catch(e){
           console.error(e);
-          const go = confirm("カメラを起動できませんでした。画像から読み取りますか？");
-          if (go) scanByImage();
+          const go=confirm("カメラを起動できませんでした。画像から読み取りますか？");
+          if(go) scanByImage();
           closeLiveScan();
         }
       }
-      async function closeLiveScan() {
-        const box = document.getElementById("liveScan");
+
+      async function closeLiveScan(){
+        const box=document.getElementById("liveScan");
         box?.classList.remove("show");
         document.body.classList.remove("live-scan-open");
-        if (liveScanner) { try { await liveScanner.stop(); } catch {} liveScanner.destroy(); liveScanner = null; }
+        if(liveScanner){ try{ await liveScanner.stop(); }catch{} liveScanner.destroy(); liveScanner=null; }
       }
 
-      async function loadMyReservations() {
+      async function loadMyReservations(){
         myActive.clear();
-        try {
+        try{
           const idToken = liff.getIDToken();
-          const r = await fetch(CONFIG.API_BASE + "/api/my-reservations", {
-            headers: { Authorization: "Bearer " + idToken },
-          });
+          const r = await fetch(CONFIG.API_BASE + "/api/my-reservations",{ headers:{ Authorization:"Bearer "+idToken } });
           const j = await r.json();
-          if (r.ok && j?.ok && Array.isArray(j.items)) {
-            j.items.forEach((x) => {
-              myActive.set(x.offer_id, { id: x.id, status: x.status, pickup_code: x.pickup_code || null });
-            });
+          if(r.ok && j?.ok && Array.isArray(j.items)){
+            j.items.forEach(x=> myActive.set(x.offer_id,{ id:x.id, status:x.status, pickup_code:x.pickup_code || null }) );
           }
-        } catch (e) {
-          console.warn("loadMyReservations failed", e);
-        }
+        }catch(e){ console.warn("loadMyReservations failed", e); }
       }
 
-      /* ============== イベント登録 ============== */
-      document.addEventListener("DOMContentLoaded", () => {
+      /* ========= 画面イベント ========= */
+      document.addEventListener("DOMContentLoaded", ()=>{
         document.getElementById("btn-scan")?.addEventListener("click", openLiveScan);
         document.getElementById("scanClose")?.addEventListener("click", closeLiveScan);
-        document.getElementById("liveScan")?.addEventListener("click", (e) => { if (e.target && e.target.id === "liveScan") closeLiveScan(); });
+        document.getElementById("liveScan")?.addEventListener("click",(e)=>{ if(e.target && e.target.id==="liveScan") closeLiveScan(); });
         document.getElementById("friendCheckBtn")?.addEventListener("click", checkFriendship);
 
-        // ページ切り替え
-        function showPage(name) {
-          document.querySelectorAll(".page").forEach((p) => p.classList.remove("active"));
-          if (name === "home") document.getElementById("page-home")?.classList.add("active");
-          if (name === "discover") document.getElementById("page-discover")?.classList.add("active");
-
-          document.querySelectorAll(".tabbar button").forEach((b) => b.classList.remove("active"));
-          document.querySelector(`.tabbar button[data-page="${name}"]`)?.classList.add("active");
-
-          if (name === "discover") {
-            document.body.classList.add("discover-full");
-            document.getElementById("page-discover")?.classList.add("fullmap");
-            mapAutoFitDone = false;
-            setTimeout(() => mapApi && mapApi.invalidateSize(), 80);
-          } else {
-            document.body.classList.remove("discover-full");
-            document.getElementById("page-discover")?.classList.remove("fullmap");
+        function showPage(name){
+          document.querySelectorAll(".page").forEach(p=> p.classList.remove("active"));
+          if(name==="home") document.getElementById("page-home")?.classList.add("active");
+          if(name==="discover"){
+            document.getElementById("page-discover")?.classList.add("active");
+            mapAutoFitDone = false; // 次回renderで再フィット
+            setTimeout(()=>{ if(map) map.invalidateSize(); updateTabbarInset(); }, 80);
           }
+          document.querySelectorAll(".tabbar button").forEach(b=> b.classList.remove("active"));
+          document.querySelector(`.tabbar button[data-page="${name}"]`)?.classList.add("active");
         }
 
-        document.querySelectorAll(".tabbar button[data-page]").forEach((btn) => btn.addEventListener("click", () => showPage(btn.dataset.page)));
+        document.querySelectorAll(".tabbar button[data-page]").forEach(btn=>{
+          btn.addEventListener("click", ()=> showPage(btn.dataset.page));
+        });
+
         document.getElementById("nav-scan")?.addEventListener("click", openLiveScan);
-        document.getElementById("more-near")?.addEventListener("click", () => showPage("discover"));
-        document.getElementById("more-recent")?.addEventListener("click", () => showPage("discover"));
-        document.getElementById("btn-scan")?.addEventListener("click", openLiveScan);
+        document.getElementById("more-near")?.addEventListener("click", ()=> showPage("discover"));
+        document.getElementById("more-recent")?.addEventListener("click", ()=> showPage("discover"));
 
-        // 現在地ボタン（コンパス）
-        document.getElementById("btn-locate")?.addEventListener("click", async () => {
-          try {
-            const geo = await new Promise((ok, ng) =>
-              navigator.geolocation.getCurrentPosition(ok, ng, { enableHighAccuracy: true, timeout: 8000 })
-            );
-            g.pos = { lat: geo.coords.latitude, lng: geo.coords.longitude };
-            if (mapApi) {
-              mapApi.addUserMarker(g.pos.lat, g.pos.lng);
-              mapAutoFitDone = false;
-              fitToUserAndNearest(window.__lastOffers || [], true);
-            }
-          } catch {
-            alert("現在地を取得できませんでした。端末の位置情報設定をご確認ください。");
-          }
+        const q=document.getElementById("q");
+        if(q){
+          q.addEventListener("input", ()=>{
+            const kw=q.value.trim().toLowerCase();
+            if(!window.__lastOffers) return;
+            const base=window.__lastOffers;
+            const filtered = kw ? base.filter(it=>{
+              const shop=it.shop || it.shops;
+              return (it.title||"").toLowerCase().includes(kw) || (shop?.name||"").toLowerCase().includes(kw) || (shop?.address||"").toLowerCase().includes(kw);
+            }) : base;
+            renderHomeSections(filtered);
+          });
+        }
+
+        // Discover のコンパス（現在地と周辺へ）
+        document.getElementById("btn-recenter")?.addEventListener("click", ()=>{
+          if(window.__lastOffers){ fitToUserAndNearest(window.__lastOffers, true); }
         });
 
-        // 検索（ホームの簡易フィルタ）
-        const q = document.getElementById("q");
-        if (q) q.addEventListener("input", () => {
-          const kw = q.value.trim().toLowerCase();
-          if (!window.__lastOffers) return;
-          const base = window.__lastOffers;
-          const filtered = kw
-            ? base.filter((it) => {
-                const shop = it.shop || it.shops;
-                return (it.title || "").toLowerCase().includes(kw)
-                  || (shop?.name || "").toLowerCase().includes(kw)
-                  || (shop?.address || "").toLowerCase().includes(kw);
-              })
-            : base;
-          renderHomeSections(filtered);
-        });
-
-        // Discoverの検索（UIだけ、必要ならAPI検索へ繋ぐ）
-        const qMap = document.getElementById("q-map");
-        if (qMap) qMap.addEventListener("keydown", (e) => {
-          if (e.key === "Enter") {
-            // TODO: ここで住所→座標検索等に繋ぐ（現状はUIのみ）
-            e.target.blur();
-          }
+        // （デモ）左のフィルタはトースト代わり
+        document.getElementById("btn-filter")?.addEventListener("click", ()=>{
+          alert("フィルタUIは未実装です（デモ）");
         });
       });
 
-      // 起動
       init();
 
-      // レイアウト調整
-      function updateTabbarInset() {
-        const tb = document.querySelector(".tabbar");
-        if (!tb) return;
-        const h = Math.ceil(tb.getBoundingClientRect().height);
-        document.documentElement.style.setProperty("--tabbar-h", h + "px");
+      /* ========= レイアウト補助 ========= */
+      function fixMapSize(){ if(map) setTimeout(()=>{ try{ map.invalidateSize(); }catch{} }, 80); }
+      window.addEventListener("load", fixMapSize);
+      window.addEventListener("resize", fixMapSize);
+      document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) fixMapSize(); });
+
+      function updateTabbarInset(){
+        const tb=document.querySelector(".tabbar"); if(!tb) return;
+        const h=Math.ceil(tb.getBoundingClientRect().height);
+        document.documentElement.style.setProperty("--tabbar-h", h+"px");
       }
       window.addEventListener("load", updateTabbarInset);
       window.addEventListener("resize", updateTabbarInset);
-      document.addEventListener("visibilitychange", () => { if (!document.hidden) updateTabbarInset(); });
-      if (window.ResizeObserver) {
-        const tb = document.querySelector(".tabbar");
-        if (tb) new ResizeObserver(updateTabbarInset).observe(tb);
+      document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) updateTabbarInset(); });
+      if(window.ResizeObserver){
+        const tb=document.querySelector(".tabbar");
+        if(tb) new ResizeObserver(updateTabbarInset).observe(tb);
       }
-
-      // 地図サイズ再計算
-      let _resizeTimer;
-      function fixMapSize(recenter = false) {
-        if (!mapApi) return;
-        clearTimeout(_resizeTimer);
-        _resizeTimer = setTimeout(() => {
-          mapApi.invalidateSize();
-          if (recenter) {
-            mapAutoFitDone = false;
-            fitToUserAndNearest(window.__lastOffers || [], true);
-          }
-        }, 80);
-      }
-      window.addEventListener("load", () => fixMapSize(false));
-      window.addEventListener("resize", () => fixMapSize(false));
-      document.addEventListener("visibilitychange", () => { if (!document.hidden) fixMapSize(false); });
     </script>
   </body>
 </html>
