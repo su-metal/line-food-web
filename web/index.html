@@ -438,6 +438,83 @@
         color: #fff;
         box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
       }
+      /* ===== フルスクリーン地図モード ===== */
+      body.discover-full {
+        overflow: hidden; /* 画面が縦スクロールしないように */
+        padding-top: 0 !important; /* ヘッダー分の余白を消す */
+      }
+      body.discover-full .appbar {
+        display: none !important;
+      } /* ヘッダー非表示 */
+
+      #page-discover.fullmap {
+        position: fixed;
+        /* 端末のセーフエリア上端から、タブバー直上までを占有 */
+        top: env(safe-area-inset-top, 0);
+        left: 0;
+        right: 0;
+        bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0));
+        z-index: 1500;
+        background: #f6f3ef;
+      }
+      #page-discover.fullmap #map {
+        position: absolute;
+        inset: 0; /* 上下左右ぴったり */
+        height: auto !important; /* 以前の高さ指定を無効化 */
+        border-radius: 0;
+        border: none;
+      }
+
+      /* フルスクリーン中は下のQRボタン行を隠す（地図だけに） */
+      body.discover-full #discover-actions {
+        display: none !important;
+      }
+
+      /* 地図オーバーレイUI（画像②風の配置） */
+      #page-discover {
+        position: relative;
+      }
+      .map-ui {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        right: 8px;
+        z-index: 1600;
+        display: grid;
+        grid-template-columns: 44px 1fr 44px; /* 左：フィルタ　中央：検索ピル　右：現在地 */
+        align-items: center;
+        gap: 8px;
+        pointer-events: none; /* 親は透過、子要素のみ操作可 */
+      }
+      .map-ui .fab,
+      .map-ui .search-pill {
+        pointer-events: auto;
+      }
+
+      .map-ui .fab {
+        width: 44px;
+        height: 44px;
+        border-radius: 999px;
+        background: #fff;
+        border: 1px solid #e5e2dd;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .map-ui .search-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #fff;
+        border: 1px solid #e5e2dd;
+        border-radius: 999px;
+        padding: 10px 12px;
+        font-size: 14px;
+        color: #6d6860;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+      }
     </style>
   </head>
 
@@ -497,14 +574,24 @@
 
     <!-- ここから「お店を探す」ページ（地図） -->
     <main id="page-discover" class="page">
-      <div id="map" style="height: 58vh; border-radius: 12px"></div>
-      <button id="fitMeBtn" class="map-fab">現在地と周辺</button>
-      <!-- 追加：マップのピンをタップしたときに出すボトムシート -->
-      <div id="mapSheet" class="map-sheet" aria-hidden="true"></div>
-      <div class="btn-row" style="margin: 12px 0">
-        <button id="btn-scan-discover" class="primary">店舗QRを読み取る</button>
-        <button id="btn-fit" class="secondary">現在地と周辺</button>
+      <div id="map" style="border-radius: 12px"></div>
+
+      <!-- 地図上のUI（すでに追加済みならそのまま） -->
+      <div class="map-ui">
+        <button id="btn-filter" class="fab" aria-label="フィルタ">…</button>
+        <button id="btn-search-pill" class="search-pill" aria-label="検索">
+          …
+        </button>
+        <button id="btn-locate" class="fab" aria-label="現在地と周辺">…</button>
       </div>
+
+      <div id="discover-actions" style="margin: 12px 0">
+        <button id="btn-scan-discover" class="primary" style="width: 100%">
+          店舗QRを読み取る
+        </button>
+      </div>
+
+      <div id="mapSheet" class="map-sheet" aria-hidden="true"></div>
     </main>
 
     <!-- 下部タブバー（どの位置でもOK：bodyの末尾が無難） -->
@@ -1376,31 +1463,39 @@
 
         // 追加：ページ切り替え用ヘルパー
         function showPage(name) {
+          // ページ表示切替
           document
             .querySelectorAll(".page")
             .forEach((p) => p.classList.remove("active"));
           if (name === "home")
             document.getElementById("page-home")?.classList.add("active");
-          if (name === "discover") {
+          if (name === "discover")
             document.getElementById("page-discover")?.classList.add("active");
-            // 次の描画で自動フィット可に
-            mapAutoFitDone = false;
 
-            setTimeout(() => {
-              if (map) {
-                map.invalidateSize(); // サイズ再計算
-                // ★地図が可視になったタイミングで「現在地+近隣店」に強制フィット
-                fitToUserAndNearest(window.__lastOffers || [], true);
-              }
-              updateTabbarInset();
-            }, 120);
-          }
+          // タブの見た目
           document
             .querySelectorAll(".tabbar button")
             .forEach((b) => b.classList.remove("active"));
           document
             .querySelector(`.tabbar button[data-page="${name}"]`)
             ?.classList.add("active");
+
+          // フルスクリーン切替
+          if (name === "discover") {
+            document.body.classList.add("discover-full");
+            document.getElementById("page-discover")?.classList.add("fullmap");
+
+            // 次回描画で正しいサイズに
+            mapAutoFitDone = false; // 初期フィットを許可
+            setTimeout(() => {
+              if (map) map.invalidateSize();
+            }, 80);
+          } else {
+            document.body.classList.remove("discover-full");
+            document
+              .getElementById("page-discover")
+              ?.classList.remove("fullmap");
+          }
         }
 
         // 追加：タブをタップしたらページを切り替え
@@ -1447,6 +1542,10 @@
               window.__lastOffers &&
               fitToUserAndNearest(window.__lastOffers, true)
           );
+        document.getElementById("btn-locate")?.addEventListener("click", () => {
+          mapAutoFitDone = false;
+          fitToUserAndNearest(window.__lastOffers || [], true);
+        });
 
         // （※ 検索バーのフィルタ (d) を入れているなら、ここに q の input リスナーも追記）
         const q = document.getElementById("q");
