@@ -863,8 +863,6 @@
 
         await loadMyReservations();
         await loadOffers();
-        /* ★追加：オファーが揃ったタイミングでもう一度強制フィット */
-        if (window.map) fitToUserAndNearest(list, true);
       }
 
       async function loadOffers() {
@@ -902,6 +900,8 @@
           });
         window.__lastOffers = list; // 検索バーのフィルタで再利用
         render(list);
+        /* ★追加：オファーが揃ったタイミングでもう一度強制フィット */
+        if (window.map) fitToUserAndNearest(list, true);
       }
 
       /* ============== 友だち確認 ============== */
