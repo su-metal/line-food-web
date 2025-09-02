@@ -565,6 +565,14 @@
         border-radius: 12px;
         border: 1px solid #e5e2dd;
       }
+      /* --- 店舗ページでは冒頭の共通UIを隠す --- */
+      .shop-mode h1,
+      .shop-mode #friendStatus,
+      .shop-mode #me,
+      .shop-mode #notice,
+      .shop-mode .top-utilities {
+        display: none !important;
+      }
     </style>
   </head>
 
@@ -572,7 +580,7 @@
     <h1>近くのお店・お得情報</h1>
     <div id="friendStatus" class="muted" style="margin: 8px 0"></div>
 
-    <div class="btn-row">
+    <div class="btn-row top-utilities">
       <button id="friendCheckBtn" class="secondary">友達情報を確認</button>
       <button id="btn-scan" class="primary">店舗QRを読み取る</button>
       <input
@@ -1736,6 +1744,8 @@
             document.getElementById("page-home")?.classList.add("active");
           if (name === "discover")
             document.getElementById("page-discover")?.classList.add("active");
+          document.body.classList.remove("shop-mode"); // discover では常に解除
+
           if (name === "shop")
             document.getElementById("page-shop")?.classList.add("active");
 
@@ -1753,7 +1763,7 @@
             // フルスクリーン化（既存処理）
             document.body.classList.add("discover-full");
             document.getElementById("page-discover")?.classList.add("fullmap");
-
+            document.body.classList.remove("shop-mode"); // ★追加
             // ★ 追加1: 地図が未初期化ならここで必ず初期化
             if (!mapApi) {
               renderMap(window.__lastOffers || []);
@@ -1774,9 +1784,14 @@
               .getElementById("page-discover")
               ?.classList.remove("fullmap");
 
-            // shop ページでは子マップのサイズ補正（既存処理を保持）
             if (name === "shop") {
+              // ★ 店舗ページのときだけ共通UIを隠す
+              document.body.classList.add("shop-mode");
+              // 店舗ページ内のミニマップサイズ補正
               setTimeout(() => shopMapApi && shopMapApi.invalidateSize(), 80);
+            } else {
+              // ★ 店舗ページ以外では表示を戻す
+              document.body.classList.remove("shop-mode");
             }
           }
         }
