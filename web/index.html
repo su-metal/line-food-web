@@ -602,7 +602,7 @@
       /* ============== 状態 ============== */
       let g = { userId: null, pos: null };
       let map, userMarker; // ← 追加：現在地の円マーカー用
-      let mapAutoFitDone = false; // 最初の1回だけ自動フィット
+      let mapAutoFitDone = false; // ← 追加：自動フィットは初回/強制時のみ
       var liveScanner = typeof liveScanner === "undefined" ? null : liveScanner; // 冪等宣言
 
       /* ============== ユーティリティ ============== */
@@ -1035,6 +1035,37 @@
         });
       }
 
+      function fitToUserAndNearest(list, force = false) {
+        if (!map) return;
+
+        // 近い順に並んだ offers（render前に list を受け取る想定）
+        const shops = (list || []).filter(
+          (it) => it?.shops?.lat && it?.shops?.lng
+        );
+
+        // 現在地 + 近い店舗 最大6件 をフィット対象に
+        const targets = [];
+        if (g.pos) targets.push(L.latLng(g.pos.lat, g.pos.lng));
+
+        const sorted = g.pos
+          ? [...shops].sort(
+              (a, b) => (a.dist ?? Infinity) - (b.dist ?? Infinity)
+            )
+          : shops;
+        sorted.slice(0, Math.min(6, sorted.length)).forEach((it) => {
+          targets.push(L.latLng(it.shops.lat, it.shops.lng));
+        });
+
+        if (!targets.length) return;
+
+        // 初回 or 強制時のみフィット（ユーザーの手動操作を尊重）
+        if (!mapAutoFitDone || force) {
+          const bounds = L.latLngBounds(targets);
+          map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
+          mapAutoFitDone = true;
+        }
+      }
+
       function renderMap(list) {
         if (!map) {
           map = L.map("map", { zoomControl: true }).setView(
@@ -1105,18 +1136,43 @@
           .map((s) => [s.lat, s.lng]);
 
         if (!mapAutoFitDone) {
-          if (shopLatLngs.length >= 2) {
-            const bounds = L.latLngBounds(shopLatLngs);
-            map.fitBounds(bounds, { padding: [30, 30] });
-            // ズームし過ぎを防ぐ（数字を 12〜14 の間でお好みで）
-            if (map.getZoom() > 13) map.setZoom(13);
-          } else if (shopLatLngs.length === 1) {
-            map.setView(shopLatLngs[0], 13);
-          } else if (g.pos) {
-            map.setView([g.pos.lat, g.pos.lng], 12);
+          const targets = [];
+
+          // 1) 現在地を先に入れる
+          if (g.pos) targets.push(L.latLng(g.pos.lat, g.pos.lng));
+
+          // 2) 近い順に店舗を最大6件追加（list が渡ってくる前提）
+          const shops = (list || []).filter(
+            (it) => it?.shops?.lat && it?.shops?.lng
+          );
+
+          if (g.pos) {
+            // すでに list 作成時に dist を計算している想定
+            shops.sort((a, b) => (a.dist ?? Infinity) - (b.dist ?? Infinity));
+          }
+          shops.slice(0, Math.min(6, shops.length)).forEach((it) => {
+            targets.push(L.latLng(it.shops.lat, it.shops.lng));
+          });
+
+          // 3) 念のためのフォールバック（list が空でも shopLatLngs があれば使う）
+          if (
+            !targets.length &&
+            Array.isArray(shopLatLngs) &&
+            shopLatLngs.length
+          ) {
+            targets.push(...shopLatLngs);
+          }
+
+          // 4) フィット
+          if (targets.length >= 2) {
+            const bounds = L.latLngBounds(targets);
+            map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
+          } else if (targets.length === 1) {
+            map.setView(targets[0], 13);
           } else {
             map.setView([35.6812, 139.7671], 11);
           }
+
           mapAutoFitDone = true; // 以後はユーザー操作を尊重
         }
       }
