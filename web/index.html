@@ -5,9 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>モッタイナ</title>
 
-    <!-- Leaflet CSS & JS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <!-- GOOGLE MAP -->
+    <script
+      async
+      src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY"
+    ></script>
 
     <!-- LIFF SDK -->
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -789,8 +791,13 @@
 
       /* ============== 状態 ============== */
       let g = { userId: null, pos: null };
-      let map, userMarker; // ← 追加：現在地の円マーカー用
-      let mapAutoFitDone = false; // ← 追加：自動フィットは初回/強制時のみ
+
+      // Google Maps 専用のグローバル
+      let map; // 地図インスタンス
+      let userMarker = null; // 現在地マーカー
+      let mapMarkers = []; // 店舗マーカーを格納
+      let mapAutoFitDone = false;
+
       var liveScanner = typeof liveScanner === "undefined" ? null : liveScanner; // 冪等宣言
 
       /* ============== ユーティリティ ============== */
@@ -856,6 +863,8 @@
 
         await loadMyReservations();
         await loadOffers();
+        /* ★追加：オファーが揃ったタイミングでもう一度強制フィット */
+        if (window.map) fitToUserAndNearest(list, true);
       }
 
       async function loadOffers() {
@@ -893,8 +902,6 @@
           });
         window.__lastOffers = list; // 検索バーのフィルタで再利用
         render(list);
-        /* ★追加：オファーが揃ったタイミングでもう一度強制フィット */
-        if (window.map) fitToUserAndNearest(list, true);
       }
 
       /* ============== 友だち確認 ============== */
@@ -1094,74 +1101,66 @@
       }
 
       /* ============== 一覧 & 地図 ============== */
-      function render(list) {
-        // 新ホームUI（横スワイプ）の描画
-        renderHomeSections(list);
+      function renderMap(list) {
+        const el = document.getElementById("map");
+        if (!el) return;
 
-        // 旧リストUIが無い環境では安全にスキップ
-        const el = document.getElementById("list");
-        if (el) {
-          el.innerHTML = "";
-          if (list.length === 0) {
-            el.innerHTML =
-              '<div class="muted">現在、近くにお得袋はありません。</div>';
-          } else {
-            list.forEach((it) => {
-              const shop = it.shop || it.shops;
-              const dist = it.dist != null ? `${it.dist.toFixed(1)}km` : "";
-              const isSoldOut = it.qty_available <= 0;
-              const my = myActive.get(it.id);
-              const isPaid = my && my.status === "paid";
+        // 初回作成
+        if (!map) {
+          map = new google.maps.Map(el, {
+            center: { lat: 35.6812, lng: 139.7671 }, // 東京駅付近
+            zoom: 12,
+            mapTypeControl: false,
+            streetViewControl: false,
+            fullscreenControl: false,
+          });
 
-              const div = document.createElement("div");
-              div.className = "card";
-              div.innerHTML = `
-                <div class="row">
-                  <div>
-                    <div style="font-weight:600">${shop?.name || "店舗"}</div>
-                    <div class="muted" style="font-size:12px;">${
-                      shop?.address || ""
-                    }</div>
-                  </div>
-                  <div class="muted">${dist}</div>
-                </div>
-                <div style="margin:8px 0 4px 0">
-                  ${it.title}
-                  ${
-                    isSoldOut && !my
-                      ? '<span class="badge soldout">売切れ</span>'
-                      : ""
-                  }
-                  ${my ? '<span class="badge reserved">予約済み</span>' : ""}
-                  ${isPaid ? '<span class="badge paid">決済済み</span>' : ""}
-                </div>
-                <div class="row">
-                  <div><b>¥${it.price}</b> / 残り${it.qty_available}</div>
-                  <div class="muted">受取 ${fmtTime(it.pickup_start)}–${fmtTime(
-                it.pickup_end
-              )}</div>
-                </div>
-                <div style="margin-top:10px" class="row">
-                  ${
-                    my
-                      ? isPaid
-                        ? `<div><button class="primary btn-show-qr">QRを表示</button><button class="danger btn-cancel" disabled>キャンセル</button></div>`
-                        : `<div><button class="primary btn-pay">決済へ進む（テスト）</button><button class="danger btn-cancel">キャンセル</button></div>`
-                      : `<div><button class="primary btn-reserve" ${
-                          isSoldOut ? "disabled" : ""
-                        }>${
-                          isSoldOut ? "在庫なし" : "予約へ進む"
-                        }</button></div>`
-                  }
-                </div>`;
-              // 必要ならここに各ボタンの addEventListener を付与
-              el.appendChild(div);
+          // 初期表示直後にサイズ補正（非表示→表示切替に強い）
+          setTimeout(() => fixMapSize(true), 0);
+        }
+
+        // 既存の店舗マーカーを掃除
+        mapMarkers.forEach((m) => m.setMap(null));
+        mapMarkers = [];
+
+        // 現在地マーカー更新（青いドット風）
+        if (g.pos) {
+          if (!userMarker) {
+            userMarker = new google.maps.Marker({
+              position: g.pos,
+              map,
+              icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 8,
+                fillColor: "#1a73e8",
+                fillOpacity: 1,
+                strokeColor: "#ffffff",
+                strokeWeight: 2,
+              },
+              title: "現在地",
+              zIndex: 999,
             });
+          } else {
+            userMarker.setPosition(g.pos);
+            userMarker.setMap(map);
           }
         }
 
-        // ★ 重要：必ず地図を更新
-        renderMap(list);
+        // 店舗マーカーを描画
+        (list || []).forEach((it) => {
+          const s = it.shop || it.shops;
+          if (!s?.lat || !s?.lng) return;
+          const marker = new google.maps.Marker({
+            position: { lat: s.lat, lng: s.lng },
+            map,
+            title: s.name || "店舗",
+          });
+          marker.addListener("click", () => showMapSheet(it)); // 既存のカード表示関数
+          mapMarkers.push(marker);
+        });
+
+        // 現在地＋近隣店舗でフィット
+        fitToUserAndNearest(list);
       }
 
       function imgFor(it) {
@@ -1246,37 +1245,6 @@
 
       function fitToUserAndNearest(list, force = false) {
         if (!map) return;
-
-        // 近い順に並んだ offers（render前に list を受け取る想定）
-        const shops = (list || []).filter(
-          (it) => it?.shops?.lat && it?.shops?.lng
-        );
-
-        // 現在地 + 近い店舗 最大6件 をフィット対象に
-        const targets = [];
-        if (g.pos) targets.push(L.latLng(g.pos.lat, g.pos.lng));
-
-        const sorted = g.pos
-          ? [...shops].sort(
-              (a, b) => (a.dist ?? Infinity) - (b.dist ?? Infinity)
-            )
-          : shops;
-        sorted.slice(0, Math.min(6, sorted.length)).forEach((it) => {
-          targets.push(L.latLng(it.shops.lat, it.shops.lng));
-        });
-
-        if (!targets.length) return;
-
-        // 初回 or 強制時のみフィット（ユーザーの手動操作を尊重）
-        if (!mapAutoFitDone || force) {
-          const bounds = L.latLngBounds(targets);
-          map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
-          mapAutoFitDone = true;
-        }
-      }
-
-      function fitToUserAndNearest(list, force = false) {
-        if (!map) return;
         if (mapAutoFitDone && !force) return;
 
         const bounds = new google.maps.LatLngBounds();
@@ -1298,10 +1266,11 @@
         });
 
         if (added) {
-          // パディングでヘッダー/タブ分をよける
-          map.fitBounds(bounds, { top: 80, right: 30, bottom: 100, left: 30 });
+          map.fitBounds(bounds, {
+            padding: { top: 80, right: 30, bottom: 100, left: 30 }, // ヘッダー/タブをよける
+          });
           google.maps.event.addListenerOnce(map, "idle", () => {
-            if (map.getZoom() > 14) map.setZoom(14);
+            if (map.getZoom() > 14) map.setZoom(14); // ズームし過ぎ防止
           });
         } else {
           map.setCenter({ lat: 35.6812, lng: 139.7671 });
@@ -1572,40 +1541,45 @@
               window.__lastOffers &&
               fitToUserAndNearest(window.__lastOffers, true)
           );
-        document.getElementById("btn-locate")?.addEventListener("click", () => {
-          mapAutoFitDone = false;
-          fitToUserAndNearest(window.__lastOffers || [], true);
-        });
+
         document
           .getElementById("btn-locate")
           ?.addEventListener("click", async () => {
             try {
-              const geo = await new Promise((ok, ng) =>
-                navigator.geolocation.getCurrentPosition(ok, ng, {
-                  enableHighAccuracy: true,
-                  timeout: 8000,
-                })
-              );
-              g.pos = { lat: geo.coords.latitude, lng: geo.coords.longitude };
-
-              // マーカー更新
-              if (!userMarker) {
-                userMarker = L.circleMarker([g.pos.lat, g.pos.lng], {
-                  radius: 10,
-                  color: "#2e7d32",
-                  fillColor: "#66bb6a",
-                  fillOpacity: 0.9,
-                  weight: 3,
-                })
-                  .addTo(map)
-                  .bindPopup("現在地");
-              } else {
-                userMarker.setLatLng([g.pos.lat, g.pos.lng]);
+              if (!g.pos) {
+                const geo = await new Promise((ok, ng) =>
+                  navigator.geolocation.getCurrentPosition(ok, ng, {
+                    enableHighAccuracy: true,
+                    timeout: 8000,
+                  })
+                );
+                g.pos = { lat: geo.coords.latitude, lng: geo.coords.longitude };
               }
-
-              // 現在地＋近隣店舗にフィット
+              // 現在地マーカー更新
+              if (g.pos) {
+                if (!userMarker) {
+                  userMarker = new google.maps.Marker({
+                    position: g.pos,
+                    map,
+                    icon: {
+                      path: google.maps.SymbolPath.CIRCLE,
+                      scale: 8,
+                      fillColor: "#1a73e8",
+                      fillOpacity: 1,
+                      strokeColor: "#fff",
+                      strokeWeight: 2,
+                    },
+                    title: "現在地",
+                    zIndex: 999,
+                  });
+                } else {
+                  userMarker.setPosition(g.pos);
+                  userMarker.setMap(map);
+                }
+              }
+              mapAutoFitDone = false;
               fitToUserAndNearest(window.__lastOffers || [], true);
-            } catch (e) {
+            } catch {
               alert(
                 "現在地を取得できませんでした。端末の位置情報設定をご確認ください。"
               );
@@ -1633,24 +1607,6 @@
           });
         }
       });
-      document.getElementById("btn-locate")?.addEventListener("click", () => {
-        // 位置が未取得なら取得してからフィット
-        if (!g.pos) {
-          navigator.geolocation.getCurrentPosition(
-            (pos) => {
-              g.pos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-              mapAutoFitDone = false;
-              fitToUserAndNearest(window.__lastOffers || [], true);
-            },
-            () => {
-              alert("現在地を取得できませんでした");
-            }
-          );
-        } else {
-          mapAutoFitDone = false;
-          fitToUserAndNearest(window.__lastOffers || [], true);
-        }
-      });
 
       init();
       let _resizeTimer;
@@ -1658,21 +1614,15 @@
         if (!map) return;
         clearTimeout(_resizeTimer);
         _resizeTimer = setTimeout(() => {
-          const c = map.getCenter(); // いまの中心を保持
-          google.maps.event.trigger(map, "resize"); // ← これが正解
-          map.setCenter(c); // 中心がズレないよう戻す
+          const c = map.getCenter();
+          google.maps.event.trigger(map, "resize");
+          if (c) map.setCenter(c);
           if (recenter) {
-            // 必要なら再フィット
             mapAutoFitDone = false;
             fitToUserAndNearest(window.__lastOffers || [], true);
           }
         }, 80);
       }
-      window.addEventListener("load", fixMapSize);
-      window.addEventListener("resize", fixMapSize);
-      document.addEventListener("visibilitychange", () => {
-        if (!document.hidden) fixMapSize();
-      });
 
       // （タブ切替を実装している場合）ページ表示を切り替えた直後にも
       // showPage('discover') などで地図を表示にした直後に呼ぶと確実
