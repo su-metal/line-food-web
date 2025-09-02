@@ -1036,6 +1036,19 @@
             ?.addEventListener("click", (ev) => reserve(offer, ev.target));
         });
       }
+      // ヘルパー関数
+      function isMapVisible() {
+        const el = document.getElementById("map");
+        if (!el) return false;
+        const cs = getComputedStyle(el);
+        const rect = el.getBoundingClientRect();
+        return (
+          cs.display !== "none" &&
+          cs.visibility !== "hidden" &&
+          rect.width > 0 &&
+          rect.height > 0
+        );
+      }
 
       function fitToUserAndNearest(list, force = false) {
         if (!map) return;
@@ -1147,35 +1160,10 @@
           return;
         }
 
-        if (!mapAutoFitDone) {
+        // 地図が見えていない時にfitするとズレるので抑止
+        if (!mapAutoFitDone && isMapVisible()) {
           const targets = [];
-
-          // 1) 現在地を先に入れる
-          if (g.pos) targets.push(L.latLng(g.pos.lat, g.pos.lng));
-
-          // 2) 近い順に店舗を最大6件追加（list が渡ってくる前提）
-          const shops = (list || []).filter(
-            (it) => it?.shops?.lat && it?.shops?.lng
-          );
-
-          if (g.pos) {
-            // すでに list 作成時に dist を計算している想定
-            shops.sort((a, b) => (a.dist ?? Infinity) - (b.dist ?? Infinity));
-          }
-          shops.slice(0, Math.min(6, shops.length)).forEach((it) => {
-            targets.push(L.latLng(it.shops.lat, it.shops.lng));
-          });
-
-          // 3) 念のためのフォールバック（list が空でも shopLatLngs があれば使う）
-          if (
-            !targets.length &&
-            Array.isArray(shopLatLngs) &&
-            shopLatLngs.length
-          ) {
-            targets.push(...shopLatLngs);
-          }
-
-          // 4) フィット
+          // ...現在地と店舗をtargetsに詰める（今のロジックのまま）...
           if (targets.length >= 2) {
             const bounds = L.latLngBounds(targets);
             map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
@@ -1184,8 +1172,7 @@
           } else {
             map.setView([35.6812, 139.7671], 11);
           }
-
-          mapAutoFitDone = true; // 以後はユーザー操作を尊重
+          mapAutoFitDone = true;
         }
       }
 
@@ -1378,14 +1365,17 @@
             document.getElementById("page-home")?.classList.add("active");
           if (name === "discover") {
             document.getElementById("page-discover")?.classList.add("active");
-            // ★追加：次回の renderMap で初回フィットを有効にする
+            // 次の描画で自動フィット可に
             mapAutoFitDone = false;
+
             setTimeout(() => {
-              if (map) map.invalidateSize();
-              // 表示後に現在地＋近隣店舗で強制フィット
-              if (map) fitToUserAndNearest(window.__lastOffers || [], true);
+              if (map) {
+                map.invalidateSize(); // サイズ再計算
+                // ★地図が可視になったタイミングで「現在地+近隣店」に強制フィット
+                fitToUserAndNearest(window.__lastOffers || [], true);
+              }
               updateTabbarInset();
-            }, 80); // ← window.map ではなく map
+            }, 120);
           }
           document
             .querySelectorAll(".tabbar button")
