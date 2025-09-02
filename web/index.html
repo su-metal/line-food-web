@@ -1275,99 +1275,40 @@
         }
       }
 
-      function renderMap(list) {
-        if (!map) {
-          map = L.map("map", { zoomControl: true }).setView(
-            [35.6812, 139.7671],
-            12
-          );
-          window.map = map; // ← 追加：以後のチェックが動くように
+      function fitToUserAndNearest(list, force = false) {
+        if (!map) return;
+        if (mapAutoFitDone && !force) return;
 
-          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-            attribution: "&copy; OpenStreetMap contributors",
-          }).addTo(map);
+        const bounds = new google.maps.LatLngBounds();
+        let added = 0;
 
-          setTimeout(() => {
-            try {
-              map.invalidateSize();
-            } catch {}
-          }, 0);
-        }
-
-        // 既存マーカー削除（タイルは残す）
-        const remove = [];
-        map.eachLayer((l) => {
-          if (l instanceof L.Marker) remove.push(l);
-        });
-        remove.forEach((l) => map.removeLayer(l));
-
-        const markers = [];
-
-        // 現在地は「円マーカー」で色を変える（店舗とは見分けやすく）
         if (g.pos) {
-          if (!userMarker) {
-            userMarker = L.circleMarker([g.pos.lat, g.pos.lng], {
-              radius: 10,
-              color: "#2e7d32", // 枠線色（濃い緑）
-              fillColor: "#66bb6a", // 塗り色（明るい緑）
-              fillOpacity: 0.9,
-              weight: 3,
-            })
-              .addTo(map)
-              .bindPopup("現在地");
-          } else {
-            userMarker.setLatLng([g.pos.lat, g.pos.lng]);
-          }
-          markers.push(userMarker);
+          bounds.extend(g.pos);
+          added++;
         }
 
-        list.forEach((it) => {
-          const s = it.shop || it.shops;
-          if (s?.lat && s?.lng) {
-            const marker = L.marker([s.lat, s.lng]).addTo(map);
-            marker.on("click", () => {
-              // この it（＝オファー）でホームと同じカードを下から表示
-              showMapSheet(it);
-            });
-          }
+        const shops = (list || [])
+          .filter((it) => it?.shops?.lat && it?.shops?.lng)
+          .sort((a, b) => (a.dist ?? Infinity) - (b.dist ?? Infinity))
+          .slice(0, 6);
+
+        shops.forEach((it) => {
+          bounds.extend({ lat: it.shops.lat, lng: it.shops.lng });
+          added++;
         });
 
-        // マップの適当な場所をタップ/ドラッグしたら閉じる
-        map.off("click", hideMapSheet); // 多重登録防止
-        map.off("movestart", hideMapSheet);
-        map.on("click", hideMapSheet);
-        map.on("movestart", hideMapSheet);
-
-        // 店舗だけの座標を集める（現在地は含めない）
-        const shopLatLngs = list
-          .map((it) => it.shop || it.shops)
-          .filter((s) => s?.lat && s?.lng)
-          .map((s) => [s.lat, s.lng]);
-
-        const mapEl = document.getElementById("map");
-        const hidden =
-          !mapEl ||
-          mapEl.offsetWidth === 0 ||
-          getComputedStyle(mapEl).display === "none";
-        if (hidden) {
-          mapAutoFitDone = false;
-          return;
+        if (added) {
+          // パディングでヘッダー/タブ分をよける
+          map.fitBounds(bounds, { top: 80, right: 30, bottom: 100, left: 30 });
+          google.maps.event.addListenerOnce(map, "idle", () => {
+            if (map.getZoom() > 14) map.setZoom(14);
+          });
+        } else {
+          map.setCenter({ lat: 35.6812, lng: 139.7671 });
+          map.setZoom(11);
         }
 
-        // 地図が見えていない時にfitするとズレるので抑止
-        if (!mapAutoFitDone && isMapVisible()) {
-          const targets = [];
-          // ...現在地と店舗をtargetsに詰める（今のロジックのまま）...
-          if (targets.length >= 2) {
-            const bounds = L.latLngBounds(targets);
-            map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
-          } else if (targets.length === 1) {
-            map.setView(targets[0], 13);
-          } else {
-            map.setView([35.6812, 139.7671], 11);
-          }
-          mapAutoFitDone = true;
-        }
+        mapAutoFitDone = true;
       }
 
       // ===== マップ用ボトムシート：ホームのカードをそのまま使う =====
@@ -1692,15 +1633,40 @@
           });
         }
       });
+      document.getElementById("btn-locate")?.addEventListener("click", () => {
+        // 位置が未取得なら取得してからフィット
+        if (!g.pos) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              g.pos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+              mapAutoFitDone = false;
+              fitToUserAndNearest(window.__lastOffers || [], true);
+            },
+            () => {
+              alert("現在地を取得できませんでした");
+            }
+          );
+        } else {
+          mapAutoFitDone = false;
+          fitToUserAndNearest(window.__lastOffers || [], true);
+        }
+      });
 
       init();
-      function fixMapSize() {
-        if (map)
-          setTimeout(() => {
-            try {
-              map.invalidateSize();
-            } catch {}
-          }, 80);
+      let _resizeTimer;
+      function fixMapSize(recenter = false) {
+        if (!map) return;
+        clearTimeout(_resizeTimer);
+        _resizeTimer = setTimeout(() => {
+          const c = map.getCenter(); // いまの中心を保持
+          google.maps.event.trigger(map, "resize"); // ← これが正解
+          map.setCenter(c); // 中心がズレないよう戻す
+          if (recenter) {
+            // 必要なら再フィット
+            mapAutoFitDone = false;
+            fitToUserAndNearest(window.__lastOffers || [], true);
+          }
+        }, 80);
       }
       window.addEventListener("load", fixMapSize);
       window.addEventListener("resize", fixMapSize);
