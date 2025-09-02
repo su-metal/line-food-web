@@ -515,6 +515,54 @@
         color: #6d6860;
         box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
       }
+      /* マップ上のUI一式 */
+      .map-ui {
+        position: fixed;
+        left: 12px;
+        right: 12px;
+        top: calc(var(--appbar-h) + env(safe-area-inset-top, 0) + 8px);
+        z-index: 2100;
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 10px;
+        pointer-events: none; /* 自身は透過… */
+      }
+      .map-ui > * {
+        pointer-events: auto;
+      } /* …中の要素は操作可 */
+
+      .fab {
+        display: grid;
+        place-items: center;
+        width: 44px;
+        height: 44px;
+        border-radius: 999px;
+        background: #fff;
+        border: 1px solid #e5e2dd;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+        color: #6b1a16;
+      }
+      .map-search {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: #fff;
+        border: 1px solid #e5e2dd;
+        border-radius: 999px;
+        padding: 10px 12px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+      }
+      .map-search input {
+        width: 100%;
+        border: 0;
+        outline: none;
+        font-size: 14px;
+        background: transparent;
+      }
+      .map-search input::placeholder {
+        color: #8a8278;
+        opacity: 1; /* ← プレースホルダーを確実に表示 */
+      }
     </style>
   </head>
 
@@ -577,17 +625,52 @@
       <div id="map" style="border-radius: 12px"></div>
 
       <!-- 地図上のUI（すでに追加済みならそのまま） -->
+      <!-- マップ上の操作UI -->
       <div class="map-ui">
-        <button id="btn-filter" class="fab" aria-label="フィルタ">…</button>
-        <button id="btn-search-pill" class="search-pill" aria-label="検索">
-          …
+        <button id="btn-filter" class="fab fab-left" aria-label="絞り込み">
+          <!-- フィルターアイコン -->
+          <svg viewBox="0 0 24 24" width="22" height="22">
+            <path
+              d="M3 6h18M7 12h10M10 18h4"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+          </svg>
         </button>
-        <button id="btn-locate" class="fab" aria-label="現在地と周辺">…</button>
-      </div>
 
-      <div id="discover-actions" style="margin: 12px 0">
-        <button id="btn-scan-discover" class="primary" style="width: 100%">
-          店舗QRを読み取る
+        <label class="map-search">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <path
+              d="M21 21l-3.8-3.8M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"
+              stroke="#8a8278"
+              stroke-width="1.6"
+              stroke-linecap="round"
+            />
+          </svg>
+          <input
+            id="q-map"
+            type="search"
+            placeholder="現在地・駅・店舗名などから探す"
+          />
+        </label>
+
+        <button id="btn-locate" class="fab fab-right" aria-label="現在地と周辺">
+          <!-- コンパスアイコン -->
+          <svg viewBox="0 0 24 24" width="22" height="22">
+            <circle
+              cx="12"
+              cy="12"
+              r="9"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            />
+            <path
+              d="M14.5 9.5l-2.7 6-1.3-1.3-1.3-1.3 5.3-3.4z"
+              fill="currentColor"
+            />
+          </svg>
         </button>
       </div>
 
@@ -761,6 +844,10 @@
           );
           g.pos = { lat: geo.coords.latitude, lng: geo.coords.longitude };
           document.getElementById("notice").textContent = "近い順に表示中";
+          /* ★追加：位置が取れたら即フィット（地図が作成済みなら） */
+          if (window.map && window.__lastOffers) {
+            fitToUserAndNearest(window.__lastOffers, true);
+          }
         } catch {
           g.pos = null;
           document.getElementById("notice").textContent =
@@ -806,6 +893,8 @@
           });
         window.__lastOffers = list; // 検索バーのフィルタで再利用
         render(list);
+        /* ★追加：オファーが揃ったタイミングでもう一度強制フィット */
+        if (window.map) fitToUserAndNearest(list, true);
       }
 
       /* ============== 友だち確認 ============== */
