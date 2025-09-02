@@ -922,42 +922,44 @@
               const div = document.createElement("div");
               div.className = "card";
               div.innerHTML = `
-          <div class="row">
-            <div>
-              <div style="font-weight:600">${shop?.name || "店舗"}</div>
-              <div class="muted" style="font-size:12px;">${
-                shop?.address || ""
-              }</div>
-            </div>
-            <div class="muted">${dist}</div>
-          </div>
-          <div style="margin:8px 0 4px 0">
-            ${it.title}
-            ${
-              isSoldOut && !my
-                ? '<span class="badge soldout">売切れ</span>'
-                : ""
-            }
-            ${my ? '<span class="badge reserved">予約済み</span>' : ""}
-            ${isPaid ? '<span class="badge paid">決済済み</span>' : ""}
-          </div>
-          <div class="row">
-            <div><b>¥${it.price}</b> / 残り${it.qty_available}</div>
-            <div class="muted">受取 ${fmtTime(it.pickup_start)}–${fmtTime(
+                <div class="row">
+                  <div>
+                    <div style="font-weight:600">${shop?.name || "店舗"}</div>
+                    <div class="muted" style="font-size:12px;">${
+                      shop?.address || ""
+                    }</div>
+                  </div>
+                  <div class="muted">${dist}</div>
+                </div>
+                <div style="margin:8px 0 4px 0">
+                  ${it.title}
+                  ${
+                    isSoldOut && !my
+                      ? '<span class="badge soldout">売切れ</span>'
+                      : ""
+                  }
+                  ${my ? '<span class="badge reserved">予約済み</span>' : ""}
+                  ${isPaid ? '<span class="badge paid">決済済み</span>' : ""}
+                </div>
+                <div class="row">
+                  <div><b>¥${it.price}</b> / 残り${it.qty_available}</div>
+                  <div class="muted">受取 ${fmtTime(it.pickup_start)}–${fmtTime(
                 it.pickup_end
               )}</div>
-          </div>
-          <div style="margin-top:10px" class="row">
-            ${
-              my
-                ? isPaid
-                  ? `<div><button class="primary btn-show-qr">QRを表示</button><button class="danger btn-cancel" disabled>キャンセル</button></div>`
-                  : `<div><button class="primary btn-pay">決済へ進む（テスト）</button><button class="danger btn-cancel">キャンセル</button></div>`
-                : `<div><button class="primary btn-reserve" ${
-                    isSoldOut ? "disabled" : ""
-                  }>${isSoldOut ? "在庫なし" : "予約へ進む"}</button></div>`
-            }
-          </div>`;
+                </div>
+                <div style="margin-top:10px" class="row">
+                  ${
+                    my
+                      ? isPaid
+                        ? `<div><button class="primary btn-show-qr">QRを表示</button><button class="danger btn-cancel" disabled>キャンセル</button></div>`
+                        : `<div><button class="primary btn-pay">決済へ進む（テスト）</button><button class="danger btn-cancel">キャンセル</button></div>`
+                      : `<div><button class="primary btn-reserve" ${
+                          isSoldOut ? "disabled" : ""
+                        }>${
+                          isSoldOut ? "在庫なし" : "予約へ進む"
+                        }</button></div>`
+                  }
+                </div>`;
               // 必要ならここに各ボタンの addEventListener を付与
               el.appendChild(div);
             });
@@ -985,23 +987,23 @@
         const dist = it.dist != null ? `${it.dist.toFixed(1)}km` : "";
         const sold = it.qty_available <= 0;
         return `
-  <article class="card-lg" data-offer="${it.id}">
-    <img src="${imgFor(it)}" alt="">
-    <div class="price">¥${it.price}</div>
-    <div class="overlay">
-      <div class="title">${shop?.name || "店舗"}</div>
-      <div class="meta">
-        <span>のこり${it.qty_available}</span>
-        <span>${time}</span>
-        <span>${dist}</span>
-      </div>
-      <div style="margin-top:8px">
-        <button class="primary btn-resv" ${sold ? "disabled" : ""}>${
+        <article class="card-lg" data-offer="${it.id}">
+          <img src="${imgFor(it)}" alt="">
+          <div class="price">¥${it.price}</div>
+          <div class="overlay">
+            <div class="title">${shop?.name || "店舗"}</div>
+            <div class="meta">
+              <span>のこり${it.qty_available}</span>
+              <span>${time}</span>
+              <span>${dist}</span>
+            </div>
+            <div style="margin-top:8px">
+              <button class="primary btn-resv" ${sold ? "disabled" : ""}>${
           sold ? "在庫なし" : "予約へ進む"
         }</button>
-      </div>
-    </div>
-  </article>`;
+            </div>
+          </div>
+        </article>`;
       }
 
       function renderHomeSections(list) {
@@ -1135,6 +1137,16 @@
           .filter((s) => s?.lat && s?.lng)
           .map((s) => [s.lat, s.lng]);
 
+        const mapEl = document.getElementById("map");
+        const hidden =
+          !mapEl ||
+          mapEl.offsetWidth === 0 ||
+          getComputedStyle(mapEl).display === "none";
+        if (hidden) {
+          mapAutoFitDone = false;
+          return;
+        }
+
         if (!mapAutoFitDone) {
           const targets = [];
 
@@ -1190,9 +1202,9 @@
         if (!mapSheetEl) return;
         // ホームで使っている buildCardHTML(offer) を流用
         const html = `
-    <div class="handle"></div>
-    ${buildCardHTML(offer)}
-  `;
+          <div class="handle"></div>
+          ${buildCardHTML(offer)}
+        `;
         mapSheetEl.innerHTML = html;
         mapSheetEl.classList.add("show");
 
@@ -1370,6 +1382,8 @@
             mapAutoFitDone = false;
             setTimeout(() => {
               if (map) map.invalidateSize();
+              // 表示後に現在地＋近隣店舗で強制フィット
+              if (map) fitToUserAndNearest(window.__lastOffers || [], true);
               updateTabbarInset();
             }, 80); // ← window.map ではなく map
           }
