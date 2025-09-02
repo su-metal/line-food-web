@@ -392,6 +392,34 @@
       body {
         padding-top: calc(var(--appbar-h) + env(safe-area-inset-top, 0) + 8px);
       }
+
+      /* ====== マップ用ボトムシート（ホームと同じカードを使う） ====== */
+      .map-sheet {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: calc(var(--tabbar-h) + 8px); /* タブバーのすぐ上に出す */
+        padding: 0 12px;
+        z-index: 2100; /* タブバー(2000)より前面、スキャン(2147483xxx)より背面 */
+        display: none;
+      }
+      .map-sheet.show {
+        display: block;
+      }
+      .map-sheet .handle {
+        width: 40px;
+        height: 4px;
+        border-radius: 2px;
+        background: #d0ccc7;
+        margin: 6px auto 8px;
+      }
+      /* ホームの .card-lg をそのまま流用（幅いっぱい・影を追加） */
+      .map-sheet .card-lg {
+        width: 100%;
+        height: 210px; /* 少し低めに */
+        border-radius: 16px;
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+      }
     </style>
   </head>
 
@@ -452,6 +480,8 @@
     <!-- ここから「お店を探す」ページ（地図） -->
     <main id="page-discover" class="page">
       <div id="map" style="height: 58vh; border-radius: 12px"></div>
+      <!-- 追加：マップのピンをタップしたときに出すボトムシート -->
+      <div id="mapSheet" class="map-sheet" aria-hidden="true"></div>
       <div style="margin: 12px 0">
         <button id="btn-scan-discover" class="primary" style="width: 100%">
           店舗QRを読み取る
@@ -1053,13 +1083,19 @@
         list.forEach((it) => {
           const s = it.shop || it.shops;
           if (s?.lat && s?.lng) {
-            markers.push(
-              L.marker([s.lat, s.lng])
-                .addTo(map)
-                .bindPopup(`<b>${s.name || "店舗"}</b><br>${s.address || ""}`)
-            );
+            const marker = L.marker([s.lat, s.lng]).addTo(map);
+            marker.on("click", () => {
+              // この it（＝オファー）でホームと同じカードを下から表示
+              showMapSheet(it);
+            });
           }
         });
+
+        // マップの適当な場所をタップ/ドラッグしたら閉じる
+        map.off("click", hideMapSheet); // 多重登録防止
+        map.off("movestart", hideMapSheet);
+        map.on("click", hideMapSheet);
+        map.on("movestart", hideMapSheet);
 
         if (markers.length) {
           const g1 = L.featureGroup(markers);
@@ -1067,6 +1103,31 @@
         } else {
           map.setView([35.6812, 139.7671], 12);
         }
+      }
+
+      // ===== マップ用ボトムシート：ホームのカードをそのまま使う =====
+      const mapSheetEl = document.getElementById("mapSheet");
+
+      function hideMapSheet() {
+        if (!mapSheetEl) return;
+        mapSheetEl.classList.remove("show");
+        mapSheetEl.innerHTML = "";
+      }
+
+      function showMapSheet(offer) {
+        if (!mapSheetEl) return;
+        // ホームで使っている buildCardHTML(offer) を流用
+        const html = `
+    <div class="handle"></div>
+    ${buildCardHTML(offer)}
+  `;
+        mapSheetEl.innerHTML = html;
+        mapSheetEl.classList.add("show");
+
+        // カード内ボタン（予約へ進む）にイベントを割り当て
+        const btn = mapSheetEl.querySelector(".btn-resv");
+        if (btn)
+          btn.addEventListener("click", (ev) => reserve(offer, ev.target));
       }
 
       /* ============== ライブスキャン ============== */
