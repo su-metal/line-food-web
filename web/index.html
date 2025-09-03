@@ -561,7 +561,10 @@
       }
 
       #shop-map {
-        height: 180px;
+        width: 100%;
+        aspect-ratio: 1 / 1; /* 幅に合わせて正方形に */
+        height: auto; /* 固定高さをやめる */
+        min-height: 220px; /* すごく狭い端末用の下限だけ確保（お好みで） */
         border-radius: 12px;
         border: 1px solid #e5e2dd;
       }
@@ -2130,6 +2133,10 @@
       }
       window.addEventListener("load", () => fixMapSize(false));
       window.addEventListener("resize", () => fixMapSize(false));
+      window.addEventListener(
+        "resize",
+        () => shopMapApi && shopMapApi.invalidateSize()
+      );
       document.addEventListener("visibilitychange", () => {
         if (!document.hidden) fixMapSize(false);
       });
