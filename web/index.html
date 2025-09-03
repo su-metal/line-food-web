@@ -1648,10 +1648,10 @@
           offers[0]?.shop ||
           {};
 
-        renderShopPage(baseShop, offers);
         document.dispatchEvent(
           new CustomEvent("app:showPage", { detail: { name: "shop" } })
         );
+        renderShopPage(baseShop, offers);
         history.pushState(
           { page: "shop", id: String(shopId) },
           "",
@@ -1807,45 +1807,78 @@
         };
 
         // ミニマップ
-       // ミニマップ
-setTimeout(() => {
-  shopMapApi = createLeafletAPI();
-  shopMapApi.init("shop-map", {
-    center: [shop?.lat || 35.6812, shop?.lng || 139.7671],
-    zoom: shop?.lat ? 15 : 11,
-  });
-  if (shop?.lat && shop?.lng) {
-    shopMapApi.addShopMarker(shop.lat, shop.lng);
-    if (g.pos) {
-      shopMapApi.addUserMarker(g.pos.lat, g.pos.lng);
-      shopMapApi.fitToBounds(
-        [
-          [shop.lat, shop.lng],
-          [g.pos.lat, g.pos.lng],
-        ],
-        { maxZoom: 14, padding: [20, 20] }
-      );
-    }
-  }
+        // ミニマップ
+        setTimeout(() => {
+          const lat = Number(shop?.lat);
+          const lng = Number(shop?.lng);
 
-  // ここで操作を完全ロック（ズーム/スクロール不可）
-  lockMapInteraction(shopMapApi);
+          shopMapApi = createLeafletAPI();
 
-  // レイアウト確定後に再計測
-  scheduleShopMapFix();
+          // 店舗座標が取れない場合は東京駅付近にフォールバック
+          const center =
+            Number.isFinite(lat) && Number.isFinite(lng)
+              ? [lat, lng]
+              : [35.6812, 139.7671];
 
-  // ヒーロー画像のロード後にも再計測
-  const heroImg = document.getElementById("shop-photo");
-  heroImg?.addEventListener("load", scheduleShopMapFix, { once: true });
+          const m = shopMapApi.init("shop-map", {
+            center,
+            zoom: Number.isFinite(lat) && Number.isFinite(lng) ? 16 : 11,
+          });
 
-  // ページ全体のサイズ変化にも追随
-  if (window.ResizeObserver) {
-    if (window.__shopMapRO) window.__shopMapRO.disconnect();
-    window.__shopMapRO = new ResizeObserver(scheduleShopMapFix);
-    window.__shopMapRO.observe(document.getElementById("page-shop"));
-  }
-}, 0);
+          // 店舗ピンは必ず立てる
+          if (Number.isFinite(lat) && Number.isFinite(lng)) {
+            shopMapApi.addShopMarker(lat, lng);
+          }
 
+          // 現在地ピンは “おまけ” として置くが、中心合わせには使わない（常に店舗中心）
+          if (g.pos?.lat && g.pos?.lng) {
+            shopMapApi.addUserMarker(g.pos.lat, g.pos.lng);
+          }
+
+          // マップ準備完了時にも念のため店舗中心へ（hidden初期化のズレ対策）
+          m.whenReady(() => {
+            if (Number.isFinite(lat) && Number.isFinite(lng)) {
+              m.setView([lat, lng], 16, { animate: false });
+            }
+          });
+
+          // ここで操作を完全ロック（ズーム/スクロール不可）
+          lockMapInteraction(shopMapApi);
+
+          // レイアウト確定後にサイズ再計測
+          scheduleShopMapFix();
+
+          // 再計測の“少し後”にもう一度だけ店舗中心へ（高さ収束後の最終微調整）
+          setTimeout(() => {
+            const mm = shopMapApi?.raw?.();
+            if (mm && Number.isFinite(lat) && Number.isFinite(lng)) {
+              mm.setView([lat, lng], 16, { animate: false });
+            }
+          }, 120);
+
+          // ヒーロー画像のロード後にも再計測＆再センター
+          const heroImg = document.getElementById("shop-photo");
+          heroImg?.addEventListener(
+            "load",
+            () => {
+              scheduleShopMapFix();
+              const mm = shopMapApi?.raw?.();
+              if (mm && Number.isFinite(lat) && Number.isFinite(lng)) {
+                mm.setView([lat, lng], 16, { animate: false });
+              }
+            },
+            { once: true }
+          );
+
+          // ページ全体のサイズ変化にも追随
+          if (window.ResizeObserver) {
+            if (window.__shopMapRO) window.__shopMapRO.disconnect();
+            window.__shopMapRO = new ResizeObserver(() => {
+              scheduleShopMapFix();
+            });
+            window.__shopMapRO.observe(document.getElementById("page-shop"));
+          }
+        }, 0);
 
         const raw = shopMapApi.raw();
         if (raw) {
