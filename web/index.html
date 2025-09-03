@@ -1347,77 +1347,6 @@
         btn?.setAttribute("aria-pressed", isFav ? "true" : "false");
       }
 
-      // ===== サーバ同期（add/remove）— 形が違っても通るよう冗長に送る =====
-      async function favoriteAdd(sid) {
-        const idToken =
-          typeof liff !== "undefined" && liff.getIDToken
-            ? liff.getIDToken()
-            : "";
-        const numeric = /^\d+$/.test(String(sid)) ? Number(sid) : null;
-        const body = { shop_id: String(sid), shopId: String(sid) };
-        if (numeric !== null) body.shop_id_number = numeric; // サーバが数値を期待している場合向け
-        const res = await fetch(`${CONFIG.API_BASE}/api/favorite-add`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: "Bearer " + idToken,
-          },
-          body: JSON.stringify(body),
-        });
-        const text = await res.text().catch(() => "");
-        let j = null;
-        try {
-          j = JSON.parse(text);
-        } catch {}
-        if (res.ok && (j?.ok ?? true)) return { ok: true };
-        if (res.status === 409 || /already/i.test(text))
-          return { ok: true, already: true };
-        throw new Error(j?.error || "bad_request");
-      }
-      async function favoriteRemove(sid) {
-        const idToken =
-          typeof liff !== "undefined" && liff.getIDToken
-            ? liff.getIDToken()
-            : "";
-        // 1) /api/favorite-remove があれば使う
-        const payload = { shop_id: String(sid), shopId: String(sid) };
-        let r = await fetch(`${CONFIG.API_BASE}/api/favorite-remove`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: "Bearer " + idToken,
-          },
-          body: JSON.stringify(payload),
-        });
-        if (r.status !== 404) {
-          if (r.ok) return { ok: true };
-          if (r.status === 404) return { ok: true };
-          const t = await r.text().catch(() => "");
-          let j = null;
-          try {
-            j = JSON.parse(t);
-          } catch {}
-          throw new Error(j?.error || "remove_failed");
-        }
-        // 2) フォールバック: /api/favorites?shopId=... を DELETE
-        r = await fetch(
-          `${CONFIG.API_BASE}/api/favorites?shopId=${encodeURIComponent(
-            String(sid)
-          )}`,
-          {
-            method: "DELETE",
-            headers: { Authorization: "Bearer " + idToken },
-          }
-        );
-        if (r.ok || r.status === 404) return { ok: true };
-        const t = await r.text().catch(() => "");
-        let j = null;
-        try {
-          j = JSON.parse(t);
-        } catch {}
-        throw new Error(j?.error || "remove_failed");
-      }
-
       /* ============== マップ API（Leaflet実装） ============== */
       function createLeafletAPI() {
         let _map,
@@ -2340,14 +2269,15 @@
       }
 
       /* ============== スキャン ============== */
-      // ---- お気に入りAPI（追加／削除） ----
+      // ---- お気に入りAPI（追加／削除） 統一版 ----
       async function favoriteAdd(shopId) {
-        const idToken = liff.getIDToken?.();
+        const idToken = liff.getIDToken?.() || "";
+        const sid = String(shopId);
         const payload = {
-          shop_id: /^\d+$/.test(String(shopId))
-            ? Number(shopId)
-            : String(shopId),
+          shop_id: /^\d+$/.test(sid) ? Number(sid) : sid,
+          shopId: sid,
         };
+
         try {
           const res = await fetch(`${CONFIG.API_BASE}/api/favorite-add`, {
             method: "POST",
@@ -2357,16 +2287,56 @@
             },
             body: JSON.stringify(payload),
           });
+
           const txt = await res.text().catch(() => "");
-          let j = null;
-          try {
-            j = JSON.parse(txt);
-          } catch {}
-          if (res.ok && (j?.ok ?? true)) return { ok: true };
+          if (res.ok) return { ok: true };
           if (res.status === 409) return { ok: true, already: true }; // 既に登録済み
-          if (res.status === 400 || /bad_request/i.test(j?.error || txt))
-            return { ok: false, unsupported: true };
+          if ([400, 404, 405].includes(res.status))
+            return { ok: false, unsupported: true }; // ← 未対応はロールバックしない
           return { ok: false, status: res.status, text: txt };
+        } catch (e) {
+          return { ok: false, error: e };
+        }
+      }
+
+      async function favoriteRemove(shopId) {
+        const idToken = liff.getIDToken?.() || "";
+        const sid = String(shopId);
+        const payload = {
+          shop_id: /^\d+$/.test(sid) ? Number(sid) : sid,
+          shopId: sid,
+        };
+
+        // ① /favorite-remove(POST) を試す
+        try {
+          const r = await fetch(`${CONFIG.API_BASE}/api/favorite-remove`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + idToken,
+            },
+            body: JSON.stringify(payload),
+          });
+          if (r.ok) return { ok: true };
+          if ([400, 404, 405].includes(r.status))
+            return { ok: false, unsupported: true }; // ← ここ重要
+        } catch {}
+
+        // ② フォールバック: /api/favorites?shopId=... に DELETE（クエリで送る）
+        try {
+          const r2 = await fetch(
+            `${CONFIG.API_BASE}/api/favorites?shopId=${encodeURIComponent(
+              sid
+            )}`,
+            {
+              method: "DELETE",
+              headers: { Authorization: "Bearer " + idToken },
+            }
+          );
+          if (r2.ok) return { ok: true };
+          if ([404, 405].includes(r2.status))
+            return { ok: false, unsupported: true }; // ← ここも未対応はロールバックしない
+          return { ok: false, status: r2.status };
         } catch (e) {
           return { ok: false, error: e };
         }
