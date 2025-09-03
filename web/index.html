@@ -1566,34 +1566,34 @@
           (o) => String(o.shop?.id ?? o.shops?.id) === String(shopId)
         );
 
-        let baseShop =
+        // まず手元の情報（hint/オファー）で描画してページを表示
+        const baseShop =
           offerHint?.shops ||
           offerHint?.shop ||
           offers[0]?.shops ||
           offers[0]?.shop ||
           {};
-        let detail = null;
-        try {
-          detail = await fetchShopDetail(shopId);
-        } catch {}
-        const shop = Object.assign({}, baseShop || {}, detail || {});
 
-        renderShopPage(shop, offers);
-
-        // URL更新（必要時のみ）
-        const targetHash = `#shop:${shopId}`;
-        if (location.hash !== targetHash) {
-          history.pushState(
-            { page: "shop", id: String(shopId) },
-            "",
-            targetHash
-          );
-        }
-
-        // ページ切替は1回だけ
+        renderShopPage(baseShop, offers);
         document.dispatchEvent(
           new CustomEvent("app:showPage", { detail: { name: "shop" } })
         );
+        history.pushState(
+          { page: "shop", id: String(shopId) },
+          "",
+          "#shop:" + shopId
+        );
+
+        // 詳細は後から上書き（失敗しても画面は出たまま）
+        try {
+          const detail = await fetchShopDetail(shopId);
+          if (detail) {
+            const merged = Object.assign({}, baseShop, detail);
+            renderShopPage(merged, offers);
+          }
+        } catch (e) {
+          console.warn("fetchShopDetail failed:", e);
+        }
       }
 
       function renderShopPage(shop, offers) {
@@ -1985,6 +1985,23 @@
               document.body.classList.remove("shop-mode");
             }
           }
+        }
+
+        // どこか他の関数の外（showPageの近く）に追加
+        function showShopPageNow() {
+          // ページの切替
+          document
+            .querySelectorAll(".page")
+            .forEach((p) => p.classList.remove("active"));
+          document.getElementById("page-shop")?.classList.add("active");
+
+          // UI状態
+          document.body.classList.remove("discover-full");
+          document.getElementById("page-discover")?.classList.remove("fullmap");
+          document.body.classList.add("shop-mode");
+
+          // 店舗ページの地図をリフレッシュ
+          setTimeout(() => shopMapApi && shopMapApi.invalidateSize(), 80);
         }
 
         // ページ外から呼べるようイベントもフック
