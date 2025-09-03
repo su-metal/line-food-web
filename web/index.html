@@ -1955,40 +1955,45 @@
         updateCartBar();
 
         // お気に入り（ハート）
-        const favBtn = document.getElementById("btn-fav");
-        if (favBtn) {
-          // 既にactiveが付いているならそのまま（ここでリセットしない！）
-          favBtn.onclick = async () => {
-            const makeActive = !favBtn.classList.contains("active");
+        // ★これで上書き
+        async function favPost(shopId) {
+          const idToken = liff.getIDToken();
+          const url = `${CONFIG.API_BASE}/api/favorite-add`; // ← 統一
 
-            // 楽観的UI
-            favBtn.classList.toggle("active", makeActive);
-            favBtn.setAttribute("aria-pressed", makeActive ? "true" : "false");
+          // サーバ想定フォーマットに固定：shop_id は number
+          const payload = { shop_id: Number(shopId) };
 
-            if (!makeActive) {
-              // 解除は今は見た目だけ（APIができたらここに実装）
-              return;
-            }
+          const res = await fetch(url, {
+            method: "POST",
+            mode: "cors",
+            credentials: "omit",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + idToken,
+            },
+            body: JSON.stringify(payload),
+          });
 
-            try {
-              // 友だち未追加ならUIを元に戻す
-              if (!(await ensureFriend())) {
-                favBtn.classList.remove("active");
-                favBtn.setAttribute("aria-pressed", "false");
-                return;
-              }
-              // 初回追加のみAPIを叩く（二重送信防止）
-              if (favBtn.dataset.added !== "1") {
-                await favPost(shop.id);
-                favBtn.dataset.added = "1";
-              }
-            } catch {
-              // 失敗したら元に戻す
-              favBtn.classList.remove("active");
-              favBtn.setAttribute("aria-pressed", "false");
-              alert("お気に入りの更新に失敗しました");
-            }
-          };
+          // レスポンスを詳しく診断（400の中身を拾う）
+          const text = await res.text().catch(() => "");
+          let j = null;
+          try {
+            j = JSON.parse(text);
+          } catch {}
+
+          // 成功扱いの条件
+          if (res.ok && (j?.ok ?? true)) return { ok: true };
+          // 既に登録済みなどは成功扱い
+          if (
+            res.status === 409 ||
+            j?.error === "already_favorite" ||
+            /already/i.test(text)
+          ) {
+            return { ok: true, already: true };
+          }
+
+          console.error("favorite-add failed", res.status, text);
+          throw new Error(j?.error || `favorite_add_${res.status}`);
         }
 
         // 「注文する」→ チェックアウトオーバーレイを開く
@@ -2098,71 +2103,45 @@
 
       /* ============== スキャン ============== */
       // 置き換え：既存の favPost をこの実装に差し替え
+      // ★これで上書き
       async function favPost(shopId) {
         const idToken = liff.getIDToken();
-        const headers = {
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + idToken,
-        };
+        const url = `${CONFIG.API_BASE}/api/favorite-add`; // ← 統一
 
-        // よくある3パターンのパスと2種類のキー名を順に試す
-        const paths = [
-          "/api/favorite-add",
-          "/api/favorite/add",
-          "/api/favorite/add-or-toggle",
-        ];
-        const payloads = [{ shop_id: shopId }, { shopId }];
+        // サーバ想定フォーマットに固定：shop_id は number
+        const payload = { shop_id: Number(shopId) };
 
-        let lastErr = null;
+        const res = await fetch(url, {
+          method: "POST",
+          mode: "cors",
+          credentials: "omit",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + idToken,
+          },
+          body: JSON.stringify(payload),
+        });
 
-        for (const path of paths) {
-          for (const body of payloads) {
-            try {
-              const res = await fetch(CONFIG.API_BASE + path, {
-                method: "POST",
-                headers,
-                body: JSON.stringify(body),
-              });
+        // レスポンスを詳しく診断（400の中身を拾う）
+        const text = await res.text().catch(() => "");
+        let j = null;
+        try {
+          j = JSON.parse(text);
+        } catch {}
 
-              // JSON を取れるときだけ読む（生テキストしか返らない場合がある）
-              let j = null;
-              try {
-                j = await res.clone().json();
-              } catch {}
-
-              // 成功扱いの条件を広めに
-              if (
-                res.ok &&
-                (j?.ok === true ||
-                  j?.status === "ok" ||
-                  res.status === 200 ||
-                  res.status === 201)
-              ) {
-                return { ok: true, data: j };
-              }
-
-              // すでに登録済みは成功として扱う
-              if (
-                res.status === 409 ||
-                j?.error === "already_exists" ||
-                j?.code === "already_exists"
-              ) {
-                return { ok: true, duplicate: true };
-              }
-
-              // ここまで来たらエラーメッセージ候補を保持
-              lastErr =
-                j?.error ||
-                (await res.text().catch(() => "")) ||
-                `HTTP ${res.status}`;
-            } catch (e) {
-              lastErr = e?.message || "network_error";
-            }
-          }
+        // 成功扱いの条件
+        if (res.ok && (j?.ok ?? true)) return { ok: true };
+        // 既に登録済みなどは成功扱い
+        if (
+          res.status === 409 ||
+          j?.error === "already_favorite" ||
+          /already/i.test(text)
+        ) {
+          return { ok: true, already: true };
         }
 
-        // すべて失敗した場合のみ throw
-        throw new Error(lastErr || "favorite_failed");
+        console.error("favorite-add failed", res.status, text);
+        throw new Error(j?.error || `favorite_add_${res.status}`);
       }
 
       function scanByImage() {
