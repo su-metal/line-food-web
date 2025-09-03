@@ -1656,23 +1656,24 @@
         const listEl = document.getElementById("offer-list");
         listEl.innerHTML = "";
 
+        // こう直してください
         const updateCartBar = () => {
           let count = 0,
             total = 0;
-          for (const id in cart) {
-            const of = offers.find((o) => String(o.id) === id);
-            const q = cart[id] || 0;
+          for (const id in g.cart) {
+            const of = offers.find((o) => String(o.id) === String(id));
+            const q = g.cart[id] || 0;
+            if (!of || q <= 0) continue;
             count += q;
-            total += (of?.price || 0) * q;
+            total += (of.price || 0) * q;
           }
           const bar = document.getElementById("cart-bar");
-          // 常に表示
-          bar.style.display = "flex";
-
-          document.getElementById("cart-total").textContent = "¥" + total;
+          bar.style.display = "flex"; // 店舗ページでは常に表示
+          document.getElementById("cart-total").textContent = yen(total);
           document.getElementById("cart-count").textContent = String(count);
-          // 0個のときはボタンだけ無効化
-          document.getElementById("btn-order").disabled = count === 0;
+
+          const orderBtn = document.getElementById("btn-order");
+          if (orderBtn) orderBtn.disabled = count === 0; // 0点のときだけ無効化
         };
 
         offers.forEach((of) => {
