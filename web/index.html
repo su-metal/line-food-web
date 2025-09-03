@@ -1014,6 +1014,23 @@
       function yen(n) {
         return "¥" + Number(n || 0).toLocaleString();
       }
+      // 数量バッジ更新
+      function updateHomeCartBadge() {
+        try {
+          const badge = document.getElementById("home-cart-badge");
+          if (!badge) return;
+          const count = Object.values(g.cart || {}).reduce(
+            (a, v) => a + (v || 0),
+            0
+          );
+          if (count > 0) {
+            badge.textContent = String(count);
+            badge.style.display = "inline-block";
+          } else {
+            badge.style.display = "none";
+          }
+        } catch {}
+      }
 
       // --- ホーム右上のカート数量バッジを同期 ---
       function updateHomeCartBadge() {
@@ -2080,19 +2097,74 @@
       }
 
       /* ============== スキャン ============== */
+      // 置き換え：既存の favPost をこの実装に差し替え
       async function favPost(shopId) {
         const idToken = liff.getIDToken();
-        const res = await fetch(`${CONFIG.API_BASE}/api/favorite-add`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: "Bearer " + idToken,
-          },
-          body: JSON.stringify({ shop_id: shopId }),
-        });
-        const j = await res.json();
-        if (!j.ok) throw new Error(j.error || "favorite_failed");
+        const headers = {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + idToken,
+        };
+
+        // よくある3パターンのパスと2種類のキー名を順に試す
+        const paths = [
+          "/api/favorite-add",
+          "/api/favorite/add",
+          "/api/favorite/add-or-toggle",
+        ];
+        const payloads = [{ shop_id: shopId }, { shopId }];
+
+        let lastErr = null;
+
+        for (const path of paths) {
+          for (const body of payloads) {
+            try {
+              const res = await fetch(CONFIG.API_BASE + path, {
+                method: "POST",
+                headers,
+                body: JSON.stringify(body),
+              });
+
+              // JSON を取れるときだけ読む（生テキストしか返らない場合がある）
+              let j = null;
+              try {
+                j = await res.clone().json();
+              } catch {}
+
+              // 成功扱いの条件を広めに
+              if (
+                res.ok &&
+                (j?.ok === true ||
+                  j?.status === "ok" ||
+                  res.status === 200 ||
+                  res.status === 201)
+              ) {
+                return { ok: true, data: j };
+              }
+
+              // すでに登録済みは成功として扱う
+              if (
+                res.status === 409 ||
+                j?.error === "already_exists" ||
+                j?.code === "already_exists"
+              ) {
+                return { ok: true, duplicate: true };
+              }
+
+              // ここまで来たらエラーメッセージ候補を保持
+              lastErr =
+                j?.error ||
+                (await res.text().catch(() => "")) ||
+                `HTTP ${res.status}`;
+            } catch (e) {
+              lastErr = e?.message || "network_error";
+            }
+          }
+        }
+
+        // すべて失敗した場合のみ throw
+        throw new Error(lastErr || "favorite_failed");
       }
+
       function scanByImage() {
         let inp = document.getElementById("qr-file");
         if (!inp) {
@@ -2419,23 +2491,7 @@
                 "現在地を取得できませんでした。端末の位置情報設定をご確認ください。"
               );
             }
-            // 数量バッジ更新
-            function updateHomeCartBadge() {
-              try {
-                const badge = document.getElementById("home-cart-badge");
-                if (!badge) return;
-                const count = Object.values(g.cart || {}).reduce(
-                  (a, v) => a + (v || 0),
-                  0
-                );
-                if (count > 0) {
-                  badge.textContent = String(count);
-                  badge.style.display = "inline-block";
-                } else {
-                  badge.style.display = "none";
-                }
-              } catch {}
-            }
+
             updateHomeCartBadge();
 
             // ホーム右上のカートアイコンクリック
