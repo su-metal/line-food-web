@@ -618,11 +618,76 @@
       .card-lg {
         pointer-events: auto;
       }
+
+      /* 追加: ホーム用ヘッダー行（H1 + カートアイコン） */
+      .home-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin: 0 0 8px;
+      }
+      .icon-btn {
+        position: relative;
+        width: 40px;
+        height: 40px;
+        border-radius: 999px;
+        background: #fff;
+        border: 1px solid #e5e2dd;
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+      }
+      .icon-btn svg {
+        width: 22px;
+        height: 22px;
+      }
+
+      /* バッジ（数量>0の時だけ表示） */
+      .icon-btn .badge {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        background: #e53935;
+        color: #fff;
+        font-size: 12px;
+        line-height: 1;
+        padding: 3px 6px;
+        border-radius: 999px;
+        display: none;
+      }
+
+      /* 店舗ページではホーム用ヘッダーを隠す */
+      .shop-mode .home-header {
+        display: none !important;
+      }
     </style>
   </head>
 
   <body>
-    <h1>近くのお店・お得情報</h1>
+    <div class="home-header">
+      <h1>近くのお店・お得情報</h1>
+      <button id="home-cart-btn" class="icon-btn" aria-label="カートを開く">
+        <!-- カートアイコン -->
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M6 6h14l-1.5 8.5a2 2 0 0 1-2 1.6H9.2a2 2 0 0 1-2-1.6L6 6Z"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M6 6l-1-2H3"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+          />
+          <circle cx="9.5" cy="19.5" r="1.5" fill="currentColor" />
+          <circle cx="17.5" cy="19.5" r="1.5" fill="currentColor" />
+        </svg>
+        <span id="home-cart-badge" class="badge">0</span>
+      </button>
+    </div>
+
     <div id="friendStatus" class="muted" style="margin: 8px 0"></div>
 
     <div class="btn-row top-utilities">
@@ -1737,17 +1802,19 @@
           for (const id in g.cart) {
             const of = offers.find((o) => String(o.id) === String(id));
             const q = g.cart[id] || 0;
-            if (!of || q <= 0) continue;
             count += q;
-            total += (of.price || 0) * q;
+            total += (of?.price || 0) * q;
           }
           const bar = document.getElementById("cart-bar");
-          bar.style.display = "flex"; // 店舗ページでは常に表示
-          document.getElementById("cart-total").textContent = yen(total);
-          document.getElementById("cart-count").textContent = String(count);
+          // 店舗ページでは常時表示（ページ切替側で非表示にします）
+          bar.style.display = "flex";
 
-          const orderBtn = document.getElementById("btn-order");
-          if (orderBtn) orderBtn.disabled = count === 0; // 0点のときだけ無効化
+          document.getElementById("cart-total").textContent = "¥" + total;
+          document.getElementById("cart-count").textContent = String(count);
+          document.getElementById("btn-order").disabled = count === 0;
+
+          // ★追加：ホーム右上のカートバッジも同期
+          updateHomeCartBadge();
         };
 
         offers.forEach((of) => {
@@ -2122,6 +2189,11 @@
               document.body.classList.remove("shop-mode");
             }
           }
+          // 店舗ページ以外ではカートバーを隠す
+          const cartBarEl = document.getElementById("cart-bar");
+          if (cartBarEl) {
+            cartBarEl.style.display = name === "shop" ? "flex" : "none";
+          }
         }
 
         // どこか他の関数の外（showPageの近く）に追加
@@ -2183,6 +2255,50 @@
                 "現在地を取得できませんでした。端末の位置情報設定をご確認ください。"
               );
             }
+            // 数量バッジ更新
+            function updateHomeCartBadge() {
+              try {
+                const badge = document.getElementById("home-cart-badge");
+                if (!badge) return;
+                const count = Object.values(g.cart || {}).reduce(
+                  (a, v) => a + (v || 0),
+                  0
+                );
+                if (count > 0) {
+                  badge.textContent = String(count);
+                  badge.style.display = "inline-block";
+                } else {
+                  badge.style.display = "none";
+                }
+              } catch {}
+            }
+            updateHomeCartBadge();
+
+            // ホーム右上のカートアイコンクリック
+            document
+              .getElementById("home-cart-btn")
+              ?.addEventListener("click", () => {
+                // 店舗ページのカート（同一店舗内）が対象なので、店舗ページへ誘導
+                if (g.currentShop) {
+                  // すでに店舗があるなら店舗ページへ遷移
+                  document.dispatchEvent(
+                    new CustomEvent("app:showPage", {
+                      detail: { name: "shop" },
+                    })
+                  );
+                  // （必要なら）カートが空でなければチェックアウトを開く
+                  if (Object.keys(g.cart || {}).length > 0) {
+                    // 少し後に開く（ページ切替→DOM安定）
+                    setTimeout(
+                      () =>
+                        typeof openCheckout === "function" && openCheckout(),
+                      80
+                    );
+                  }
+                } else {
+                  alert("店舗ページで商品を選択するとカートに入ります。");
+                }
+              });
           });
 
         // 検索（ホームの簡易フィルタ）
