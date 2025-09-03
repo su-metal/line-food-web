@@ -1922,6 +1922,7 @@
         // お気に入り（ハート）
         const favBtn = document.getElementById("btn-fav");
         if (favBtn) {
+          // 既にactiveが付いているならそのまま（ここでリセットしない！）
           favBtn.onclick = async () => {
             const makeActive = !favBtn.classList.contains("active");
 
@@ -1929,25 +1930,29 @@
             favBtn.classList.toggle("active", makeActive);
             favBtn.setAttribute("aria-pressed", makeActive ? "true" : "false");
 
-            if (makeActive) {
-              try {
-                if (!(await ensureFriend())) {
-                  favBtn.classList.remove("active");
-                  favBtn.setAttribute("aria-pressed", "false");
-                  return;
-                }
-                // 追加は一度だけAPIを叩く
-                if (favBtn.dataset.added !== "1") {
-                  await favPost(shop.id);
-                  favBtn.dataset.added = "1";
-                }
-              } catch (e) {
+            if (!makeActive) {
+              // 解除は今は見た目だけ（APIができたらここに実装）
+              return;
+            }
+
+            try {
+              // 友だち未追加ならUIを元に戻す
+              if (!(await ensureFriend())) {
                 favBtn.classList.remove("active");
                 favBtn.setAttribute("aria-pressed", "false");
-                alert("お気に入りの更新に失敗しました");
+                return;
               }
+              // 初回追加のみAPIを叩く（二重送信防止）
+              if (favBtn.dataset.added !== "1") {
+                await favPost(shop.id);
+                favBtn.dataset.added = "1";
+              }
+            } catch {
+              // 失敗したら元に戻す
+              favBtn.classList.remove("active");
+              favBtn.setAttribute("aria-pressed", "false");
+              alert("お気に入りの更新に失敗しました");
             }
-            // 解除は見た目のみ（APIが用意できたらここに実装）
           };
         }
 
