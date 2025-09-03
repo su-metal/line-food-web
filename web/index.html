@@ -574,6 +574,16 @@
         margin: 0 auto;
       }
 
+      /* 店舗ページのミニマップは固定表示（操作不可） */
+      #shop-map .leaflet-container {
+        pointer-events: none !important; /* クリック/ドラッグ/ホイール等を遮断 */
+        touch-action: none; /* モバイルのピンチ/ダブルタップを遮断 */
+      }
+      /* 念のためコントロール類も非表示（ズームUIなど） */
+      #shop-map .leaflet-control-container {
+        display: none !important;
+      }
+
       /* タブレット */
       @media (min-width: 768px) {
         #shop-map {
@@ -1179,6 +1189,23 @@
         };
       }
 
+      function lockMapInteraction(api) {
+        const m = api?.raw?.();
+        if (!m) return;
+        try {
+          m.dragging.disable();
+          m.touchZoom.disable();
+          m.scrollWheelZoom.disable();
+          m.doubleClickZoom.disable();
+          m.boxZoom.disable();
+          m.keyboard.disable();
+          if (m.tap) m.tap.disable(); // iOS対策
+          if (m.zoomControl) m.removeControl(m.zoomControl);
+        } catch (e) {
+          console.warn("lockMapInteraction failed", e);
+        }
+      }
+
       /* ============== 初期化 ============== */
       async function init() {
         await liff.init({ liffId: CONFIG.LIFF_ID });
@@ -1781,60 +1808,35 @@
 
         // ミニマップ
         setTimeout(() => {
-          // 既存のミニマップを破棄（2回目以降の初期化対策）
-          if (shopMapApi?.destroy) {
-            shopMapApi.destroy();
-          } else if (shopMapApi?.raw?.()) {
-            try {
-              shopMapApi.raw().remove();
-            } catch {}
-          }
-
           shopMapApi = createLeafletAPI();
-
-          const lat = Number(shop?.lat);
-          const lng = Number(shop?.lng);
-          const hasPos = Number.isFinite(lat) && Number.isFinite(lng);
-
           shopMapApi.init("shop-map", {
-            center: hasPos ? [lat, lng] : [35.6812, 139.7671],
-            zoom: hasPos ? 16 : 11,
-            interactive: false, // ← 地図操作をロック
+            center: [shop?.lat || 35.6812, shop?.lng || 139.7671],
+            zoom: shop?.lat ? 15 : 11,
           });
-
-          if (hasPos) {
-            shopMapApi.addShopMarker(lat, lng);
-            if (g.pos?.lat && g.pos?.lng) {
+          if (shop?.lat && shop?.lng) {
+            shopMapApi.addShopMarker(shop.lat, shop.lng);
+            if (g.pos) {
               shopMapApi.addUserMarker(g.pos.lat, g.pos.lng);
               shopMapApi.fitToBounds(
                 [
-                  [lat, lng],
+                  [shop.lat, shop.lng],
                   [g.pos.lat, g.pos.lng],
                 ],
-                { maxZoom: 15, padding: [20, 20] }
+                { maxZoom: 14, padding: [20, 20] }
               );
-            } else {
-              shopMapApi.setCenter(lat, lng, 16);
             }
           }
 
-          // レイアウト確定後に再計測＆再センター（描画崩れ防止）
-          shopMapApi.invalidateSize();
-          setTimeout(() => {
-            shopMapApi.invalidateSize();
-            if (hasPos) shopMapApi.setCenter(lat, lng, 16);
-          }, 150);
+          // ← ここで操作を完全ロック
+          lockMapInteraction(shopMapApi);
 
-          // ---- 既存の scheduleShopMapFix 連携（そのまま維持）----
-          if (typeof scheduleShopMapFix === "function") scheduleShopMapFix();
+          scheduleShopMapFix();
 
-          // ヒーロー画像ロード後にも再計測
           const heroImg = document.getElementById("shop-photo");
           heroImg?.addEventListener("load", scheduleShopMapFix, { once: true });
 
-          // ページのサイズ変動にも追随
           if (window.ResizeObserver) {
-            window.__shopMapRO?.disconnect?.();
+            if (window.__shopMapRO) window.__shopMapRO.disconnect();
             window.__shopMapRO = new ResizeObserver(scheduleShopMapFix);
             window.__shopMapRO.observe(document.getElementById("page-shop"));
           }
