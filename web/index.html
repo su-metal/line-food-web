@@ -1040,6 +1040,7 @@
       g.cart = {}; // { offerId: qty }
       g.currentShop = null; // レンダリング中の店舗情報
       g.currentOffers = []; // 店舗の提供中オファー配列
+      g.favTouched = new Set(); // ★ 追加：ユーザーが一度でもハートを触った shopId を保持
 
       // --- 表示ユーティリティ ---
       function yen(n) {
@@ -2052,115 +2053,110 @@
 
         // --- お気に入り（トグル＋楽観UI＋ローカル保存＋サーバ同期） ---
 
-        const favBtn = document.getElementById("btn-fav");
-        if (favBtn) {
-          const sid = String(shop?.id ?? shop?.shop_id ?? "");
-          (async () => {
-            const userKey = await getUserKey();
-            const favSet = readFavSetSync(userKey);
-            let userTouched = false; // ← ユーザーが一度でも操作したら true
+        // --- お気に入り（トグル＋楽観UI＋ローカル保存＋サーバ同期） ---
+        {
+          const favBtn = document.getElementById("btn-fav");
+          if (favBtn) {
+            const sid = String(shop?.id ?? shop?.shop_id ?? "");
 
-            // 1) ローカル状態を即反映（遷移しても維持）
-            applyFavUI(favBtn, favSet.has(sid));
+            (async () => {
+              const userKey = await getUserKey();
+              const favSet = readFavSetSync(userKey);
+              let userTouched = g.favTouched.has(sid); // 再描画でも保持
 
-            // 2) タップでトグル（楽観UI→サーバ同期／未対応系はロールバックしない）
-            favBtn.onclick = async () => {
-              // 二重タップ防止
-              if (favBtn.dataset.busy === "1") return;
-              favBtn.dataset.busy = "1";
-              userTouched = true;
+              // ローカル状態を即反映
+              applyFavUI(favBtn, favSet.has(sid));
 
-              const nowFav = favSet.has(sid);
-              const willFav = !nowFav;
+              // タップでトグル（楽観更新→同期→失敗時はロールバック）
+              favBtn.onclick = async () => {
+                // 二重タップ防止
+                if (favBtn.dataset.busy === "1") return;
+                favBtn.dataset.busy = "1";
 
-              // 楽観反映＋保存
-              if (willFav) favSet.add(sid);
-              else favSet.delete(sid);
-              writeFavSetSync(userKey, favSet);
-              applyFavUI(favBtn, willFav);
+                g.favTouched.add(sid);
+                userTouched = true;
 
-              // LIFF外はサーバ同期しない（ローカル保持）
-              if (!isLIFFInClient()) {
-                favBtn.dataset.busy = "0";
-                return;
-              }
+                const nowFav = favSet.has(sid);
+                const willFav = !nowFav;
 
-              let result = null;
-              try {
-                result = willFav
-                  ? await favoriteAdd(sid)
-                  : await favoriteRemove(sid);
-              } catch (e) {
-                // 例外型の実装にも対応：400/404/405 は“未対応”扱いにする
-                const msg = (e && (e.message || String(e))) || "";
-                const status = e?.status;
-                result = {
-                  ok: false,
-                  status,
-                  unsupported:
-                    status === 400 ||
-                    status === 404 ||
-                    status === 405 ||
-                    /bad_request|not\s*found|method\s*not\s*allowed/i.test(msg),
-                  error: e,
-                };
-              } finally {
-                favBtn.dataset.busy = "0";
-              }
-
-              // 未対応系はロールバックしない（ローカルのみで維持）
-              if (
-                result &&
-                (result.unsupported === true ||
-                  result.status === 400 ||
-                  result.status === 404 ||
-                  result.status === 405)
-              ) {
-                return;
-              }
-
-              // 通常の失敗のみロールバック
-              if (!result || result.ok === false) {
-                if (willFav) favSet.delete(sid);
-                else favSet.add(sid);
+                // 楽観反映＋保存
+                if (willFav) favSet.add(sid);
+                else favSet.delete(sid);
                 writeFavSetSync(userKey, favSet);
-                applyFavUI(favBtn, !willFav);
-              }
-            };
+                applyFavUI(favBtn, willFav);
 
-            // 3) 初期サーバ状態での上書きは“ユーザー未操作のときだけ”
-            try {
-              if (isLIFFInClient() && /^\d+$/.test(sid)) {
-                // 数値IDのみ問い合わせ（UUIDは400回避）
-                const idToken = liff.getIDToken();
-                const r = await fetch(
-                  `${CONFIG.API_BASE}/api/favorites?shopId=${encodeURIComponent(
-                    sid
-                  )}`,
-                  { headers: { Authorization: "Bearer " + idToken } }
-                );
-                const j = await r.json().catch(() => null);
+                // LIFF外はサーバ同期しない（ローカル維持）
+                if (!isLIFFInClient()) {
+                  favBtn.dataset.busy = "0";
+                  return;
+                }
 
-                // ← ここが重要：ユーザーがタップ済みなら上書きしない
-                if (userTouched) return;
+                let ok = false;
+                let unsupported = false;
 
-                if (
-                  r.ok &&
-                  (j?.isFavorited !== undefined || j?.favorited !== undefined)
-                ) {
-                  const on = !!(j.isFavorited ?? j.favorited);
-                  if (on !== favSet.has(sid)) {
-                    if (on) favSet.add(sid);
-                    else favSet.delete(sid);
-                    writeFavSetSync(userKey, favSet);
-                    applyFavUI(favBtn, on);
+                try {
+                  const r = willFav
+                    ? await favoriteAdd(sid)
+                    : await favoriteRemove(sid);
+                  ok = !!r?.ok;
+                  // 400/404/405 は「未対応」とみなしてロールバックしない
+                  unsupported =
+                    !!r?.unsupported || [400, 404, 405].includes(r?.status);
+                } catch (e) {
+                  const s = e?.status;
+                  const msg = (e && (e.message || String(e))) || "";
+                  unsupported =
+                    s === 400 ||
+                    s === 404 ||
+                    s === 405 ||
+                    /bad_request|not\s*found|method\s*not\s*allowed/i.test(msg);
+                } finally {
+                  favBtn.dataset.busy = "0";
+                }
+
+                if (unsupported) {
+                  // バックエンド未対応：ローカル状態を維持して終了
+                  return;
+                }
+                if (!ok) {
+                  // 真の失敗だけロールバック
+                  if (willFav) favSet.delete(sid);
+                  else favSet.add(sid);
+                  writeFavSetSync(userKey, favSet);
+                  applyFavUI(favBtn, !willFav);
+                }
+              };
+
+              // 初期サーバ状態の上書きは「ユーザー未操作のときだけ」
+              try {
+                if (!userTouched && isLIFFInClient() && /^\d+$/.test(sid)) {
+                  const idToken = liff.getIDToken();
+                  const r = await fetch(
+                    `${
+                      CONFIG.API_BASE
+                    }/api/favorites?shopId=${encodeURIComponent(sid)}`,
+                    { headers: { Authorization: "Bearer " + idToken } }
+                  );
+                  const j = await r.json().catch(() => null);
+
+                  if (
+                    r.ok &&
+                    (j?.isFavorited !== undefined || j?.favorited !== undefined)
+                  ) {
+                    const on = !!(j.isFavorited ?? j.favorited);
+                    if (on !== favSet.has(sid)) {
+                      if (on) favSet.add(sid);
+                      else favSet.delete(sid);
+                      writeFavSetSync(userKey, favSet);
+                      applyFavUI(favBtn, on);
+                    }
                   }
                 }
+              } catch (e) {
+                console.warn("favorite init failed:", e);
               }
-            } catch (e) {
-              console.warn("favorite init failed:", e);
-            }
-          })();
+            })();
+          }
         }
 
         // 「注文する」→ チェックアウトオーバーレイを開く
@@ -2269,117 +2265,13 @@
       }
 
       /* ============== スキャン ============== */
-      // ---- お気に入りAPI（追加／削除） 統一版 ----
-      async function favoriteAdd(shopId) {
-        const idToken = liff.getIDToken?.() || "";
-        const sid = String(shopId);
-        const payload = {
-          shop_id: /^\d+$/.test(sid) ? Number(sid) : sid,
-          shopId: sid,
-        };
-
-        try {
-          const res = await fetch(`${CONFIG.API_BASE}/api/favorite-add`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer " + idToken,
-            },
-            body: JSON.stringify(payload),
-          });
-
-          const txt = await res.text().catch(() => "");
-          if (res.ok) return { ok: true };
-          if (res.status === 409) return { ok: true, already: true }; // 既に登録済み
-          if ([400, 404, 405].includes(res.status))
-            return { ok: false, unsupported: true }; // ← 未対応はロールバックしない
-          return { ok: false, status: res.status, text: txt };
-        } catch (e) {
-          return { ok: false, error: e };
-        }
-      }
-
-      async function favoriteRemove(shopId) {
-        const idToken = liff.getIDToken?.() || "";
-        const sid = String(shopId);
-        const payload = {
-          shop_id: /^\d+$/.test(sid) ? Number(sid) : sid,
-          shopId: sid,
-        };
-
-        // ① /favorite-remove(POST) を試す
-        try {
-          const r = await fetch(`${CONFIG.API_BASE}/api/favorite-remove`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer " + idToken,
-            },
-            body: JSON.stringify(payload),
-          });
-          if (r.ok) return { ok: true };
-          if ([400, 404, 405].includes(r.status))
-            return { ok: false, unsupported: true }; // ← ここ重要
-        } catch {}
-
-        // ② フォールバック: /api/favorites?shopId=... に DELETE（クエリで送る）
-        try {
-          const r2 = await fetch(
-            `${CONFIG.API_BASE}/api/favorites?shopId=${encodeURIComponent(
-              sid
-            )}`,
-            {
-              method: "DELETE",
-              headers: { Authorization: "Bearer " + idToken },
-            }
-          );
-          if (r2.ok) return { ok: true };
-          if ([404, 405].includes(r2.status))
-            return { ok: false, unsupported: true }; // ← ここも未対応はロールバックしない
-          return { ok: false, status: r2.status };
-        } catch (e) {
-          return { ok: false, error: e };
-        }
-      }
-
-      async function favoriteRemove(shopId) {
-        const idToken = liff.getIDToken?.();
-        const payload = {
-          shop_id: /^\d+$/.test(String(shopId))
-            ? Number(shopId)
-            : String(shopId),
-        };
-        try {
-          // ① /favorite-remove(POST)
-          let r = await fetch(`${CONFIG.API_BASE}/api/favorite-remove`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer " + idToken,
-            },
-            body: JSON.stringify(payload),
-          });
-          if (r.ok) return { ok: true };
-          // ② 無ければ /api/favorites(DELETE)
-          r = await fetch(`${CONFIG.API_BASE}/api/favorites`, {
-            method: "DELETE",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer " + idToken,
-            },
-            body: JSON.stringify(payload),
-          });
-          return { ok: r.ok };
-        } catch (e) {
-          return { ok: false, error: e };
-        }
-      }
-
+      // ---- お気に入りAPI（追加／削除）は上部の定義を使います ----
       // 互換ラッパー（既存コードが favPost を呼んでも動くように）
       async function favPost(shopId) {
         const r = await favoriteAdd(shopId);
-        if (!r.ok && !r.unsupported)
+        if (!r.ok && !r.unsupported) {
           throw new Error(r.error?.message || "favorite_add_failed");
+        }
         return r;
       }
 
