@@ -1167,6 +1167,15 @@
           raw() {
             return _map;
           },
+          // ★追加：破棄
+          destroy() {
+            try {
+              _map && _map.remove();
+            } catch {}
+            _map = null;
+            _markers = [];
+            _userMarker = null;
+          },
         };
       }
 
@@ -1772,37 +1781,65 @@
 
         // ミニマップ
         setTimeout(() => {
+          // 既存のミニマップを破棄（2回目以降の初期化対策）
+          if (shopMapApi?.destroy) {
+            shopMapApi.destroy();
+          } else if (shopMapApi?.raw?.()) {
+            try {
+              shopMapApi.raw().remove();
+            } catch {}
+          }
+
           shopMapApi = createLeafletAPI();
+
+          const lat = Number(shop?.lat);
+          const lng = Number(shop?.lng);
+          const hasPos = Number.isFinite(lat) && Number.isFinite(lng);
+
           shopMapApi.init("shop-map", {
-            center: [shop?.lat || 35.6812, shop?.lng || 139.7671],
-            zoom: shop?.lat ? 15 : 11,
+            center: hasPos ? [lat, lng] : [35.6812, 139.7671],
+            zoom: hasPos ? 16 : 11,
+            interactive: false, // ← 地図操作をロック
           });
-          if (shop?.lat && shop?.lng) {
-            shopMapApi.addShopMarker(shop.lat, shop.lng);
-            if (g.pos) {
+
+          if (hasPos) {
+            shopMapApi.addShopMarker(lat, lng);
+            if (g.pos?.lat && g.pos?.lng) {
               shopMapApi.addUserMarker(g.pos.lat, g.pos.lng);
               shopMapApi.fitToBounds(
                 [
-                  [shop.lat, shop.lng],
+                  [lat, lng],
                   [g.pos.lat, g.pos.lng],
                 ],
-                { maxZoom: 14, padding: [20, 20] }
+                { maxZoom: 15, padding: [20, 20] }
               );
+            } else {
+              shopMapApi.setCenter(lat, lng, 16);
             }
           }
-          scheduleShopMapFix();
 
-          // ヒーロー画像が後からロードされると高さが変わるので、ロード後にも再計測
+          // レイアウト確定後に再計測＆再センター（描画崩れ防止）
+          shopMapApi.invalidateSize();
+          setTimeout(() => {
+            shopMapApi.invalidateSize();
+            if (hasPos) shopMapApi.setCenter(lat, lng, 16);
+          }, 150);
+
+          // ---- 既存の scheduleShopMapFix 連携（そのまま維持）----
+          if (typeof scheduleShopMapFix === "function") scheduleShopMapFix();
+
+          // ヒーロー画像ロード後にも再計測
           const heroImg = document.getElementById("shop-photo");
           heroImg?.addEventListener("load", scheduleShopMapFix, { once: true });
 
-          // ページ自体のサイズ変動にも追随
+          // ページのサイズ変動にも追随
           if (window.ResizeObserver) {
-            if (window.__shopMapRO) window.__shopMapRO.disconnect();
+            window.__shopMapRO?.disconnect?.();
             window.__shopMapRO = new ResizeObserver(scheduleShopMapFix);
             window.__shopMapRO.observe(document.getElementById("page-shop"));
           }
         }, 0);
+
         const raw = shopMapApi.raw();
         if (raw) {
           raw.dragging.disable();
