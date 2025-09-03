@@ -712,7 +712,7 @@
       </div>
 
       <!-- カートバー -->
-      <div id="cart-bar" class="cart-bar" style="display: none">
+      <div id="cart-bar" class="cart-bar"></div>
         <div><b id="cart-total">¥0</b>・<span id="cart-count">0</span>点</div>
         <button id="btn-order" class="btn">注文する</button>
       </div>
@@ -1656,23 +1656,23 @@
         listEl.innerHTML = "";
 
         const updateCartBar = () => {
-          let count = 0,
-            total = 0;
-          for (const id in g.cart) {
-            const of = offers.find((o) => String(o.id) === String(id));
-            const q = g.cart[id] || 0;
+          let count = 0, total = 0;
+          for (const id in cart) {
+            const of = offers.find((o) => String(o.id) === id);
+            const q = cart[id] || 0;
             count += q;
             total += (of?.price || 0) * q;
           }
           const bar = document.getElementById("cart-bar");
-          if (count > 0) {
-            bar.style.display = "flex";
-          } else {
-            bar.style.display = "none";
-          }
-          document.getElementById("cart-total").textContent = yen(total);
+          // 常に表示
+          bar.style.display = "flex";
+
+          document.getElementById("cart-total").textContent = "¥" + total;
           document.getElementById("cart-count").textContent = String(count);
+          // 0個のときはボタンだけ無効化
+          document.getElementById("btn-order").disabled = count === 0;
         };
+
 
         offers.forEach((of) => {
           const el = document.createElement("div");
@@ -1709,6 +1709,10 @@
           };
           listEl.appendChild(el);
         });
+
+        // 商品リスト構築の直後に追加
+        updateCartBar();
+
 
         // お気に入り（ハート）
         document.getElementById("btn-fav").onclick = async () => {
