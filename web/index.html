@@ -1010,6 +1010,32 @@
         });
       }
 
+      // ---- お気に入り：ローカル保存＆UI適用 ----
+      const LS_FAV_NS = "mottaina:fav:";
+      function readJSON(k, fb) {
+        try {
+          return JSON.parse(localStorage.getItem(k) || "");
+        } catch {
+          return fb;
+        }
+      }
+      function writeJSON(k, v) {
+        localStorage.setItem(k, JSON.stringify(v));
+      }
+      function applyHeart(el, on) {
+        el?.classList.toggle("active", !!on);
+        el?.setAttribute("aria-pressed", on ? "true" : "false");
+      }
+      async function getUserKey() {
+        try {
+          if (liff && typeof liff.getProfile === "function") {
+            const p = await liff.getProfile();
+            return p?.userId || "anon";
+          }
+        } catch {}
+        return "anon";
+      }
+
       // --- カート／チェックアウト用の拡張状態 ---
       g.cart = {}; // { offerId: qty }
       g.currentShop = null; // レンダリング中の店舗情報
@@ -2106,23 +2132,48 @@
             // 1) まずローカル状態を反映（遷移しても維持）
             applyFavUI(favBtn, favSet.has(sid));
 
-            // 2) クリックでトグル（楽観UI→サーバ同期→失敗時ロールバック）
+            // 2) クリックでトグル（楽観UI→サーバ同期／400はロールバックしない）
             favBtn.onclick = async () => {
               const nowFav = favSet.has(sid);
               const willFav = !nowFav;
 
-              // 楽観反映
+              // 楽観反映 + 保存
               if (willFav) favSet.add(sid);
               else favSet.delete(sid);
               writeFavSetSync(userKey, favSet);
               applyFavUI(favBtn, willFav);
 
+              // LIFF外はサーバ同期しない（ローカル保持のみ）
+              if (!isLIFFInClient()) return;
+
               try {
-                if (willFav) await favoriteAdd(sid);
-                else await favoriteRemove(sid);
+                // favoriteAdd / Remove が「オブジェクトを返す」場合に備えて r を受け取る
+                const r = willFav
+                  ? await favoriteAdd(sid)
+                  : await favoriteRemove(sid);
+
+                // 返り値型のAPIラッパ（{ ok,false, unsupported:true }など）にも対応
+                if (r && r.unsupported === true) {
+                  console.info(
+                    "favorite: server unsupported (400)。ローカルのみ保持します。"
+                  );
+                  return; // ロールバックしない
+                }
+                if (r && r.ok === false && !r.unsupported) {
+                  throw r; // 通常失敗は catch でロールバック
+                }
               } catch (e) {
+                // ここに来たのは「例外を投げる実装」の場合
+                const msg = (e && (e.message || e.toString())) || "";
+                const status = e?.status;
+                if (status === 400 || /bad_request/i.test(msg)) {
+                  console.info(
+                    "favorite: 400 bad_request はロールバックしません（ローカル保持）。"
+                  );
+                  return; // ロールバックしない
+                }
+                // ← その他の失敗はロールバック
                 console.warn("favorite sync failed, rollback:", e);
-                // ロールバック
                 if (willFav) favSet.delete(sid);
                 else favSet.add(sid);
                 writeFavSetSync(userKey, favSet);
@@ -2130,72 +2181,32 @@
               }
             };
 
-            // 3) 余力があればサーバ真実に合わせて上書き（LIFF内のみ）
+            // 3) 初期のサーバ真実で上書き（※数値IDのみ。UUIDは400になるためスキップ）
             try {
-              if (isLIFFInClient()) {
+              if (isLIFFInClient() && /^\d+$/.test(sid)) {
                 const idToken = liff.getIDToken();
                 const r = await fetch(
                   `${CONFIG.API_BASE}/api/favorites?shopId=${encodeURIComponent(
                     sid
                   )}`,
-                  {
-                    headers: { Authorization: "Bearer " + idToken },
-                  }
+                  { headers: { Authorization: "Bearer " + idToken } }
                 );
                 const j = await r.json().catch(() => null);
-                if (r.ok && (j?.isFavorited || j?.favorited)) {
-                  if (!favSet.has(sid)) {
-                    favSet.add(sid);
-                    writeFavSetSync(userKey, favSet);
-                    applyFavUI(favBtn, true);
-                  }
+                if (
+                  r.ok &&
+                  (j?.isFavorited !== undefined || j?.favorited !== undefined)
+                ) {
+                  const on = !!(j.isFavorited ?? j.favorited);
+                  if (on) favSet.add(sid);
+                  else favSet.delete(sid);
+                  writeFavSetSync(userKey, favSet);
+                  applyFavUI(favBtn, on);
                 }
               }
             } catch (e) {
               console.warn("favorite init failed:", e);
             }
           })();
-        }
-
-        // ★これで上書き
-        async function favPost(shopId) {
-          const idToken = liff.getIDToken();
-          const url = `${CONFIG.API_BASE}/api/favorite-add`; // ← 統一
-
-          // サーバ想定フォーマットに固定：shop_id は number
-          const payload = { shop_id: String(shopId) };
-
-          const res = await fetch(url, {
-            method: "POST",
-            mode: "cors",
-            credentials: "omit",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer " + idToken,
-            },
-            body: JSON.stringify(payload),
-          });
-
-          // レスポンスを詳しく診断（400の中身を拾う）
-          const text = await res.text().catch(() => "");
-          let j = null;
-          try {
-            j = JSON.parse(text);
-          } catch {}
-
-          // 成功扱いの条件
-          if (res.ok && (j?.ok ?? true)) return { ok: true };
-          // 既に登録済みなどは成功扱い
-          if (
-            res.status === 409 ||
-            j?.error === "already_favorite" ||
-            /already/i.test(text)
-          ) {
-            return { ok: true, already: true };
-          }
-
-          console.error("favorite-add failed", res.status, text);
-          throw new Error(j?.error || `favorite_add_${res.status}`);
         }
 
         // 「注文する」→ チェックアウトオーバーレイを開く
@@ -2304,44 +2315,77 @@
       }
 
       /* ============== スキャン ============== */
-      async function favPost(shopId) {
-        const idToken = liff.getIDToken();
-        const url = `${CONFIG.API_BASE}/api/favorite-add`; // ← 統一
-
-        // サーバ想定フォーマットに固定：shop_id は number
-        const payload = { shop_id: Number(shopId) };
-
-        const res = await fetch(url, {
-          method: "POST",
-          mode: "cors",
-          credentials: "omit",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: "Bearer " + idToken,
-          },
-          body: JSON.stringify(payload),
-        });
-
-        // レスポンスを詳しく診断（400の中身を拾う）
-        const text = await res.text().catch(() => "");
-        let j = null;
+      // ---- お気に入りAPI（追加／削除） ----
+      async function favoriteAdd(shopId) {
+        const idToken = liff.getIDToken?.();
+        const payload = {
+          shop_id: /^\d+$/.test(String(shopId))
+            ? Number(shopId)
+            : String(shopId),
+        };
         try {
-          j = JSON.parse(text);
-        } catch {}
-
-        // 成功扱いの条件
-        if (res.ok && (j?.ok ?? true)) return { ok: true };
-        // 既に登録済みなどは成功扱い
-        if (
-          res.status === 409 ||
-          j?.error === "already_favorite" ||
-          /already/i.test(text)
-        ) {
-          return { ok: true, already: true };
+          const res = await fetch(`${CONFIG.API_BASE}/api/favorite-add`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + idToken,
+            },
+            body: JSON.stringify(payload),
+          });
+          const txt = await res.text().catch(() => "");
+          let j = null;
+          try {
+            j = JSON.parse(txt);
+          } catch {}
+          if (res.ok && (j?.ok ?? true)) return { ok: true };
+          if (res.status === 409) return { ok: true, already: true }; // 既に登録済み
+          if (res.status === 400 || /bad_request/i.test(j?.error || txt))
+            return { ok: false, unsupported: true };
+          return { ok: false, status: res.status, text: txt };
+        } catch (e) {
+          return { ok: false, error: e };
         }
+      }
 
-        console.error("favorite-add failed", res.status, text);
-        throw new Error(j?.error || `favorite_add_${res.status}`);
+      async function favoriteRemove(shopId) {
+        const idToken = liff.getIDToken?.();
+        const payload = {
+          shop_id: /^\d+$/.test(String(shopId))
+            ? Number(shopId)
+            : String(shopId),
+        };
+        try {
+          // ① /favorite-remove(POST)
+          let r = await fetch(`${CONFIG.API_BASE}/api/favorite-remove`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + idToken,
+            },
+            body: JSON.stringify(payload),
+          });
+          if (r.ok) return { ok: true };
+          // ② 無ければ /api/favorites(DELETE)
+          r = await fetch(`${CONFIG.API_BASE}/api/favorites`, {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + idToken,
+            },
+            body: JSON.stringify(payload),
+          });
+          return { ok: r.ok };
+        } catch (e) {
+          return { ok: false, error: e };
+        }
+      }
+
+      // 互換ラッパー（既存コードが favPost を呼んでも動くように）
+      async function favPost(shopId) {
+        const r = await favoriteAdd(shopId);
+        if (!r.ok && !r.unsupported)
+          throw new Error(r.error?.message || "favorite_add_failed");
+        return r;
       }
 
       function scanByImage() {
