@@ -497,18 +497,18 @@
         stroke: currentColor; /* 線も赤に（好みで残す/消す） */
       }
 
+      /* 既存の .heart.active や .heart.active svg path の下あたりに */
+      #btn-fav.active svg path {
+        fill: currentColor !important;
+        stroke: currentColor !important;
+      }
+
       /* 店舗ページのハートを画面右上に固定配置 */
       .shop-mode #btn-fav {
         position: fixed;
         top: calc(env(safe-area-inset-top, 0) + 8px);
         right: 12px;
         z-index: 2200;
-      }
-
-      /* 押下後の“登録済み”見た目（色だけ変える） */
-      .heart.active {
-        color: #e53935;
-        border-color: #e53935;
       }
 
       .meta-row {
@@ -1013,6 +1013,22 @@
       // --- 表示ユーティリティ ---
       function yen(n) {
         return "¥" + Number(n || 0).toLocaleString();
+      }
+
+      // --- ホーム右上のカート数量バッジを同期 ---
+      function updateHomeCartBadge() {
+        const badge = document.getElementById("home-cart-badge");
+        if (!badge) return;
+        const count = Object.values(g.cart || {}).reduce(
+          (a, v) => a + (v || 0),
+          0
+        );
+        if (count > 0) {
+          badge.textContent = String(count);
+          badge.style.display = "inline-block";
+        } else {
+          badge.style.display = "none";
+        }
       }
 
       // 安全にテキストを入れるヘルパ
@@ -1876,8 +1892,10 @@
           document.getElementById("cart-count").textContent = String(count);
           document.getElementById("btn-order").disabled = count === 0;
 
-          // ★追加：ホーム右上のカートバッジも同期
-          updateHomeCartBadge();
+          // ★追加：ホーム右上のカートバッジも同期（未定義事故防止）
+          try {
+            updateHomeCartBadge();
+          } catch {}
         };
 
         offers.forEach((of) => {
@@ -2034,17 +2052,6 @@
             window.__shopMapRO.observe(document.getElementById("page-shop"));
           }
         }, 0);
-
-        const raw = shopMapApi.raw();
-        if (raw) {
-          raw.dragging.disable();
-          raw.scrollWheelZoom.disable();
-          raw.touchZoom.disable();
-          raw.doubleClickZoom.disable();
-          raw.boxZoom.disable();
-          raw.keyboard.disable();
-          if (raw.zoomControl) raw.zoomControl.remove(); // ズームUIも非表示
-        }
       }
 
       // 現在地 + 近隣店舗にフィット
@@ -2346,6 +2353,50 @@
           .getElementById("more-recent")
           ?.addEventListener("click", () => showPage("discover"));
 
+        // 検索（ホームの簡易フィルタ）
+        const q = document.getElementById("q");
+        if (q)
+          q.addEventListener("input", () => {
+            const kw = q.value.trim().toLowerCase();
+            if (!window.__lastOffers) return;
+            const base = window.__lastOffers;
+            const filtered = kw
+              ? base.filter((it) => {
+                  const shop = it.shop || it.shops;
+                  return (
+                    (it.title || "").toLowerCase().includes(kw) ||
+                    (shop?.name || "").toLowerCase().includes(kw) ||
+                    (shop?.address || "").toLowerCase().includes(kw)
+                  );
+                })
+              : base;
+            renderHomeSections(filtered);
+          });
+
+        // Discoverの検索（UIだけ、必要ならAPI検索へ繋ぐ）
+        const qMap = document.getElementById("q-map");
+        if (qMap)
+          qMap.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+              // TODO: ここで住所→座標検索等に繋ぐ（現状はUIのみ）
+              e.target.blur();
+            }
+          });
+        // ハッシュ遷移 (#shop:SHOP_ID) からの表示
+        window.addEventListener("hashchange", () => {
+          const m = location.hash.match(/^#shop:(\d+)$/);
+          if (m) {
+            const sid = m[1];
+            // 既存オファー配列からヒントを探す（なくてもOK）
+            const hint =
+              (window.__lastOffers || []).find(
+                (o) => String(o.shop?.id ?? o.shops?.id) === sid
+              ) || null;
+            openShopPage(sid, hint);
+          } else if (location.hash === "" || location.hash === "#home") {
+            showPage("home");
+          }
+        });
         // 現在地ボタン（コンパス）
         document
           .getElementById("btn-locate")
@@ -2413,51 +2464,6 @@
                 }
               });
           });
-
-        // 検索（ホームの簡易フィルタ）
-        const q = document.getElementById("q");
-        if (q)
-          q.addEventListener("input", () => {
-            const kw = q.value.trim().toLowerCase();
-            if (!window.__lastOffers) return;
-            const base = window.__lastOffers;
-            const filtered = kw
-              ? base.filter((it) => {
-                  const shop = it.shop || it.shops;
-                  return (
-                    (it.title || "").toLowerCase().includes(kw) ||
-                    (shop?.name || "").toLowerCase().includes(kw) ||
-                    (shop?.address || "").toLowerCase().includes(kw)
-                  );
-                })
-              : base;
-            renderHomeSections(filtered);
-          });
-
-        // Discoverの検索（UIだけ、必要ならAPI検索へ繋ぐ）
-        const qMap = document.getElementById("q-map");
-        if (qMap)
-          qMap.addEventListener("keydown", (e) => {
-            if (e.key === "Enter") {
-              // TODO: ここで住所→座標検索等に繋ぐ（現状はUIのみ）
-              e.target.blur();
-            }
-          });
-        // ハッシュ遷移 (#shop:SHOP_ID) からの表示
-        window.addEventListener("hashchange", () => {
-          const m = location.hash.match(/^#shop:(\d+)$/);
-          if (m) {
-            const sid = m[1];
-            // 既存オファー配列からヒントを探す（なくてもOK）
-            const hint =
-              (window.__lastOffers || []).find(
-                (o) => String(o.shop?.id ?? o.shops?.id) === sid
-              ) || null;
-            openShopPage(sid, hint);
-          } else if (location.hash === "" || location.hash === "#home") {
-            showPage("home");
-          }
-        });
       });
 
       // 起動
