@@ -2052,8 +2052,6 @@
         updateCartBar();
 
         // --- お気に入り（トグル＋楽観UI＋ローカル保存＋サーバ同期） ---
-
-        // --- お気に入り（トグル＋楽観UI＋ローカル保存＋サーバ同期） ---
         {
           const favBtn = document.getElementById("btn-fav");
           if (favBtn) {
@@ -2062,6 +2060,19 @@
             (async () => {
               const userKey = await getUserKey();
               const favSet = readFavSetSync(userKey);
+              // 既存の誤登録（空ID）を除去
+              if (favSet.has("")) {
+                favSet.delete("");
+                writeFavSetSync(userKey, favSet);
+              }
+
+              // 店舗IDが未決定ならUIはオフ/無効化
+              if (!sid) {
+                applyFavUI(favBtn, false);
+                favBtn.disabled = true;
+                return;
+              }
+
               let userTouched = g.favTouched.has(sid); // 再描画でも保持
 
               // ローカル状態を即反映
@@ -2266,14 +2277,6 @@
 
       /* ============== スキャン ============== */
       // ---- お気に入りAPI（追加／削除）は上部の定義を使います ----
-      // 互換ラッパー（既存コードが favPost を呼んでも動くように）
-      async function favPost(shopId) {
-        const r = await favoriteAdd(shopId);
-        if (!r.ok && !r.unsupported) {
-          throw new Error(r.error?.message || "favorite_add_failed");
-        }
-        return r;
-      }
 
       function scanByImage() {
         let inp = document.getElementById("qr-file");
