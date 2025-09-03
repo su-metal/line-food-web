@@ -698,6 +698,11 @@
       .shop-mode .home-header {
         display: none !important;
       }
+      /* 強制上書き（競合対策） */
+      .heart.active svg path {
+        fill: currentColor !important;
+        stroke: currentColor !important;
+      }
     </style>
   </head>
 
@@ -1777,14 +1782,19 @@
         if (!mapAutoFitDone) fitToUserAndNearest(list, false);
       }
 
+      // 旧）async function fetchShopDetail(shopId) { ... }
       async function fetchShopDetail(shopId) {
-        // ある分だけ返す（存在しない列は無視される）
+        const idStr = String(shopId || "").trim();
+        // shops.id が数値でない（UUIDなど）の場合は詳細フェッチをスキップ
+        if (!/^\d+$/.test(idStr)) return null;
+
         const url = new URL(CONFIG.SUPABASE_URL + "/rest/v1/shops");
-        url.searchParams.set("id", "eq." + shopId);
+        url.searchParams.set("id", "eq." + idStr);
         url.searchParams.set(
           "select",
           "id,name,lat,lng,address,category,station,photo_url,tel,website,instagram,twitter,facebook"
         );
+
         const r = await fetch(url, {
           headers: {
             apikey: CONFIG.SUPABASE_ANON_KEY,
