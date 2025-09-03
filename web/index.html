@@ -477,33 +477,24 @@
         place-items: center;
       }
 
-      /* ハートのトグル（赤塗り） */
-      /* ハートボタン：color をアニメさせる */
+      /* ハートのアニメ＆塗り替え */
       .heart {
         transition: transform 0.12s, color 0.2s, border-color 0.2s,
           background 0.2s;
-        color: #8a8278; /* OFF時の色（グレー寄り） */
       }
-      .heart svg path {
-        stroke: currentColor; /* 枠線は currentColor を使う */
-        fill: transparent; /* OFF時は塗りなし */
-        transition: fill 0.2s; /* 塗り出現をふわっと */
-      }
-
-      /* ON時：色だけ変えれば stroke も fill も連動 */
-      .heart.is-active {
-        color: #e53935; /* 赤 */
-      }
-      .heart.is-active svg path {
-        fill: currentColor; /* 赤で塗りつぶし */
-      }
-
-      /* お好みの触感 */
       .heart svg path {
         transition: fill 0.2s, stroke 0.2s;
       }
-      .heart:active {
-        transform: scale(0.94);
+
+      /* ON のとき赤く塗る */
+      .heart.active {
+        color: #e11d48; /* currentColor を赤に */
+        border-color: currentColor;
+        background: #fff5f7; /* ほんのり背景(好みで削除OK) */
+      }
+      .heart.active svg path {
+        fill: currentColor; /* 塗りを currentColor に */
+        stroke: currentColor; /* 線も赤に（好みで残す/消す） */
       }
 
       /* 店舗ページのハートを画面右上に固定配置 */
@@ -1930,6 +1921,26 @@
 
         // お気に入り（ハート）
         const favBtn = document.getElementById("btn-fav");
+        if (favBtn) {
+          favBtn.onclick = async () => {
+            const wasActive = favBtn.classList.contains("active");
+            // 楽観的にUIを先に反映
+            favBtn.classList.toggle("active");
+
+            try {
+              if (!(await ensureFriend())) {
+                // 友だちでなければ元に戻す
+                favBtn.classList.toggle("active", wasActive);
+                return;
+              }
+              await favPost(shop.id); // 解除APIが無ければ“追加”としてだけ動作
+            } catch (e) {
+              // 失敗したら見た目を元に戻す
+              favBtn.classList.toggle("active", wasActive);
+              alert("お気に入りの更新に失敗しました");
+            }
+          };
+        }
 
         // 初期状態（サーバに状態が無いのでデフォは未選択）
         favBtn.classList.remove("active");
