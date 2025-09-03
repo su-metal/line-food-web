@@ -561,18 +561,20 @@
       }
 
       /* モバイル: 正方形寄り */
+      /* モバイル: 3:2 */
       #shop-map {
         width: 100%;
         aspect-ratio: 3 / 2;
         height: auto;
         min-height: 220px;
-        max-width: 720px;
-        margin: 0 auto;
         border-radius: 12px;
         border: 1px solid #e5e2dd;
+        overflow: hidden;
+        max-width: 720px;
+        margin: 0 auto;
       }
 
-      /* タブレット～: 少し横長に */
+      /* タブレット */
       @media (min-width: 768px) {
         #shop-map {
           aspect-ratio: 4 / 3;
@@ -581,19 +583,12 @@
         }
       }
 
-      /* デスクトップ: さらに横長、横幅も上限 */
+      /* デスクトップ */
       @media (min-width: 1024px) {
         #shop-map {
           aspect-ratio: 16 / 9;
-          min-height: 300px;
-          max-width: 960px; /* ここでPCの最大幅を抑える */
-        }
-      }
-      /* 任意：PCで店舗ページの本文幅を中央に抑える */
-      @media (min-width: 1024px) {
-        #page-shop {
+          min-height: 320px;
           max-width: 960px;
-          margin: 0 auto;
         }
       }
 
@@ -870,6 +865,17 @@
       let shopMapApi; // 店舗ページ用のミニマップ
       var liveScanner = typeof liveScanner === "undefined" ? null : liveScanner;
       let currentShopOffer = null;
+
+      // --- Leaflet(店舗マップ)のサイズ確定を確実にする ---
+      function scheduleShopMapFix() {
+        if (!shopMapApi) return;
+        // レイアウト確定→少し後→さらに後 の三段で保険をかける
+        requestAnimationFrame(() => {
+          shopMapApi.invalidateSize();
+          setTimeout(() => shopMapApi && shopMapApi.invalidateSize(), 120);
+          setTimeout(() => shopMapApi && shopMapApi.invalidateSize(), 400);
+        });
+      }
 
       // --- カート／チェックアウト用の拡張状態 ---
       g.cart = {}; // { offerId: qty }
@@ -1784,7 +1790,18 @@
               );
             }
           }
-          shopMapApi.invalidateSize();
+          scheduleShopMapFix();
+
+          // ヒーロー画像が後からロードされると高さが変わるので、ロード後にも再計測
+          const heroImg = document.getElementById("shop-photo");
+          heroImg?.addEventListener("load", scheduleShopMapFix, { once: true });
+
+          // ページ自体のサイズ変動にも追随
+          if (window.ResizeObserver) {
+            if (window.__shopMapRO) window.__shopMapRO.disconnect();
+            window.__shopMapRO = new ResizeObserver(scheduleShopMapFix);
+            window.__shopMapRO.observe(document.getElementById("page-shop"));
+          }
         }, 0);
         const raw = shopMapApi.raw();
         if (raw) {
@@ -2178,6 +2195,11 @@
       );
       document.addEventListener("visibilitychange", () => {
         if (!document.hidden) fixMapSize(false);
+      });
+      // 店舗ページのミニマップも保険で再計測
+      window.addEventListener("resize", scheduleShopMapFix);
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) scheduleShopMapFix();
       });
     </script>
   </body>
