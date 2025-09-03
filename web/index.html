@@ -17,12 +17,6 @@
 
     <!-- アプリ内リアルタイムQRスキャン -->
     <script src="https://unpkg.com/qr-scanner@1.4.2/qr-scanner.umd.min.js"></script>
-    <script>
-      if (window.QrScanner) {
-        QrScanner.WORKER_PATH =
-          "https://unpkg.com/qr-scanner@1.4.2/qr-scanner-worker.min.js";
-      }
-    </script>
 
     <style>
       /* ===== ベース ===== */
@@ -1023,6 +1017,12 @@
         return "¥" + Number(n || 0).toLocaleString();
       }
 
+      // 安全にテキストを入れるヘルパ
+      function setTextIf(id, text) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+      }
+
       // --- サイレント予約（alert出さない版） ---
       async function reserveSilently(offer) {
         try {
@@ -1342,7 +1342,7 @@
 
         const prof = await liff.getProfile();
         g.userId = prof.userId;
-        document.getElementById("me").textContent = "ログイン済み";
+        setTextIf("me", "ログイン済み");
 
         // 位置先取り（取得でき次第、地図＆リストに反映）
         try {
@@ -1353,15 +1353,14 @@
             })
           );
           g.pos = { lat: geo.coords.latitude, lng: geo.coords.longitude };
-          document.getElementById("notice").textContent = "近い順に表示中";
+          setTextIf("notice", "近い順に表示中");
           if (mapApi && map && window.__lastOffers) {
             mapAutoFitDone = false;
             fitToUserAndNearest(window.__lastOffers, true);
           }
         } catch {
           g.pos = null;
-          document.getElementById("notice").textContent =
-            "位置情報が拒否されました（距離順は概算表示）";
+          setTextIf("notice", "位置情報が拒否されました（距離順は概算表示）");
         }
 
         await loadMyReservations();
@@ -1432,12 +1431,17 @@
       async function checkFriendship() {
         try {
           const { friendFlag } = await liff.getFriendship();
-          document.getElementById("friendStatus").textContent = friendFlag
-            ? "公式アカウントは『友だち』になっています。"
-            : "まだ友だちではありません。";
+          setTextIf(
+            "friendStatus",
+            friendFlag
+              ? "公式アカウントは『友だち』になっています。"
+              : "まだ友だちではありません。"
+          );
         } catch (e) {
-          document.getElementById("friendStatus").textContent =
-            "友だち状態を取得できません（Mini App と Messaging API の関連付けを確認してください）";
+          setTextIf(
+            "friendStatus",
+            "友だち状態を取得できません（Mini App と Messaging API の関連付けを確認してください）"
+          );
           console.error(e);
         }
       }
@@ -2089,8 +2093,16 @@
         if (!j.ok) throw new Error(j.error || "favorite_failed");
       }
       function scanByImage() {
-        const inp = document.getElementById("qr-file");
-        if (!inp) return alert("画像入力が見つかりません");
+        let inp = document.getElementById("qr-file");
+        if (!inp) {
+          inp = document.createElement("input");
+          inp.type = "file";
+          inp.accept = "image/*";
+          inp.capture = "environment";
+          inp.id = "qr-file";
+          inp.style.display = "none";
+          document.body.appendChild(inp);
+        }
         inp.onchange = async (e) => {
           const file = e.target.files?.[0];
           if (!file) return;
@@ -2111,6 +2123,7 @@
         };
         inp.click();
       }
+
       async function openLiveScan() {
         try {
           if (!(await ensureFriend())) return;
