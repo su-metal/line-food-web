@@ -478,25 +478,32 @@
       }
 
       /* ハートのトグル（赤塗り） */
+      /* ハートボタン：color をアニメさせる */
       .heart {
         transition: transform 0.12s, color 0.2s, border-color 0.2s,
           background 0.2s;
+        color: #8a8278; /* OFF時の色（グレー寄り） */
       }
-      .heart:active {
-        transform: scale(0.94);
+      .heart svg path {
+        stroke: currentColor; /* 枠線は currentColor を使う */
+        fill: transparent; /* OFF時は塗りなし */
+        transition: fill 0.2s; /* 塗り出現をふわっと */
       }
+
+      /* ON時：色だけ変えれば stroke も fill も連動 */
+      .heart.is-active {
+        color: #e53935; /* 赤 */
+      }
+      .heart.is-active svg path {
+        fill: currentColor; /* 赤で塗りつぶし */
+      }
+
+      /* お好みの触感 */
       .heart svg path {
         transition: fill 0.2s, stroke 0.2s;
       }
-
-      /* 有効時に赤く塗る */
-      .heart.active {
-        color: #e0245e;
-        border-color: #f4b6c1;
-      }
-      .heart.active svg path {
-        fill: currentColor !important;
-        stroke: currentColor !important;
+      .heart:active {
+        transform: scale(0.94);
       }
 
       /* 店舗ページのハートを画面右上に固定配置 */
