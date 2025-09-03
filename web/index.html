@@ -602,6 +602,16 @@
         }
       }
 
+      /* ホーム上部に置いた検索バーの余白 */
+      .home-search {
+        margin: 8px 0 12px;
+      }
+
+      /* 店舗ページではホーム用検索を隠す */
+      .shop-mode .home-search {
+        display: none !important;
+      }
+
       /* --- 店舗ページでは冒頭の共通UIを隠す --- */
       .shop-mode h1,
       .shop-mode #friendStatus,
@@ -665,7 +675,22 @@
 
   <body>
     <div class="home-header">
-      <h1>近くのお店・お得情報</h1>
+      <label class="map-search home-search">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path
+            d="M21 21l-3.8-3.8M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"
+            stroke="#8a8278"
+            stroke-width="1.6"
+            stroke-linecap="round"
+          />
+        </svg>
+        <input
+          id="q-home"
+          type="search"
+          placeholder="現在地・駅・店舗名などから探す"
+        />
+      </label>
+
       <button id="home-cart-btn" class="icon-btn" aria-label="カートを開く">
         <!-- カートアイコン -->
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -823,6 +848,7 @@
 
     <!-- タブバー -->
     <nav class="tabbar">
+      <!-- ホーム -->
       <button data-page="home" class="active">
         <svg viewBox="0 0 24 24" fill="none">
           <path
@@ -834,6 +860,8 @@
         </svg>
         <small>ホーム</small>
       </button>
+
+      <!-- お店を探す -->
       <button data-page="discover">
         <svg viewBox="0 0 24 24" fill="none">
           <path
@@ -845,6 +873,22 @@
         </svg>
         <small>お店を探す</small>
       </button>
+
+      <!-- QR読み取り（順番をここへ、ラベル変更） -->
+      <button id="nav-scan">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path
+            d="M4 7V4h3M20 7V4h-3M4 17v3h3M20 17v3h-3M6 10h12v4H6z"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <small>QR読み取り</small>
+      </button>
+
+      <!-- お気に入り -->
       <button data-page="fav">
         <svg viewBox="0 0 24 24" fill="none">
           <path
@@ -856,18 +900,8 @@
         </svg>
         <small>お気に入り</small>
       </button>
-      <button id="nav-scan">
-        <svg viewBox="0 0 24 24" fill="none">
-          <path
-            d="M4 7V4h3M20 7V4h-3M4 17v3h3M20 17v3h-3M6 10h12v4H6z"
-            stroke="currentColor"
-            stroke-width="1.6"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
-        <small>レスキュー</small>
-      </button>
+
+      <!-- マイページ -->
       <button data-page="me">
         <svg viewBox="0 0 24 24" fill="none">
           <path
@@ -2194,6 +2228,22 @@
           if (cartBarEl) {
             cartBarEl.style.display = name === "shop" ? "flex" : "none";
           }
+        }
+
+        // ホーム上部の検索：Enterで「お店を探す」に切り替え
+        const qHome = document.getElementById("q-home");
+        if (qHome) {
+          qHome.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+              const v = qHome.value.trim();
+              // まずはDiscoverへ切替
+              showPage("discover");
+              // 検索欄の値も同期（将来ジオコーディングをここで実装）
+              const qMap = document.getElementById("q-map");
+              if (qMap) qMap.value = v;
+              qHome.blur();
+            }
+          });
         }
 
         // どこか他の関数の外（showPageの近く）に追加
