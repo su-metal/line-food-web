@@ -1280,6 +1280,118 @@
         return null;
       }
 
+      // ===== お気に入り：共通ユーティリティ =====
+      function isLIFFInClient() {
+        return (
+          typeof liff !== "undefined" &&
+          liff &&
+          typeof liff.isInClient === "function" &&
+          liff.isInClient()
+        );
+      }
+      async function getUserKey() {
+        try {
+          if (isLIFFInClient()) {
+            if (!liff.isLoggedIn()) await liff.login();
+            const prof = await liff.getProfile();
+            return prof?.userId || "anon";
+          }
+        } catch {}
+        return "anon";
+      }
+      function favLSKey(userKey) {
+        return "mottaina:fav:" + userKey;
+      }
+      function readFavSetSync(userKey) {
+        try {
+          return new Set(
+            JSON.parse(localStorage.getItem(favLSKey(userKey)) || "[]")
+          );
+        } catch {
+          return new Set();
+        }
+      }
+      function writeFavSetSync(userKey, set) {
+        try {
+          localStorage.setItem(favLSKey(userKey), JSON.stringify([...set]));
+        } catch {}
+      }
+      function applyFavUI(btn, isFav) {
+        btn?.classList.toggle("active", !!isFav);
+        btn?.setAttribute("aria-pressed", isFav ? "true" : "false");
+      }
+
+      // ===== サーバ同期（add/remove）— 形が違っても通るよう冗長に送る =====
+      async function favoriteAdd(sid) {
+        const idToken =
+          typeof liff !== "undefined" && liff.getIDToken
+            ? liff.getIDToken()
+            : "";
+        const numeric = /^\d+$/.test(String(sid)) ? Number(sid) : null;
+        const body = { shop_id: String(sid), shopId: String(sid) };
+        if (numeric !== null) body.shop_id_number = numeric; // サーバが数値を期待している場合向け
+        const res = await fetch(`${CONFIG.API_BASE}/api/favorite-add`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + idToken,
+          },
+          body: JSON.stringify(body),
+        });
+        const text = await res.text().catch(() => "");
+        let j = null;
+        try {
+          j = JSON.parse(text);
+        } catch {}
+        if (res.ok && (j?.ok ?? true)) return { ok: true };
+        if (res.status === 409 || /already/i.test(text))
+          return { ok: true, already: true };
+        throw new Error(j?.error || "bad_request");
+      }
+      async function favoriteRemove(sid) {
+        const idToken =
+          typeof liff !== "undefined" && liff.getIDToken
+            ? liff.getIDToken()
+            : "";
+        // 1) /api/favorite-remove があれば使う
+        const payload = { shop_id: String(sid), shopId: String(sid) };
+        let r = await fetch(`${CONFIG.API_BASE}/api/favorite-remove`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + idToken,
+          },
+          body: JSON.stringify(payload),
+        });
+        if (r.status !== 404) {
+          if (r.ok) return { ok: true };
+          if (r.status === 404) return { ok: true };
+          const t = await r.text().catch(() => "");
+          let j = null;
+          try {
+            j = JSON.parse(t);
+          } catch {}
+          throw new Error(j?.error || "remove_failed");
+        }
+        // 2) フォールバック: /api/favorites?shopId=... を DELETE
+        r = await fetch(
+          `${CONFIG.API_BASE}/api/favorites?shopId=${encodeURIComponent(
+            String(sid)
+          )}`,
+          {
+            method: "DELETE",
+            headers: { Authorization: "Bearer " + idToken },
+          }
+        );
+        if (r.ok || r.status === 404) return { ok: true };
+        const t = await r.text().catch(() => "");
+        let j = null;
+        try {
+          j = JSON.parse(t);
+        } catch {}
+        throw new Error(j?.error || "remove_failed");
+      }
+
       /* ============== マップ API（Leaflet実装） ============== */
       function createLeafletAPI() {
         let _map,
@@ -1782,25 +1894,46 @@
         if (!mapAutoFitDone) fitToUserAndNearest(list, false);
       }
 
-      // 旧）async function fetchShopDetail(shopId) { ... }
       async function fetchShopDetail(shopId) {
         const idStr = String(shopId || "").trim();
         if (!idStr) return null;
-        const url = new URL(CONFIG.SUPABASE_URL + "/rest/v1/shops");
-        url.searchParams.set("id", "eq." + idStr);
-        url.searchParams.set(
-          "select",
-          "id,name,lat,lng,address,category,station,photo_url,tel,website,instagram,twitter,facebook"
-        );
 
-        const r = await fetch(url, {
-          headers: {
-            apikey: CONFIG.SUPABASE_ANON_KEY,
-            Authorization: "Bearer " + CONFIG.SUPABASE_ANON_KEY,
-          },
-        });
-        const items = await r.json().catch(() => []);
-        return items?.[0] || null;
+        const base = `${CONFIG.SUPABASE_URL}/rest/v1/shops`;
+        const headers = {
+          apikey: CONFIG.SUPABASE_ANON_KEY,
+          Authorization: "Bearer " + CONFIG.SUPABASE_ANON_KEY,
+          Prefer: "return=representation",
+          Accept: "application/vnd.pgrst.object+json", // 1件をオブジェクトで受ける
+        };
+
+        const selects = [
+          "id,name,lat,lng,address,category,station,photo_url,tel,website,instagram,twitter,facebook",
+          "id,name,lat,lng,address,category,station,photo_url,tel,website,instagram",
+          "id,name,lat,lng,address,category,station,photo_url",
+        ];
+
+        for (const sel of selects) {
+          const url = new URL(base);
+          url.searchParams.set("id", "eq." + idStr);
+          url.searchParams.set("select", sel);
+          url.searchParams.set("limit", "1");
+          try {
+            const r = await fetch(url.toString(), { headers });
+            if (r.ok) return await r.json();
+            if (r.status !== 400) {
+              // 400以外はリトライせず抜ける
+              console.warn(
+                "fetchShopDetail non-400",
+                r.status,
+                await r.text().catch(() => "")
+              );
+              break;
+            }
+          } catch (e) {
+            console.warn("fetchShopDetail attempt failed", e);
+          }
+        }
+        return null;
       }
 
       async function openShopPage(shopId, offerHint) {
@@ -1961,35 +2094,45 @@
 
         // 商品リスト構築の直後に追加
         updateCartBar();
-        // --- お気に入り（ハート） 初期化＆楽観UI ---
+
+        // --- お気に入り（トグル＋楽観UI＋ローカル保存＋サーバ同期） ---
         const favBtn = document.getElementById("btn-fav");
         if (favBtn) {
-          // 一旦リセット
-          favBtn.classList.remove("active");
-          favBtn.setAttribute("aria-pressed", "false");
-
           const sid = String(shop?.id ?? shop?.shop_id ?? "");
-
-          // タップで即赤（UI先行）、API同期は裏で
-          favBtn.onclick = async () => {
-            if (favBtn.classList.contains("active")) return; // いまは片方向のみ
-            favBtn.classList.add("active");
-            favBtn.setAttribute("aria-pressed", "true");
-            try {
-              await favPost(sid);
-            } catch (e) {
-              console.warn("favorite sync failed:", e);
-            }
-          };
-
-          // 初期状態取得（awaitは async IIFE の中で使う）
           (async () => {
+            const userKey = await getUserKey();
+            const favSet = readFavSetSync(userKey);
+
+            // 1) まずローカル状態を反映（遷移しても維持）
+            applyFavUI(favBtn, favSet.has(sid));
+
+            // 2) クリックでトグル（楽観UI→サーバ同期→失敗時ロールバック）
+            favBtn.onclick = async () => {
+              const nowFav = favSet.has(sid);
+              const willFav = !nowFav;
+
+              // 楽観反映
+              if (willFav) favSet.add(sid);
+              else favSet.delete(sid);
+              writeFavSetSync(userKey, favSet);
+              applyFavUI(favBtn, willFav);
+
+              try {
+                if (willFav) await favoriteAdd(sid);
+                else await favoriteRemove(sid);
+              } catch (e) {
+                console.warn("favorite sync failed, rollback:", e);
+                // ロールバック
+                if (willFav) favSet.delete(sid);
+                else favSet.add(sid);
+                writeFavSetSync(userKey, favSet);
+                applyFavUI(favBtn, !willFav);
+              }
+            };
+
+            // 3) 余力があればサーバ真実に合わせて上書き（LIFF内のみ）
             try {
-              if (
-                liff &&
-                typeof liff.isInClient === "function" &&
-                liff.isInClient()
-              ) {
+              if (isLIFFInClient()) {
                 const idToken = liff.getIDToken();
                 const r = await fetch(
                   `${CONFIG.API_BASE}/api/favorites?shopId=${encodeURIComponent(
@@ -2001,8 +2144,11 @@
                 );
                 const j = await r.json().catch(() => null);
                 if (r.ok && (j?.isFavorited || j?.favorited)) {
-                  favBtn.classList.add("active");
-                  favBtn.setAttribute("aria-pressed", "true");
+                  if (!favSet.has(sid)) {
+                    favSet.add(sid);
+                    writeFavSetSync(userKey, favSet);
+                    applyFavUI(favBtn, true);
+                  }
                 }
               }
             } catch (e) {
@@ -2011,7 +2157,6 @@
           })();
         }
 
-        // お気に入り（ハート）
         // ★これで上書き
         async function favPost(shopId) {
           const idToken = liff.getIDToken();
@@ -2305,11 +2450,17 @@
       async function loadMyReservations() {
         myActive.clear();
         try {
+          if (!(typeof liff !== "undefined" && liff.getIDToken)) return;
           const idToken = liff.getIDToken();
+          if (!idToken) return; // まだログイン確定前
           const r = await fetch(CONFIG.API_BASE + "/api/my-reservations", {
             headers: { Authorization: "Bearer " + idToken },
           });
-          const j = await r.json();
+          if (r.status === 401) {
+            console.warn("my-reservations unauthorized (skip)");
+            return;
+          }
+          const j = await r.json().catch(() => null);
           if (r.ok && j?.ok && Array.isArray(j.items)) {
             j.items.forEach((x) => {
               myActive.set(x.offer_id, {
