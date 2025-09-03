@@ -560,14 +560,43 @@
         text-decoration: none;
       }
 
+      /* モバイル: 正方形寄り */
       #shop-map {
         width: 100%;
-        aspect-ratio: 1 / 1; /* 幅に合わせて正方形に */
-        height: auto; /* 固定高さをやめる */
-        min-height: 220px; /* すごく狭い端末用の下限だけ確保（お好みで） */
+        aspect-ratio: 3 / 2;
+        height: auto;
+        min-height: 220px;
+        max-width: 720px;
+        margin: 0 auto;
         border-radius: 12px;
         border: 1px solid #e5e2dd;
       }
+
+      /* タブレット～: 少し横長に */
+      @media (min-width: 768px) {
+        #shop-map {
+          aspect-ratio: 4 / 3;
+          min-height: 260px;
+          max-width: 820px;
+        }
+      }
+
+      /* デスクトップ: さらに横長、横幅も上限 */
+      @media (min-width: 1024px) {
+        #shop-map {
+          aspect-ratio: 16 / 9;
+          min-height: 300px;
+          max-width: 960px; /* ここでPCの最大幅を抑える */
+        }
+      }
+      /* 任意：PCで店舗ページの本文幅を中央に抑える */
+      @media (min-width: 1024px) {
+        #page-shop {
+          max-width: 960px;
+          margin: 0 auto;
+        }
+      }
+
       /* --- 店舗ページでは冒頭の共通UIを隠す --- */
       .shop-mode h1,
       .shop-mode #friendStatus,
@@ -1757,6 +1786,16 @@
           }
           shopMapApi.invalidateSize();
         }, 0);
+        const raw = shopMapApi.raw();
+        if (raw) {
+          raw.dragging.disable();
+          raw.scrollWheelZoom.disable();
+          raw.touchZoom.disable();
+          raw.doubleClickZoom.disable();
+          raw.boxZoom.disable();
+          raw.keyboard.disable();
+          if (raw.zoomControl) raw.zoomControl.remove(); // ズームUIも非表示
+        }
       }
 
       // 現在地 + 近隣店舗にフィット
