@@ -483,6 +483,28 @@
         place-items: center;
       }
 
+      /* ハートのトグル（赤塗り） */
+      .heart {
+        transition: transform 0.12s, color 0.2s, border-color 0.2s,
+          background 0.2s;
+      }
+      .heart:active {
+        transform: scale(0.94);
+      }
+      .heart svg path {
+        transition: fill 0.2s, stroke 0.2s;
+      }
+
+      /* 有効時に赤く塗る */
+      .heart.active {
+        color: #e0245e;
+        border-color: #f4b6c1;
+      }
+      .heart.active svg path {
+        fill: currentColor !important;
+        stroke: currentColor !important;
+      }
+
       /* 店舗ページのハートを画面右上に固定配置 */
       .shop-mode #btn-fav {
         position: fixed;
@@ -726,23 +748,6 @@
         <span id="home-cart-badge" class="badge">0</span>
       </button>
     </div>
-
-    <div id="friendStatus" class="muted" style="margin: 8px 0"></div>
-
-    <div class="btn-row top-utilities">
-      <button id="friendCheckBtn" class="secondary">友達情報を確認</button>
-      <button id="btn-scan" class="primary">店舗QRを読み取る</button>
-      <input
-        type="file"
-        id="qr-file"
-        accept="image/*"
-        capture="environment"
-        style="display: none"
-      />
-    </div>
-
-    <div id="me"></div>
-    <div id="notice" class="muted">読み込み中…</div>
 
     <!-- ホーム -->
     <main id="page-home" class="page active">
@@ -1913,25 +1918,43 @@
         updateCartBar();
 
         // お気に入り（ハート）
-        // お気に入り（ハート）
         const favBtn = document.getElementById("btn-fav");
+
+        // 初期状態（サーバに状態が無いのでデフォは未選択）
+        favBtn.classList.remove("active");
+        favBtn.setAttribute("aria-pressed", "false");
+
         favBtn.onclick = async () => {
-          try {
-            if (!(await ensureFriend())) return;
+          const makeActive = !favBtn.classList.contains("active");
 
-            // すでにONなら何もしない（必要ならここで解除実装）
-            if (favBtn.classList.contains("active")) {
-              alert("お気に入り登録済みです");
-              return;
+          // 楽観的UI更新
+          favBtn.classList.toggle("active", makeActive);
+          favBtn.setAttribute("aria-pressed", makeActive ? "true" : "false");
+
+          if (makeActive) {
+            // 追加（初回だけサーバに投げる想定）
+            try {
+              if (!(await ensureFriend())) {
+                favBtn.classList.remove("active");
+                favBtn.setAttribute("aria-pressed", "false");
+                return;
+              }
+              // 二重送信防止（見た目だけOFFに戻す操作はAPI呼ばない）
+              if (favBtn.dataset.added !== "1") {
+                await favPost(shop.id);
+                favBtn.dataset.added = "1";
+              }
+              // 好みでトースト/通知を出すならここ
+              // alert("お気に入りに追加しました");
+            } catch (e) {
+              // 失敗時は元に戻す
+              favBtn.classList.remove("active");
+              favBtn.setAttribute("aria-pressed", "false");
+              alert("登録に失敗しました");
             }
-
-            await favPost(shop.id);
-            favBtn.classList.add("active");
-            favBtn.setAttribute("aria-pressed", "true");
-            favBtn.title = "お気に入り登録済み";
-            alert("お気に入りに追加しました");
-          } catch {
-            alert("登録に失敗しました");
+          } else {
+            // 解除は今は見た目だけ（/api/favorite-remove が用意できたらここで呼ぶ）
+            // await favoriteRemove(shop.id)
           }
         };
 
@@ -1941,7 +1964,6 @@
           openCheckout();
         };
 
-        // ミニマップ
         // ミニマップ
         setTimeout(() => {
           const lat = Number(shop?.lat);
