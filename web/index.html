@@ -1785,9 +1785,7 @@
       // 旧）async function fetchShopDetail(shopId) { ... }
       async function fetchShopDetail(shopId) {
         const idStr = String(shopId || "").trim();
-        // shops.id が数値でない（UUIDなど）の場合は詳細フェッチをスキップ
-        if (!/^\d+$/.test(idStr)) return null;
-
+        if (!idStr) return null;
         const url = new URL(CONFIG.SUPABASE_URL + "/rest/v1/shops");
         url.searchParams.set("id", "eq." + idStr);
         url.searchParams.set(
@@ -1963,6 +1961,55 @@
 
         // 商品リスト構築の直後に追加
         updateCartBar();
+        // --- お気に入り（ハート） 初期化＆楽観UI ---
+        const favBtn = document.getElementById("btn-fav");
+        if (favBtn) {
+          // 一旦リセット
+          favBtn.classList.remove("active");
+          favBtn.setAttribute("aria-pressed", "false");
+
+          const sid = String(shop?.id ?? shop?.shop_id ?? "");
+
+          // タップで即赤（UI先行）、API同期は裏で
+          favBtn.onclick = async () => {
+            if (favBtn.classList.contains("active")) return; // いまは片方向のみ
+            favBtn.classList.add("active");
+            favBtn.setAttribute("aria-pressed", "true");
+            try {
+              await favPost(sid);
+            } catch (e) {
+              console.warn("favorite sync failed:", e);
+            }
+          };
+
+          // 初期状態取得（awaitは async IIFE の中で使う）
+          (async () => {
+            try {
+              if (
+                liff &&
+                typeof liff.isInClient === "function" &&
+                liff.isInClient()
+              ) {
+                const idToken = liff.getIDToken();
+                const r = await fetch(
+                  `${CONFIG.API_BASE}/api/favorites?shopId=${encodeURIComponent(
+                    sid
+                  )}`,
+                  {
+                    headers: { Authorization: "Bearer " + idToken },
+                  }
+                );
+                const j = await r.json().catch(() => null);
+                if (r.ok && (j?.isFavorited || j?.favorited)) {
+                  favBtn.classList.add("active");
+                  favBtn.setAttribute("aria-pressed", "true");
+                }
+              }
+            } catch (e) {
+              console.warn("favorite init failed:", e);
+            }
+          })();
+        }
 
         // お気に入り（ハート）
         // ★これで上書き
@@ -1971,7 +2018,7 @@
           const url = `${CONFIG.API_BASE}/api/favorite-add`; // ← 統一
 
           // サーバ想定フォーマットに固定：shop_id は number
-          const payload = { shop_id: Number(shopId) };
+          const payload = { shop_id: String(shopId) };
 
           const res = await fetch(url, {
             method: "POST",
@@ -2112,8 +2159,6 @@
       }
 
       /* ============== スキャン ============== */
-      // 置き換え：既存の favPost をこの実装に差し替え
-      // ★これで上書き
       async function favPost(shopId) {
         const idToken = liff.getIDToken();
         const url = `${CONFIG.API_BASE}/api/favorite-add`; // ← 統一
@@ -2445,7 +2490,7 @@
           });
         // ハッシュ遷移 (#shop:SHOP_ID) からの表示
         window.addEventListener("hashchange", () => {
-          const m = location.hash.match(/^#shop:(\d+)$/);
+          const m = location.hash.match(/^#shop:(.+)$/);
           if (m) {
             const sid = m[1];
             // 既存オファー配列からヒントを探す（なくてもOK）
