@@ -2129,15 +2129,17 @@
           (async () => {
             const userKey = await getUserKey();
             const favSet = readFavSetSync(userKey);
+            let userTouched = false; // ← ユーザーが一度でも操作したら true
 
             // 1) ローカル状態を即反映（遷移しても維持）
             applyFavUI(favBtn, favSet.has(sid));
 
-            // 2) クリックでトグル（楽観UI→サーバ同期／未対応系はロールバックしない）
+            // 2) タップでトグル（楽観UI→サーバ同期／未対応系はロールバックしない）
             favBtn.onclick = async () => {
-              // 二重タップ防止（特にスマホ）
+              // 二重タップ防止
               if (favBtn.dataset.busy === "1") return;
               favBtn.dataset.busy = "1";
+              userTouched = true;
 
               const nowFav = favSet.has(sid);
               const willFav = !nowFav;
@@ -2160,7 +2162,7 @@
                   ? await favoriteAdd(sid)
                   : await favoriteRemove(sid);
               } catch (e) {
-                // 例外型の実装にも対応：bad_request などは未対応扱い
+                // 例外型の実装にも対応：400/404/405 は“未対応”扱いにする
                 const msg = (e && (e.message || String(e))) || "";
                 const status = e?.status;
                 result = {
@@ -2168,6 +2170,8 @@
                   status,
                   unsupported:
                     status === 400 ||
+                    status === 404 ||
+                    status === 405 ||
                     /bad_request|not\s*found|method\s*not\s*allowed/i.test(msg),
                   error: e,
                 };
@@ -2175,7 +2179,7 @@
                 favBtn.dataset.busy = "0";
               }
 
-              // 400/404/405 等の未対応系はロールバックしない（ローカルのみで維持）
+              // 未対応系はロールバックしない（ローカルのみで維持）
               if (
                 result &&
                 (result.unsupported === true ||
@@ -2183,15 +2187,11 @@
                   result.status === 404 ||
                   result.status === 405)
               ) {
-                console.info(
-                  "favorite: server unsupported/remove not available → keep local only."
-                );
                 return;
               }
 
               // 通常の失敗のみロールバック
               if (!result || result.ok === false) {
-                console.warn("favorite sync failed, rollback:", result);
                 if (willFav) favSet.delete(sid);
                 else favSet.add(sid);
                 writeFavSetSync(userKey, favSet);
@@ -2199,9 +2199,10 @@
               }
             };
 
-            // 3) 初期サーバ状態で上書き（数値IDのみ。UUIDは400になるためスキップ）
+            // 3) 初期サーバ状態での上書きは“ユーザー未操作のときだけ”
             try {
               if (isLIFFInClient() && /^\d+$/.test(sid)) {
+                // 数値IDのみ問い合わせ（UUIDは400回避）
                 const idToken = liff.getIDToken();
                 const r = await fetch(
                   `${CONFIG.API_BASE}/api/favorites?shopId=${encodeURIComponent(
@@ -2210,15 +2211,21 @@
                   { headers: { Authorization: "Bearer " + idToken } }
                 );
                 const j = await r.json().catch(() => null);
+
+                // ← ここが重要：ユーザーがタップ済みなら上書きしない
+                if (userTouched) return;
+
                 if (
                   r.ok &&
                   (j?.isFavorited !== undefined || j?.favorited !== undefined)
                 ) {
                   const on = !!(j.isFavorited ?? j.favorited);
-                  if (on) favSet.add(sid);
-                  else favSet.delete(sid);
-                  writeFavSetSync(userKey, favSet);
-                  applyFavUI(favBtn, on);
+                  if (on !== favSet.has(sid)) {
+                    if (on) favSet.add(sid);
+                    else favSet.delete(sid);
+                    writeFavSetSync(userKey, favSet);
+                    applyFavUI(favBtn, on);
+                  }
                 }
               }
             } catch (e) {
