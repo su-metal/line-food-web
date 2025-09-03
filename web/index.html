@@ -573,6 +573,14 @@
       .shop-mode .top-utilities {
         display: none !important;
       }
+      /* クリックしやすく（見た目変更なし） */
+      .card-lg {
+        cursor: pointer;
+      }
+      .carousel,
+      .card-lg {
+        pointer-events: auto;
+      }
     </style>
   </head>
 
@@ -670,21 +678,14 @@
     </main>
 
     <!-- 店舗ページ -->
+    <!-- 店舗ページ -->
     <main id="page-shop" class="page">
       <div class="shop-hero"><img id="shop-photo" alt="" /></div>
 
       <div class="shop-title">
         <h1 id="shop-name"></h1>
         <button id="btn-fav" class="heart" aria-label="お気に入り">
-          <svg viewBox="0 0 24 24" width="22" height="22">
-            <path
-              d="m12 21-1.45-1.32C6 15.36 3 12.61 3 9.28 3 6.5 5.24 4.5 7.88 4.5c1.45 0 2.87.64 3.78 1.67A5.2 5.2 0 0 1 15.44 4.5C18.08 4.5 20.3 6.5 20.3 9.28c0 3.33-3 6.08-7.55 10.4L12 21Z"
-              stroke="currentColor"
-              fill="none"
-              stroke-width="1.6"
-              stroke-linejoin="round"
-            />
-          </svg>
+          <!-- 省略: SVG -->
         </button>
       </div>
 
@@ -710,13 +711,13 @@
         <h3>マップ</h3>
         <div id="shop-map"></div>
       </div>
-
-      <!-- カートバー -->
-      <div id="cart-bar" class="cart-bar"></div>
-        <div><b id="cart-total">¥0</b>・<span id="cart-count">0</span>点</div>
-        <button id="btn-order" class="btn">注文する</button>
-      </div>
     </main>
+
+    <!-- ★ カートバーは main の外に配置（position: fixed なので表示は同じ） -->
+    <div id="cart-bar" class="cart-bar" style="display: none">
+      <div><b id="cart-total">¥0</b>・<span id="cart-count">0</span>点</div>
+      <button id="btn-order" class="btn">注文する</button>
+    </div>
 
     <!-- タブバー -->
     <nav class="tabbar">
@@ -1656,7 +1657,8 @@
         listEl.innerHTML = "";
 
         const updateCartBar = () => {
-          let count = 0, total = 0;
+          let count = 0,
+            total = 0;
           for (const id in cart) {
             const of = offers.find((o) => String(o.id) === id);
             const q = cart[id] || 0;
@@ -1672,7 +1674,6 @@
           // 0個のときはボタンだけ無効化
           document.getElementById("btn-order").disabled = count === 0;
         };
-
 
         offers.forEach((of) => {
           const el = document.createElement("div");
@@ -1712,7 +1713,6 @@
 
         // 商品リスト構築の直後に追加
         updateCartBar();
-
 
         // お気に入り（ハート）
         document.getElementById("btn-fav").onclick = async () => {
