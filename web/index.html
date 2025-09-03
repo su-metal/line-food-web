@@ -483,6 +483,20 @@
         place-items: center;
       }
 
+      /* 店舗ページのハートを画面右上に固定配置 */
+      .shop-mode #btn-fav {
+        position: fixed;
+        top: calc(env(safe-area-inset-top, 0) + 8px);
+        right: 12px;
+        z-index: 2200;
+      }
+
+      /* 押下後の“登録済み”見た目（色だけ変える） */
+      .heart.active {
+        color: #e53935;
+        border-color: #e53935;
+      }
+
       .meta-row {
         display: flex;
         gap: 10px;
@@ -812,7 +826,15 @@
       <div class="shop-title">
         <h1 id="shop-name"></h1>
         <button id="btn-fav" class="heart" aria-label="お気に入り">
-          <!-- 省略: SVG -->
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+            <path
+              d="m12 21-1.45-1.32C6 15.36 3 12.61 3 9.28 3 6.5 5.24 4.5 7.88 4.5c1.45 0 2.87.64 3.78 1.67A5.2 5.2 0 0 1 15.44 4.5C18.08 4.5 20.3 6.5 20.3 9.28c0 3.33-3 6.08-7.55 10.4L12 21Z"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linejoin="round"
+            />
+          </svg>
         </button>
       </div>
 
@@ -1891,10 +1913,22 @@
         updateCartBar();
 
         // お気に入り（ハート）
-        document.getElementById("btn-fav").onclick = async () => {
+        // お気に入り（ハート）
+        const favBtn = document.getElementById("btn-fav");
+        favBtn.onclick = async () => {
           try {
             if (!(await ensureFriend())) return;
+
+            // すでにONなら何もしない（必要ならここで解除実装）
+            if (favBtn.classList.contains("active")) {
+              alert("お気に入り登録済みです");
+              return;
+            }
+
             await favPost(shop.id);
+            favBtn.classList.add("active");
+            favBtn.setAttribute("aria-pressed", "true");
+            favBtn.title = "お気に入り登録済み";
             alert("お気に入りに追加しました");
           } catch {
             alert("登録に失敗しました");
