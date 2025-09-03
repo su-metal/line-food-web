@@ -2122,6 +2122,7 @@
         updateCartBar();
 
         // --- お気に入り（トグル＋楽観UI＋ローカル保存＋サーバ同期） ---
+
         const favBtn = document.getElementById("btn-fav");
         if (favBtn) {
           const sid = String(shop?.id ?? shop?.shop_id ?? "");
@@ -2129,51 +2130,68 @@
             const userKey = await getUserKey();
             const favSet = readFavSetSync(userKey);
 
-            // 1) まずローカル状態を反映（遷移しても維持）
+            // 1) ローカル状態を即反映（遷移しても維持）
             applyFavUI(favBtn, favSet.has(sid));
 
-            // 2) クリックでトグル（楽観UI→サーバ同期／400はロールバックしない）
+            // 2) クリックでトグル（楽観UI→サーバ同期／未対応系はロールバックしない）
             favBtn.onclick = async () => {
+              // 二重タップ防止（特にスマホ）
+              if (favBtn.dataset.busy === "1") return;
+              favBtn.dataset.busy = "1";
+
               const nowFav = favSet.has(sid);
               const willFav = !nowFav;
 
-              // 楽観反映 + 保存
+              // 楽観反映＋保存
               if (willFav) favSet.add(sid);
               else favSet.delete(sid);
               writeFavSetSync(userKey, favSet);
               applyFavUI(favBtn, willFav);
 
-              // LIFF外はサーバ同期しない（ローカル保持のみ）
-              if (!isLIFFInClient()) return;
+              // LIFF外はサーバ同期しない（ローカル保持）
+              if (!isLIFFInClient()) {
+                favBtn.dataset.busy = "0";
+                return;
+              }
 
+              let result = null;
               try {
-                // favoriteAdd / Remove が「オブジェクトを返す」場合に備えて r を受け取る
-                const r = willFav
+                result = willFav
                   ? await favoriteAdd(sid)
                   : await favoriteRemove(sid);
-
-                // 返り値型のAPIラッパ（{ ok,false, unsupported:true }など）にも対応
-                if (r && r.unsupported === true) {
-                  console.info(
-                    "favorite: server unsupported (400)。ローカルのみ保持します。"
-                  );
-                  return; // ロールバックしない
-                }
-                if (r && r.ok === false && !r.unsupported) {
-                  throw r; // 通常失敗は catch でロールバック
-                }
               } catch (e) {
-                // ここに来たのは「例外を投げる実装」の場合
-                const msg = (e && (e.message || e.toString())) || "";
+                // 例外型の実装にも対応：bad_request などは未対応扱い
+                const msg = (e && (e.message || String(e))) || "";
                 const status = e?.status;
-                if (status === 400 || /bad_request/i.test(msg)) {
-                  console.info(
-                    "favorite: 400 bad_request はロールバックしません（ローカル保持）。"
-                  );
-                  return; // ロールバックしない
-                }
-                // ← その他の失敗はロールバック
-                console.warn("favorite sync failed, rollback:", e);
+                result = {
+                  ok: false,
+                  status,
+                  unsupported:
+                    status === 400 ||
+                    /bad_request|not\s*found|method\s*not\s*allowed/i.test(msg),
+                  error: e,
+                };
+              } finally {
+                favBtn.dataset.busy = "0";
+              }
+
+              // 400/404/405 等の未対応系はロールバックしない（ローカルのみで維持）
+              if (
+                result &&
+                (result.unsupported === true ||
+                  result.status === 400 ||
+                  result.status === 404 ||
+                  result.status === 405)
+              ) {
+                console.info(
+                  "favorite: server unsupported/remove not available → keep local only."
+                );
+                return;
+              }
+
+              // 通常の失敗のみロールバック
+              if (!result || result.ok === false) {
+                console.warn("favorite sync failed, rollback:", result);
                 if (willFav) favSet.delete(sid);
                 else favSet.add(sid);
                 writeFavSetSync(userKey, favSet);
@@ -2181,7 +2199,7 @@
               }
             };
 
-            // 3) 初期のサーバ真実で上書き（※数値IDのみ。UUIDは400になるためスキップ）
+            // 3) 初期サーバ状態で上書き（数値IDのみ。UUIDは400になるためスキップ）
             try {
               if (isLIFFInClient() && /^\d+$/.test(sid)) {
                 const idToken = liff.getIDToken();
