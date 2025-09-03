@@ -838,6 +838,207 @@
       var liveScanner = typeof liveScanner === "undefined" ? null : liveScanner;
       let currentShopOffer = null;
 
+      // --- カート／チェックアウト用の拡張状態 ---
+      g.cart = {}; // { offerId: qty }
+      g.currentShop = null; // レンダリング中の店舗情報
+      g.currentOffers = []; // 店舗の提供中オファー配列
+
+      // --- 表示ユーティリティ ---
+      function yen(n) {
+        return "¥" + Number(n || 0).toLocaleString();
+      }
+
+      // --- サイレント予約（alert出さない版） ---
+      async function reserveSilently(offer) {
+        try {
+          const idToken = liff.getIDToken();
+          const r = await fetch(CONFIG.API_BASE + "/api/reserve", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + idToken,
+            },
+            body: JSON.stringify({ offer_id: offer.id }),
+          });
+          const data = await r.json().catch(() => null);
+          if (!r.ok || !data?.ok) {
+            const msg = data?.error || "reserve_failed";
+            return { ok: false, error: msg };
+          }
+          // キャッシュも更新
+          myActive.set(offer.id, {
+            id: data.reservation.id,
+            status: "reserved",
+            pickup_code: data.reservation.pickup_code || null,
+          });
+          return { ok: true, reservation: data.reservation };
+        } catch (e) {
+          return { ok: false, error: e?.message || "reserve_failed" };
+        }
+      }
+
+      // --- サイレント決済（alert出さない版：テスト用エンドポイント） ---
+      async function payReservationSilently(reservationId) {
+        try {
+          const idToken = liff.getIDToken();
+          const r = await fetch(CONFIG.API_BASE + "/api/pay/fake-complete", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + idToken,
+            },
+            body: JSON.stringify({ reservation_id: reservationId }),
+          });
+          const j = await r.json().catch(() => null);
+          if (!r.ok || !j?.ok) {
+            return { ok: false, error: j?.error || "pay_failed" };
+          }
+          return { ok: true, reservation: j.reservation };
+        } catch (e) {
+          return { ok: false, error: e?.message || "pay_failed" };
+        }
+      }
+
+      // --- チェックアウトUI（簡易オーバーレイを動的生成） ---
+      function openCheckout() {
+        const offers = g.currentOffers || [];
+        const items = Object.entries(g.cart); // [offerId, qty]
+        if (!items.length) return;
+
+        // オーバーレイDOMを動的に作成
+        let ov = document.getElementById("checkoutOverlay");
+        if (!ov) {
+          ov = document.createElement("div");
+          ov.id = "checkoutOverlay";
+          ov.style.cssText =
+            "position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2147483646;display:flex;align-items:center;justify-content:center;padding:16px;";
+          ov.innerHTML = `
+      <div id="checkoutPanel" style="background:#fff;max-width:520px;width:100%;border-radius:12px;padding:16px;">
+        <h3 style="margin:0 0 8px;">注文内容の確認</h3>
+        <div id="checkoutList" style="max-height:45vh;overflow:auto;border:1px solid #eee;border-radius:8px;padding:8px;margin-bottom:10px;"></div>
+        <div class="row" style="margin:8px 0">
+          <div><b id="checkoutTotal"></b> / <span id="checkoutCount"></span>点</div>
+          <div style="display:flex;gap:8px;">
+            <button id="checkoutCancel" class="secondary">戻る</button>
+            <button id="checkoutPay" class="primary">決済へ進む</button>
+          </div>
+        </div>
+      </div>`;
+          document.body.appendChild(ov);
+        }
+
+        // リスト描画
+        const listEl = ov.querySelector("#checkoutList");
+        let total = 0,
+          count = 0;
+        listEl.innerHTML = items
+          .map(([id, q]) => {
+            const of = offers.find((o) => String(o.id) === String(id));
+            const price = of?.price || 0;
+            total += price * q;
+            count += q;
+            const title = of?.title || "商品";
+            const t = `${fmtTime(of.pickup_start)}–${fmtTime(of.pickup_end)}`;
+            return `
+      <div style="display:flex;gap:10px;align-items:center;border-bottom:1px solid #f0f0f0;padding:8px 0;">
+        <img src="${imgFor(
+          of
+        )}" alt="" style="width:64px;height:48px;object-fit:cover;border-radius:6px">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${title}</div>
+          <div class="muted" style="font-size:12px">受取 ${t}</div>
+        </div>
+        <div style="text-align:right;min-width:90px">${yen(price)} × ${q}</div>
+      </div>`;
+          })
+          .join("");
+        ov.querySelector("#checkoutTotal").textContent = yen(total);
+        ov.querySelector("#checkoutCount").textContent = count;
+
+        // ハンドラ
+        ov.querySelector("#checkoutCancel").onclick = () => {
+          ov.remove();
+        };
+        ov.querySelector("#checkoutPay").onclick = async () => {
+          const btn = ov.querySelector("#checkoutPay");
+          btn.disabled = true;
+          btn.textContent = "処理中…";
+          try {
+            if (!(await ensureFriend())) {
+              btn.disabled = false;
+              btn.textContent = "決済へ進む";
+              return;
+            }
+
+            // 1) 予約を作成
+            const reservations = [];
+            for (const [id, qty] of items) {
+              const of = offers.find((o) => String(o.id) === String(id));
+              for (let i = 0; i < qty; i++) {
+                const rr = await reserveSilently(of);
+                if (!rr.ok) {
+                  alert(`予約に失敗: ${of?.title || "商品"}… ${rr.error}`);
+                } else {
+                  reservations.push(rr.reservation);
+                }
+              }
+            }
+
+            if (!reservations.length) {
+              alert("予約が1件も作成できませんでした。");
+              btn.disabled = false;
+              btn.textContent = "決済へ進む";
+              return;
+            }
+
+            // 2) まとめて（テスト）決済
+            const results = [];
+            for (const r of reservations) {
+              const pr = await payReservationSilently(r.id);
+              if (!pr.ok) {
+                results.push({ ok: false, code: "—", error: pr.error });
+              } else {
+                results.push({
+                  ok: true,
+                  code: pr.reservation.pickup_code || "—",
+                  resv: pr.reservation,
+                });
+              }
+            }
+
+            // 3) 結果表示（簡易）
+            const okCnt = results.filter((x) => x.ok).length;
+            const ngCnt = results.length - okCnt;
+            const codes = results
+              .filter((x) => x.ok)
+              .map((x) => x.code)
+              .join("\n");
+            alert(
+              `決済完了: ${okCnt}件 / 失敗: ${ngCnt}件\n受取コード:\n${
+                codes || "—"
+              }`
+            );
+
+            // カートクリア＆UI更新
+            g.cart = {};
+            // バーを隠す
+            const bar = document.getElementById("cart-bar");
+            if (bar) bar.style.display = "none";
+            document.getElementById("cart-total").textContent = "¥0";
+            document.getElementById("cart-count").textContent = "0";
+
+            // 一覧を最新化
+            await loadMyReservations();
+            await loadOffers();
+
+            ov.remove();
+          } finally {
+            btn.disabled = false;
+            btn.textContent = "決済へ進む";
+          }
+        };
+      }
+
       /* ============== ユーティリティ ============== */
       function haversine(a, b) {
         const toRad = (d) => (d * Math.PI) / 180,
@@ -1359,13 +1560,11 @@
       }
 
       async function openShopPage(shopId, offerHint) {
-        // オファー一覧（同一店舗）の抽出
         const all = window.__lastOffers || [];
         const offers = all.filter(
           (o) => String(o.shop?.id ?? o.shops?.id) === String(shopId)
         );
 
-        // ショップの基本情報（オファーに含まれる最小情報 + 詳細をフェッチ）
         let baseShop =
           offerHint?.shops ||
           offerHint?.shop ||
@@ -1379,16 +1578,18 @@
         const shop = Object.assign({}, baseShop || {}, detail || {});
 
         renderShopPage(shop, offers);
-        // ページ切替（showPage がこの後の(c)で shop 対応する）
-        const evt = new CustomEvent("app:showPage", {
-          detail: { name: "shop" },
-        });
-        document.dispatchEvent(evt);
-        history.pushState(
-          { page: "shop", id: String(shopId) },
-          "",
-          "#shop:" + shopId
-        );
+
+        // URL更新（必要時のみ）
+        const targetHash = `#shop:${shopId}`;
+        if (location.hash !== targetHash) {
+          history.pushState(
+            { page: "shop", id: String(shopId) },
+            "",
+            targetHash
+          );
+        }
+
+        // ページ切替は1回だけ
         document.dispatchEvent(
           new CustomEvent("app:showPage", { detail: { name: "shop" } })
         );
@@ -1447,16 +1648,19 @@
         document.getElementById("shop-links").innerHTML = links.join(" / ");
 
         // 商品一覧＋カート
+        g.currentShop = shop;
+        g.currentOffers = offers;
+        g.cart = {}; // 店舗を開いたらカート初期化
+
         const listEl = document.getElementById("offer-list");
         listEl.innerHTML = "";
-        const cart = {}; // { offerId: qty }
 
         const updateCartBar = () => {
           let count = 0,
             total = 0;
-          for (const id in cart) {
-            const of = offers.find((o) => String(o.id) === id);
-            const q = cart[id] || 0;
+          for (const id in g.cart) {
+            const of = offers.find((o) => String(o.id) === String(id));
+            const q = g.cart[id] || 0;
             count += q;
             total += (of?.price || 0) * q;
           }
@@ -1466,7 +1670,7 @@
           } else {
             bar.style.display = "none";
           }
-          document.getElementById("cart-total").textContent = "¥" + total;
+          document.getElementById("cart-total").textContent = yen(total);
           document.getElementById("cart-count").textContent = String(count);
         };
 
@@ -1474,33 +1678,33 @@
           const el = document.createElement("div");
           el.className = "offer";
           el.innerHTML = `
-      <img src="${imgFor(of)}" alt="">
-      <div class="info">
-        <div class="name">${of.title || "商品"}</div>
-        <div class="time">受取 ${fmtTime(of.pickup_start)}–${fmtTime(
+    <img src="${imgFor(of)}" alt="">
+    <div class="info">
+      <div class="name">${of.title || "商品"}</div>
+      <div class="time">受取 ${fmtTime(of.pickup_start)}–${fmtTime(
             of.pickup_end
           )}</div>
-        <div class="price">¥${of.price} ・ 残り${of.qty_available}</div>
-      </div>
-      <div class="qty">
-        <button class="dec" aria-label="減らす">–</button>
-        <b class="q">0</b>
-        <button class="inc" aria-label="増やす">＋</button>
-      </div>
-    `;
+      <div class="price">${yen(of.price)} ・ 残り${of.qty_available}</div>
+    </div>
+    <div class="qty">
+      <button class="dec" aria-label="減らす">–</button>
+      <b class="q">0</b>
+      <button class="inc" aria-label="増やす">＋</button>
+    </div>
+  `;
           const qEl = el.querySelector(".q");
           const setQ = (q) => {
-            cart[of.id] = q;
-            if (q <= 0) delete cart[of.id];
+            g.cart[of.id] = q;
+            if (q <= 0) delete g.cart[of.id];
             qEl.textContent = String(q);
             updateCartBar();
           };
           el.querySelector(".inc").onclick = () => {
-            const cur = cart[of.id] || 0;
+            const cur = g.cart[of.id] || 0;
             if (cur < of.qty_available) setQ(cur + 1);
           };
           el.querySelector(".dec").onclick = () => {
-            const cur = cart[of.id] || 0;
+            const cur = g.cart[of.id] || 0;
             if (cur > 0) setQ(cur - 1);
           };
           listEl.appendChild(el);
@@ -1517,27 +1721,10 @@
           }
         };
 
-        // 注文ボタン（簡易：選択量ぶん予約APIを順に叩く）
-        document.getElementById("btn-order").onclick = async () => {
-          const ids = Object.keys(cart);
-          if (ids.length === 0) return;
-          if (!(await ensureFriend())) return;
-          for (const id of ids) {
-            const of = offers.find((o) => String(o.id) === id);
-            const qty = cart[id];
-            for (let i = 0; i < qty; i++) {
-              // reserve(of, btn) はボタンUI前提なのでダミーボタンを渡す
-              const btnShim = {
-                disabled: false,
-                get textContent() {
-                  return "";
-                },
-                set textContent(v) {},
-              };
-              await reserve(of, btnShim);
-            }
-          }
-          alert("予約を作成しました。マイページから決済へお進みください。");
+        // 「注文する」→ チェックアウトオーバーレイを開く
+        document.getElementById("btn-order").onclick = () => {
+          if (!Object.keys(g.cart).length) return;
+          openCheckout();
         };
 
         // ミニマップ
@@ -1815,9 +2002,6 @@
         document
           .getElementById("more-recent")
           ?.addEventListener("click", () => showPage("discover"));
-        document
-          .getElementById("btn-scan")
-          ?.addEventListener("click", openLiveScan);
 
         // 現在地ボタン（コンパス）
         document
@@ -1872,14 +2056,17 @@
               e.target.blur();
             }
           });
-        // ハッシュ遷移 (#shop:123) からの表示
+        // ハッシュ遷移 (#shop:SHOP_ID) からの表示
         window.addEventListener("hashchange", () => {
-          const m = location.hash.match(/^#shop:(.+)$/);
-          if (m && window.__lastOffers) {
-            const offer = window.__lastOffers.find(
-              (o) => String(o.id) === m[1]
-            );
-            if (offer) openShopPage(offer, { push: false });
+          const m = location.hash.match(/^#shop:(\d+)$/);
+          if (m) {
+            const sid = m[1];
+            // 既存オファー配列からヒントを探す（なくてもOK）
+            const hint =
+              (window.__lastOffers || []).find(
+                (o) => String(o.shop?.id ?? o.shops?.id) === sid
+              ) || null;
+            openShopPage(sid, hint);
           } else if (location.hash === "" || location.hash === "#home") {
             showPage("home");
           }
