@@ -1530,6 +1530,22 @@
         g.userId = prof.userId;
         setTextIf("me", "ログイン済み");
 
+        (function () {
+          let tap = 0,
+            timer = null;
+          document
+            .getElementById("shop-name")
+            ?.addEventListener("click", () => {
+              tap++;
+              clearTimeout(timer);
+              timer = setTimeout(() => (tap = 0), 800);
+              if (tap >= 3) {
+                tap = 0;
+                __cleanFav();
+              }
+            });
+        })();
+
         // 位置先取り（取得でき次第、地図＆リストに反映）
         try {
           const geo = await new Promise((ok, ng) =>
