@@ -1372,68 +1372,73 @@
 
       // ===== サーバ同期（追加／削除） =====
       // ===== お気に入りAPI（追加／削除） =====
+
+      // ---- お気に入りAPI（追加／削除）: 401/403 はロールバックしない ----
+      function softFail(status) {
+        return [400, 401, 403, 404, 405].includes(status);
+      }
+
       async function favoriteAdd(shopId) {
+        const sid = String(shopId);
         const idToken =
           typeof liff !== "undefined" && liff.getIDToken
             ? liff.getIDToken()
             : "";
-        const sid = String(shopId);
         const payload = {
           shop_id: /^\d+$/.test(sid) ? Number(sid) : sid,
           shopId: sid,
         };
+        const headers = { "Content-Type": "application/json" };
+        if (idToken) headers.Authorization = "Bearer " + idToken;
+
         try {
           const r = await fetch(`${CONFIG.API_BASE}/api/favorite-add`, {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer " + idToken,
-            },
+            headers,
             body: JSON.stringify(payload),
           });
-          const txt = await r.text().catch(() => "");
-          let j = null;
-          try {
-            j = JSON.parse(txt);
-          } catch {}
-
-          if (r.ok && (j?.ok ?? true)) return { ok: true };
-          if (r.status === 409) return { ok: true, already: true }; // 既に登録済みはOK扱い
-          if ([400, 404, 405].includes(r.status))
+          // 409=既に登録 → OK扱い
+          if (r.ok || r.status === 409) return { ok: true };
+          // ソフトエラーは UI をロールバックしない
+          if (softFail(r.status))
             return { ok: false, unsupported: true, status: r.status };
-          return { ok: false, status: r.status, text: txt };
+          return {
+            ok: false,
+            status: r.status,
+            text: await r.text().catch(() => ""),
+          };
         } catch (e) {
-          return { ok: false, error: e };
+          // ネットワーク等は“未対応扱い”にして UI を保つ
+          return { ok: false, unsupported: true, error: e?.message };
         }
       }
 
       async function favoriteRemove(shopId) {
+        const sid = String(shopId);
         const idToken =
           typeof liff !== "undefined" && liff.getIDToken
             ? liff.getIDToken()
             : "";
-        const sid = String(shopId);
         const payload = {
           shop_id: /^\d+$/.test(sid) ? Number(sid) : sid,
           shopId: sid,
         };
+        const headers = { "Content-Type": "application/json" };
+        if (idToken) headers.Authorization = "Bearer " + idToken;
 
-        // ① /api/favorite-remove (POST)
+        // ① 推奨エンドポイント
         try {
           const r = await fetch(`${CONFIG.API_BASE}/api/favorite-remove`, {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer " + idToken,
-            },
+            headers,
             body: JSON.stringify(payload),
           });
           if (r.ok) return { ok: true };
-          if ([400, 404, 405].includes(r.status))
+          if (softFail(r.status))
             return { ok: false, unsupported: true, status: r.status };
         } catch {}
 
-        // ② フォールバック: /api/favorites?shopId=... (DELETE)
+        // ② 互換フォールバック
         try {
           const r2 = await fetch(
             `${CONFIG.API_BASE}/api/favorites?shopId=${encodeURIComponent(
@@ -1441,15 +1446,15 @@
             )}`,
             {
               method: "DELETE",
-              headers: { Authorization: "Bearer " + idToken },
+              headers: idToken ? { Authorization: "Bearer " + idToken } : {},
             }
           );
           if (r2.ok) return { ok: true };
-          if ([404, 405].includes(r2.status))
+          if (softFail(r2.status))
             return { ok: false, unsupported: true, status: r2.status };
           return { ok: false, status: r2.status };
         } catch (e) {
-          return { ok: false, error: e };
+          return { ok: false, unsupported: true, error: e?.message };
         }
       }
 
