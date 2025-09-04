@@ -2876,16 +2876,15 @@
               applyFavUI(btn, !willFav);
               alert("同期に失敗しました。電波状態をご確認ください。");
             } else {
-              // 解除した場合は表示だけ残す
+              // 解除した場合は表示だけ残す（クラスで管理）
+              const msg = card.querySelector(".removed-msg, .fav-msg");
               if (!willFav) {
-                const msg = card.querySelector(".removed-msg");
+                card.classList.add("pending-remove"); // ← ここだけで薄くする
                 if (msg) msg.style.display = "block";
-                card.style.opacity = "0.7";
               } else {
                 // 再登録したら元に戻す
-                const msg = card.querySelector(".removed-msg");
+                card.classList.remove("pending-remove"); // ← 元の不透明度に戻る
                 if (msg) msg.style.display = "none";
-                card.style.opacity = "";
               }
             }
           } finally {
@@ -2950,7 +2949,7 @@
             openShopPage(sid);
           });
 
-          // ★ ハートのトグル（解除してもカードは消さない）
+          // ★ お気に入り一覧カードのハートクリック
           const btn = card.querySelector(".heart");
           btn.onclick = async () => {
             const userKey = await getUserKey();
@@ -2965,7 +2964,7 @@
             writeFavSetSync(userKey, favSet);
             applyFavUI(btn, willFav);
 
-            // サーバ同期（失敗時はロールバック、未対応は黙認）
+            // サーバ同期（失敗はロールバック・未対応は黙認）
             let ok = false,
               unsupported = false;
             try {
@@ -2986,13 +2985,18 @@
               return;
             }
 
-            // ★ 解除済みは残す（薄く＆メッセージ）
+            // ★ ここがポイント：表示状態をトグル
+            const msg = card.querySelector(".fav-msg");
             if (!willFav) {
-              card.classList.add("pending-remove");
-              const msg = card.querySelector(".fav-msg");
+              // 解除 → 残す（薄く＆文言表示）
+              card.classList.add("pending-remove"); // CSSでopacity:0.6を当てる
               if (msg)
                 msg.textContent =
                   "解除しました。このページを離れると一覧から消えます。";
+            } else {
+              // 再登録 → 元に戻す
+              card.classList.remove("pending-remove"); // 透明度を元に
+              if (msg) msg.textContent = ""; // 文言クリア
             }
           };
 
