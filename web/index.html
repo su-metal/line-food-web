@@ -2232,19 +2232,16 @@
                   );
                   const j = await r.json().catch(() => null);
 
-                  // 追加：ユーザーがタップ済みならサーバ結果で上書きしない
-                  if (userTouched || g.favTouched.has(sid)) return;
-
+                  // サーバ応答は「false」のときだけ反映（true は信用しない）
                   if (
                     r.ok &&
                     (j?.isFavorited !== undefined || j?.favorited !== undefined)
                   ) {
-                    const on = !!(j.isFavorited ?? j.favorited);
-                    if (on !== favSet.has(sid)) {
-                      if (on) favSet.add(sid);
-                      else favSet.delete(sid);
+                    const serverOn = !!(j.isFavorited ?? j.favorited);
+                    if (!serverOn && favSet.has(sid)) {
+                      favSet.delete(sid);
                       writeFavSetSync(userKey, favSet);
-                      applyFavUI(favBtn, on);
+                      applyFavUI(favBtn, false);
                     }
                   }
                 }
