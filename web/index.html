@@ -3020,7 +3020,7 @@
           if (name === "fav") {
             document.getElementById("page-fav")?.classList.add("active");
             document.body.classList.remove("shop-mode");
-            renderFavList();
+            openFavPage(); // 入室時スナップショットで固定。解除してもカードは残す
           }
 
           // タブのON/OFF（home / discover のみ）
@@ -3079,9 +3079,6 @@
           } else {
             g.favSnapshot = null; // 退室時に破棄 → 次回は最新が反映
           }
-
-          // …関数の最後あたりに
-          if (name === "fav") renderFavorites();
         }
 
         // ホーム上部の検索：Enterで「お店を探す」に切り替え
@@ -3130,8 +3127,7 @@
         document
           .querySelector('button[data-page="fav"]')
           ?.addEventListener("click", () => {
-            renderFavoritesPage();
-            showPage("fav");
+            showPage("fav"); // 表示時に openFavPage() が呼ばれる
           });
 
         document
@@ -3250,46 +3246,6 @@
           }
           note.style.display = on ? "inline" : "none";
         }
-
-        // お気に入り一覧のハート（解除/登録）をまとめて処理
-        const favListEl = document.getElementById("fav-list");
-        favListEl?.addEventListener("click", async (e) => {
-          const heart = e.target.closest(".heart");
-          if (!heart) return;
-
-          const card = heart.closest(".fav-card");
-          const sid = card?.dataset.sid;
-          if (!sid) return;
-
-          const userKey = await getUserKey();
-          const favSet = readFavSetSync(userKey);
-
-          const willFav = !favSet.has(sid);
-
-          // 楽観反映（UI＋localStorage）
-          applyFavUI(heart, willFav);
-          if (willFav) favSet.add(sid);
-          else favSet.delete(sid);
-          writeFavSetSync(userKey, favSet);
-
-          // 解除してもカードは残す（薄く＋注記）
-          markFavCardGhost(card, !willFav);
-
-          // サーバ同期（失敗時のみロールバック）
-          try {
-            const r = willFav
-              ? await favoriteAdd(sid)
-              : await favoriteRemove(sid);
-            if (r.unsupported) return;
-            if (!r.ok) throw new Error(r.status || "favorite_sync_failed");
-          } catch {
-            applyFavUI(heart, !willFav);
-            if (willFav) favSet.delete(sid);
-            else favSet.add(sid);
-            writeFavSetSync(userKey, favSet);
-            markFavCardGhost(card, false);
-          }
-        });
       });
 
       // ?resetFav=1 で端末のお気に入り（このユーザー分）を一度クリア
