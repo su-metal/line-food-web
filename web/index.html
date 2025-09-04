@@ -734,6 +734,33 @@
         fill: currentColor !important;
         stroke: currentColor !important;
       }
+
+      /* お気に入り一覧のカード（最小） */
+      #page-fav #fav-list .fav-card {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border: 1px solid #e5e2dd;
+        background: #fff;
+        border-radius: 12px;
+        padding: 10px;
+        margin: 10px 0;
+      }
+      #page-fav #fav-list .fav-card img {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 10px;
+        background: #f2f2f2;
+      }
+      #page-fav #fav-list .fav-card .name {
+        font-weight: 700;
+      }
+      #page-fav #fav-list .fav-card .meta {
+        font-size: 12px;
+        color: #666;
+        margin-top: 2px;
+      }
     </style>
   </head>
 
@@ -849,6 +876,15 @@
       </div>
 
       <div id="mapSheet" class="map-sheet" aria-hidden="true"></div>
+    </main>
+
+    <!-- お気に入り一覧 -->
+    <main id="page-fav" class="page">
+      <h2>お気に入り</h2>
+      <div id="fav-empty" class="muted" style="display: none">
+        まだお気に入り店舗がありません。店舗ページのハートをタップすると追加できます。
+      </div>
+      <div id="fav-list"></div>
     </main>
 
     <!-- 店舗ページ -->
@@ -2572,12 +2608,14 @@
 
           if (name === "shop")
             document.getElementById("page-shop")?.classList.add("active");
+          if (name === "fav")
+            document.getElementById("page-fav")?.classList.add("active");
 
           // タブのON/OFF（home / discover のみ）
           document
             .querySelectorAll(".tabbar button")
             .forEach((b) => b.classList.remove("active"));
-          if (name === "home" || name === "discover") {
+          if (["home", "discover", "fav"].includes(name)) {
             document
               .querySelector(`.tabbar button[data-page="${name}"]`)
               ?.classList.add("active");
@@ -2623,6 +2661,9 @@
           if (cartBarEl) {
             cartBarEl.style.display = name === "shop" ? "flex" : "none";
           }
+
+          // …関数の最後あたりに
+          if (name === "fav") renderFavorites();
         }
 
         // ホーム上部の検索：Enterで「お店を探す」に切り替え
@@ -2830,6 +2871,77 @@
       document.addEventListener("visibilitychange", () => {
         if (!document.hidden) scheduleShopMapFix();
       });
+      async function renderFavorites() {
+        const userKey = await getUserKey();
+        const favSet = readFavSetSync(userKey);
+        const ids = [...favSet];
+        const el = document.getElementById("fav-list");
+        if (!el) return;
+        if (ids.length === 0) {
+          el.innerHTML = '<p class="muted">お気に入りはありません。</p>';
+          return;
+        }
+
+        const byId = {};
+        (window.__lastOffers || []).forEach((o) => {
+          const s = o.shop || o.shops;
+          if (s?.id) byId[String(s.id)] = s;
+        });
+
+        const shops = [];
+        for (const sid of ids) {
+          if (byId[sid]) {
+            shops.push(byId[sid]);
+            continue;
+          }
+          try {
+            const r = await fetch(
+              `${CONFIG.SUPABASE_URL}/rest/v1/shops?id=eq.${encodeURIComponent(
+                sid
+              )}&select=id,name,address,photo_url`,
+              {
+                headers: {
+                  apikey: CONFIG.SUPABASE_ANON_KEY,
+                  Authorization: "Bearer " + CONFIG.SUPABASE_ANON_KEY,
+                },
+              }
+            );
+            if (r.ok) {
+              const j = await r.json();
+              if (j[0]) shops.push(j[0]);
+            }
+          } catch {}
+        }
+
+        el.innerHTML = shops
+          .map(
+            (s) => `
+    <div class="fav-card" data-shop="${s.id}">
+      <img src="${
+        s.photo_url ||
+        `https://placehold.co/160x160/j5b09d/fff?text=${encodeURIComponent(
+          s.name || "Shop"
+        )}`
+      }" alt="">
+      <div class="info">
+        <div class="name">${s.name || "店舗"}</div>
+        <div class="meta">${s.address || ""}</div>
+      </div>
+    </div>`
+          )
+          .join("");
+
+        el.querySelectorAll(".fav-card").forEach((card) => {
+          card.addEventListener("click", () => {
+            const sid = card.getAttribute("data-shop");
+            const hint =
+              (window.__lastOffers || []).find(
+                (o) => String(o.shop?.id ?? o.shops?.id) === String(sid)
+              ) || null;
+            openShopPage(sid, hint);
+          });
+        });
+      }
     </script>
   </body>
 </html>
