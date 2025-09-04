@@ -49,6 +49,11 @@
         padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0));
       }
 
+      /* DEBUG: ホームのカードだけ "予約へ進む" を非表示にする */
+      #page-home .btn-resv {
+        display: none !important;
+      }
+
       .muted {
         color: var(--muted);
         font-size: 0.9em;
