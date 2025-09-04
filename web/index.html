@@ -981,6 +981,56 @@
         border-bottom-left-radius: 16px;
         border-bottom-right-radius: 16px;
       }
+
+      /* ===== 店舗カードの情報表示をアイコン付きで見やすく ===== */
+      .card-lg .title-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 4px;
+      }
+      .card-lg .title-row .title-icon {
+        color: var(--brand);
+        display: grid;
+        place-items: center;
+      }
+      .card-lg .title {
+        font-weight: 700;
+        font-size: 16px;
+        line-height: 1.2;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .card-lg .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 4px;
+        font-size: 12px;
+        color: #555;
+      }
+      .card-lg .meta .item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .card-lg .meta .item svg {
+        width: 16px;
+        height: 16px;
+        color: var(--brand); /* ←アイコンをブランド色に */
+      }
+
+      /* ハートは赤でOK（すでにあれば重複OK） */
+      .heart.active {
+        color: #e11d48;
+        border-color: currentColor;
+        background: #fff5f7;
+      }
+      .heart.active svg path {
+        fill: currentColor;
+        stroke: currentColor;
+      }
     </style>
   </head>
 
@@ -2146,31 +2196,64 @@
 
       function buildCardHTML(it) {
         const shop = it.shop || it.shops;
-        const time =
-          it.pickup_start && it.pickup_end
-            ? `${fmtTime(it.pickup_start)}–${fmtTime(it.pickup_end)}`
-            : "";
-
+        const time = `${fmtTime(it.pickup_start)}–${fmtTime(it.pickup_end)}`;
         const dist = it.dist != null ? `${it.dist.toFixed(1)}km` : "";
-        const sold = it.qty_available <= 0;
+
         return `
-          <article class="card-lg" data-offer="${it.id}">
-            <img src="${imgFor(it)}" alt="">
-            <div class="price">¥${it.price}</div>
-            <div class="overlay">
-              <div class="title">${shop?.name || "店舗"}</div>
-              <div class="meta">
-                <span>のこり${it.qty_available}</span>
-                <span>${time}</span>
-                <span>${dist}</span>
-              </div>
-              <div style="margin-top:8px">
-                <button class="primary btn-resv" ${sold ? "disabled" : ""}>${
-          sold ? "在庫なし" : "予約へ進む"
-        }</button>
-              </div>
-            </div>
-          </article>`;
+    <article class="card-lg" data-offer="${it.id}">
+      <img src="${imgFor(it)}" alt="">
+      <div class="price">${yen(it.price)}</div>
+
+      <div class="overlay">
+        <!-- 店名（家アイコン付き） -->
+        <div class="title-row">
+          <span class="title-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M3 10.5 12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5Z"
+                    stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <div class="title">${shop?.name || "店舗"}</div>
+        </div>
+
+        <!-- メタ情報（残数 / 時間 / 距離 をアイコン付きで） -->
+        <div class="meta">
+          <div class="item">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M3 7l9-4 9 4v10l-9 4-9-4V7Z"
+                    stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+              <path d="M3 7l9 4 9-4"
+                    stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+            </svg>
+            <span>残り${it.qty_available}</span>
+          </div>
+
+          <div class="item">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.6"/>
+              <path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.6"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>${time}</span>
+          </div>
+
+          ${
+            dist
+              ? `
+          <div class="item">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 21s7-6.5 7-11a7 7 0 1 0-14 0c0 4.5 7 11 7 11Z"
+                    stroke="currentColor" stroke-width="1.6"/>
+              <circle cx="12" cy="10" r="2.2" stroke="currentColor" stroke-width="1.6"/>
+            </svg>
+            <span>${dist}</span>
+          </div>`
+              : ""
+          }
+
+        </div>
+      </div>
+    </article>`;
       }
 
       function renderHomeSections(list) {
