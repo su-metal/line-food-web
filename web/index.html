@@ -21,16 +21,25 @@
     <style>
       /* ===== ベース ===== */
       :root {
+        /* Brand */
+        --brand: #2e7d32; /* Moss Green (主色) */
+        --brand-ink: #1b5e20; /* 濃い緑（線・リング用） */
+        --accent: #8bc34a; /* 明るい葉色（控えめアクセント） */
+
+        /* Base / Text */
+        --ink: #1f2a24; /* 文字（やや深い緑みの黒） */
+        --muted: #6b7a74; /* 補助テキスト */
+        --card: #ffffff;
+        --bg: #f4f7f4; /* うすいセージグリーンの背景 */
+        --border: #e3e7e3;
+
+        /* Others */
+        --like: #e11d48; /* ハートの赤（そのまま可） */
         --appbar-h: 56px;
         --btn-radius: 12px;
-        --brand: #6b1a16;
-        --ink: #222;
-        --muted: #666;
-        --card: #fff;
-        --bg: #f6f3ef;
-        /* タブバーの被り対策: 実寸で上書き */
         --tabbar-h: 80px;
       }
+
       * {
         box-sizing: border-box;
       }
@@ -74,17 +83,20 @@
         gap: 8px;
       }
 
-      button.primary {
-        background: #28a745;
-        color: white;
-        border: none;
-        padding: 8px 14px;
-        border-radius: 8px;
-        cursor: pointer;
+      /* ボタン（主CTA） */
+      button.primary,
+      .cart-bar .btn {
+        background: var(--brand);
+        color: #fff;
       }
       button.primary:disabled {
         opacity: 0.6;
         cursor: not-allowed;
+      }
+
+      button.primary:hover,
+      .cart-bar .btn:hover {
+        filter: brightness(0.95);
       }
 
       button.secondary {
@@ -830,6 +842,30 @@
       #page-discover .map-sheet .btn-resv {
         display: none !important;
       }
+      /* フローティングアイコンなど */
+      .fab,
+      .icon-btn {
+        border-color: var(--border);
+        color: var(--brand);
+      }
+
+      /* ハート：デフォは落ち着いた色、ONで赤 */
+      .heart {
+        color: var(--muted);
+      }
+      .heart.active {
+        color: var(--like);
+        border-color: currentColor;
+        background: #fff5f7;
+      }
+
+      /* バッジ（予約中をブランド色へ） */
+      .badge.reserved {
+        background: var(--brand);
+        color: #fff;
+      }
+
+      /* タブのアクティブは既に var(--brand) 指定済みでOK */
     </style>
   </head>
 
@@ -1586,11 +1622,17 @@
             return _map;
           },
           addUserMarker(lat, lng) {
+            const css = getComputedStyle(document.documentElement);
+            const brand = (css.getPropertyValue("--brand") || "#2e7d32").trim();
+            const brandInk = (
+              css.getPropertyValue("--brand-ink") || brand
+            ).trim();
+
             if (!_userMarker) {
               _userMarker = L.circleMarker([lat, lng], {
                 radius: 10,
-                color: "#2e7d32",
-                fillColor: "#66bb6a",
+                color: brandInk, // 旧: "#2e7d32"
+                fillColor: brand, // 旧: "#66bb6a"
                 fillOpacity: 0.9,
                 weight: 3,
               })
