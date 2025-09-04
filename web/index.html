@@ -958,6 +958,29 @@
         z-index: 2200;
         pointer-events: none;
       }
+
+      /* ==== 店舗カード: 白背景は不透明／シャドウを追加（上書き） ==== */
+      .card-lg {
+        /* うっすら持ち上げる */
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+      }
+
+      /* 画像の下側に“透けない”白パネルを敷く（約40%の高さ） */
+      .card-lg .overlay {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: #fff; /* ← 不透明な白 */
+        color: var(--ink); /* テキストは濃い色に */
+        padding: 12px;
+        min-height: 40%; /* だいたい下側4割だけ白 */
+        /* 白パネルの上角は角丸にしない（下だけ角丸を残す） */
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;
+        border-bottom-left-radius: 16px;
+        border-bottom-right-radius: 16px;
+      }
     </style>
   </head>
 
