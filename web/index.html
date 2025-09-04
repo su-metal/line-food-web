@@ -812,11 +812,18 @@
       .fav-card.pending-remove {
         opacity: 0.6;
       }
-      /* お気に入り一覧：ハートをカード右端に寄せる */
-      #page-fav #fav-list .fav-card .row {
+      /* お気に入りカード: ハートを常に右端へ */
+      #page-fav .fav-card .row {
         justify-content: flex-start;
+        width: 100%;
       }
-      #page-fav #fav-list .fav-card .row .heart {
+      #page-fav .fav-card .row .heart {
+        margin-left: auto;
+        flex-shrink: 0;
+      }
+
+      /* 念のため、旧レイアウト(.fav-item)が残っても右端へ */
+      #page-fav .fav-item .heart {
         margin-left: auto;
       }
     </style>
@@ -3027,7 +3034,9 @@
           if (name === "fav") {
             document.getElementById("page-fav")?.classList.add("active");
             document.body.classList.remove("shop-mode");
-            openFavPage(); // 入室時スナップショットで固定。解除してもカードは残す
+            openFavPage(); // ← スナップショット作成 → renderFavoritesPage() を内部で呼びます
+          } else {
+            g.favSnapshot = null;
           }
 
           // タブのON/OFF（home / discover のみ）
