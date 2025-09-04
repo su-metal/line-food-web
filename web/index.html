@@ -799,6 +799,16 @@
         width: 36px;
         height: 36px;
       } /* 右側の小さめハート */
+
+      /* お気に入り解除後もカードは残す（薄く表示） */
+      .fav-card.ghost {
+        opacity: 0.6;
+      }
+      .fav-card .ghost-note {
+        margin-left: 6px;
+        font-size: 12px;
+        color: #b3261e;
+      }
     </style>
   </head>
 
@@ -2100,7 +2110,6 @@
         return null;
       }
 
-      
       // ========== お気に入り一覧を描画（ID正規化＋フォールバック付き） ==========
       async function renderFavList() {
         const wrap = document.getElementById("fav-list");
@@ -2761,6 +2770,133 @@
         }
       }
 
+      // ===== お気に入り一覧（右にハートで解除/登録。解除後はその場に残す） =====
+      async function getFavoriteShopIds() {
+        const userKey = await getUserKey();
+        return [...readFavSetSync(userKey)];
+      }
+
+      // __lastOffers から shop情報を拾う（なければ最小限の形を返す）
+      function findShopFromOffers(shopId) {
+        const all = window.__lastOffers || [];
+        for (const of of all) {
+          const s = of.shop || of.shops;
+          if (!s) continue;
+          const sid = String(s.id ?? s.shop_id ?? "");
+          if (sid === String(shopId)) return s;
+        }
+        return { id: shopId, name: "店舗" };
+      }
+
+      function favCardSVG() {
+        return `
+  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+    <path d="m12 21-1.45-1.32C6 15.36 3 12.61 3 9.28 3 6.5 5.24 4.5 7.88 4.5c1.45 0 2.87.64 3.78 1.67A5.2 5.2 0 0 1 15.44 4.5C18.08 4.5 20.3 6.5 20.3 9.28c0 3.33-3 6.08-7.55 10.4L12 21Z"
+      fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+  </svg>`;
+      }
+
+      function createFavCard(shop, isFav) {
+        const sid = String(shop?.id ?? shop?.shop_id ?? "");
+        const card = document.createElement("article");
+        card.className = "card";
+        card.dataset.shopId = sid;
+
+        const title = shop?.name || "店舗";
+        const sub = shop?.station || shop?.address || "";
+
+        card.innerHTML = `
+    <div class="row">
+      <div style="min-width:0">
+        <div class="name" style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${title}</div>
+        <div class="muted" style="font-size:12px">${sub}</div>
+      </div>
+      <button class="heart" aria-label="お気に入り">${favCardSVG()}</button>
+    </div>
+    <div class="btn-row" style="margin-top:8px">
+      <button class="primary open-shop">店舗ページへ</button>
+    </div>
+    <div class="muted removed-msg" style="display:none;margin-top:6px;">解除しました（このページを離れると消えます）</div>
+  `;
+
+        const btn = card.querySelector(".heart");
+        applyFavUI(btn, !!isFav);
+
+        // 店舗ページへ
+        card.querySelector(".open-shop").onclick = () => {
+          if (sid) openShopPage(sid, null);
+        };
+
+        // ハートのトグル（解除してもDOMからは消さない）
+        btn.onclick = async () => {
+          // 二重押し防止
+          if (btn.dataset.busy === "1") return;
+          btn.dataset.busy = "1";
+
+          const userKey = await getUserKey();
+          const set = readFavSetSync(userKey);
+          const nowFav = set.has(sid);
+          const willFav = !nowFav;
+
+          // 先にローカルを確定
+          if (willFav) set.add(sid);
+          else set.delete(sid);
+          writeFavSetSync(userKey, set);
+          applyFavUI(btn, willFav);
+
+          // サーバ同期（失敗してもDOMは残す）
+          try {
+            const r = willFav
+              ? await favoriteAdd(sid)
+              : await favoriteRemove(sid);
+            // 未対応は黙ってローカル優先
+            if (!r?.ok && !r?.unsupported) {
+              // 真の失敗はロールバック
+              if (willFav) set.delete(sid);
+              else set.add(sid);
+              writeFavSetSync(userKey, set);
+              applyFavUI(btn, !willFav);
+              alert("同期に失敗しました。電波状態をご確認ください。");
+            } else {
+              // 解除した場合は表示だけ残す
+              if (!willFav) {
+                const msg = card.querySelector(".removed-msg");
+                if (msg) msg.style.display = "block";
+                card.style.opacity = "0.7";
+              } else {
+                // 再登録したら元に戻す
+                const msg = card.querySelector(".removed-msg");
+                if (msg) msg.style.display = "none";
+                card.style.opacity = "";
+              }
+            }
+          } finally {
+            btn.dataset.busy = "0";
+          }
+        };
+
+        return card;
+      }
+
+      async function renderFavoritesPage() {
+        const wrap = document.getElementById("fav-list");
+        if (!wrap) return;
+        wrap.innerHTML = "";
+
+        const ids = await getFavoriteShopIds();
+        if (!ids.length) {
+          wrap.innerHTML = `<p class="muted">お気に入りはまだありません。</p>`;
+          return;
+        }
+
+        // できるだけ __lastOffers から名前/住所を引く（なければ名前だけ）
+        for (const sid of ids) {
+          const shop = findShopFromOffers(sid);
+          const card = createFavCard(shop, true);
+          wrap.appendChild(card);
+        }
+      }
+
       /* ============== イベント登録 ============== */
       document.addEventListener("DOMContentLoaded", () => {
         document
@@ -2897,6 +3033,13 @@
             btn.addEventListener("click", () => showPage(btn.dataset.page))
           );
         document
+          .querySelector('button[data-page="fav"]')
+          ?.addEventListener("click", () => {
+            renderFavoritesPage();
+            showPage("fav");
+          });
+
+        document
           .getElementById("nav-scan")
           ?.addEventListener("click", openLiveScan);
         document
@@ -2998,6 +3141,60 @@
                 );
               });
           });
+        // 解除後もカードを残すための見た目切替
+        function markFavCardGhost(card, on) {
+          if (!card) return;
+          card.classList.toggle("ghost", !!on);
+          let note = card.querySelector(".ghost-note");
+          if (!note) {
+            note = document.createElement("small");
+            note.className = "ghost-note";
+            note.textContent =
+              "お気に入り解除済み（このページを離れると消えます）";
+            (card.querySelector(".title") || card).appendChild(note);
+          }
+          note.style.display = on ? "inline" : "none";
+        }
+
+        // お気に入り一覧のハート（解除/登録）をまとめて処理
+        const favListEl = document.getElementById("fav-list");
+        favListEl?.addEventListener("click", async (e) => {
+          const heart = e.target.closest(".heart");
+          if (!heart) return;
+
+          const card = heart.closest(".fav-card");
+          const sid = card?.dataset.sid;
+          if (!sid) return;
+
+          const userKey = await getUserKey();
+          const favSet = readFavSetSync(userKey);
+
+          const willFav = !favSet.has(sid);
+
+          // 楽観反映（UI＋localStorage）
+          applyFavUI(heart, willFav);
+          if (willFav) favSet.add(sid);
+          else favSet.delete(sid);
+          writeFavSetSync(userKey, favSet);
+
+          // 解除してもカードは残す（薄く＋注記）
+          markFavCardGhost(card, !willFav);
+
+          // サーバ同期（失敗時のみロールバック）
+          try {
+            const r = willFav
+              ? await favoriteAdd(sid)
+              : await favoriteRemove(sid);
+            if (r.unsupported) return;
+            if (!r.ok) throw new Error(r.status || "favorite_sync_failed");
+          } catch {
+            applyFavUI(heart, !willFav);
+            if (willFav) favSet.delete(sid);
+            else favSet.add(sid);
+            writeFavSetSync(userKey, favSet);
+            markFavCardGhost(card, false);
+          }
+        });
       });
 
       // ?resetFav=1 で端末のお気に入り（このユーザー分）を一度クリア
