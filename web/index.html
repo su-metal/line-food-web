@@ -2100,37 +2100,68 @@
         return null;
       }
 
-      // ========== お気に入り一覧を描画 ==========
+      
+      // ========== お気に入り一覧を描画（ID正規化＋フォールバック付き） ==========
       async function renderFavList() {
         const wrap = document.getElementById("fav-list");
         if (!wrap) return;
         wrap.innerHTML = '<p class="muted">読み込み中…</p>';
 
         const userKey = await getUserKey();
-        const favSet = readFavSetSync(userKey);
-        const ids = [...favSet];
+        // 1) 端末保存のIDを正規化（"shop:123" -> "123"、空は除去）
+        const raw = readFavSetSync(userKey);
+        const normalized = new Set();
+        [...raw].forEach((v) => {
+          const s = String(v || "").trim();
+          if (!s) return;
+          const m = s.match(/^shop:(\d+)$/);
+          normalized.add(m ? m[1] : s);
+        });
+        // 変化があれば保存し直し（以後の不具合予防）
+        if ([...raw].join("|") !== [...normalized].join("|")) {
+          writeFavSetSync(userKey, normalized);
+        }
+
+        const ids = [...normalized];
         if (ids.length === 0) {
           wrap.innerHTML = '<p class="muted">お気に入り店舗がありません</p>';
           return;
         }
 
-        // 詳細をまとめて取得
+        // 2) 画面に既にあるオファー一覧から、店情報のキャッシュを作る（フォールバック用）
+        const fromList = {};
+        (window.__lastOffers || []).forEach((o) => {
+          const s = o.shop || o.shops;
+          if (s?.id != null) {
+            fromList[String(s.id)] = {
+              id: s.id,
+              name: s.name || "",
+              address: s.address || "",
+              photo_url: s.photo_url || "",
+            };
+          }
+        });
+
+        // 3) 店舗詳細を取得（失敗したら fromList で補完）
         const details = await Promise.all(
           ids.map(async (sid) => {
             const d = await fetchShopDetail(sid).catch(() => null);
-            return d ? d : { id: sid, name: "店舗", address: "" };
+            return d && d.name ? d : fromList[sid] || null;
           })
         );
 
-        // カード生成
+        // 4) 描画
         wrap.innerHTML = "";
-        details.forEach((shop) => {
-          const sid = String(shop.id);
+        details.forEach((shop, idx) => {
+          const sid = ids[idx];
+          // 最後の砦：それでも名前が無いならIDだけでも出す
+          const name = shop?.name || `(ID: ${sid})`;
+          const address = shop?.address || "";
           const photo =
-            shop.photo_url ||
-            (shop.name
+            shop?.photo_url ||
+            (name
               ? `https://placehold.co/800x600/j5b09d/ffffff?text=${encodeURIComponent(
-                  shop.name
+                  name
                 )}`
               : `https://placehold.co/800x600`);
 
@@ -2139,11 +2170,11 @@
           el.innerHTML = `
       <img class="thumb" src="${photo}" alt="">
       <div class="info">
-        <div class="title">${shop.name || "店舗"}</div>
-        <div class="meta">${shop.address || ""}</div>
+        <div class="title">${name}</div>
+        <div class="meta">${address}</div>
       </div>
       <button class="heart ${
-        favSet.has(sid) ? "active" : ""
+        normalized.has(sid) ? "active" : ""
       }" aria-label="お気に入り">
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
           <path d="m12 21-1.45-1.32C6 15.36 3 12.61 3 9.28 3 6.5 5.24 4.5 7.88 4.5c1.45 0 2.87.64 3.78 1.67A5.2 5.2 0 0 1 15.44 4.5C18.08 4.5 20.3 6.5 20.3 9.28c0 3.33-3 6.08-7.55 10.4L12 21Z"
@@ -2154,47 +2185,44 @@
 
           // カードタップで店舗ページへ
           el.addEventListener("click", (ev) => {
-            if (ev.target.closest(".heart")) return; // ハートは除外
+            if (ev.target.closest(".heart")) return;
             openShopPage(sid);
           });
 
-          // 右側ハートで即トグル（楽観更新+サーバ同期）
+          // 右側ハートのトグル（楽観更新＋サーバ同期）
           const btn = el.querySelector(".heart");
           btn.addEventListener("click", async (ev) => {
             ev.stopPropagation();
             if (btn.dataset.busy === "1") return;
             btn.dataset.busy = "1";
 
-            const nowFav = favSet.has(sid);
+            const nowFav = normalized.has(sid);
             const willFav = !nowFav;
 
-            // 楽観反映 + ローカル保存
-            if (willFav) favSet.add(sid);
-            else favSet.delete(sid);
-            writeFavSetSync(userKey, favSet);
+            // 楽観反映＋保存
+            if (willFav) normalized.add(sid);
+            else normalized.delete(sid);
+            writeFavSetSync(userKey, normalized);
             applyFavUI(btn, willFav);
 
-            // サーバ同期（LIFF外はスキップ）
+            // サーバ同期（LIFF内のみ）
             if (isLIFFInClient()) {
               try {
                 const r = willFav
                   ? await favoriteAdd(sid)
                   : await favoriteRemove(sid);
-                if (r.unsupported) {
-                  // 未対応: ローカル維持
-                } else if (!r.ok) {
-                  // 真の失敗: ロールバック
-                  if (willFav) favSet.delete(sid);
-                  else favSet.add(sid);
-                  writeFavSetSync(userKey, favSet);
+                if (!(r?.ok || r?.unsupported)) {
+                  // 真の失敗 → ロールバック
+                  if (willFav) normalized.delete(sid);
+                  else normalized.add(sid);
+                  writeFavSetSync(userKey, normalized);
                   applyFavUI(btn, !willFav);
                   alert("お気に入りの同期に失敗しました");
                 }
               } catch {
-                // 失敗: ロールバック
-                if (willFav) favSet.delete(sid);
-                else favSet.add(sid);
-                writeFavSetSync(userKey, favSet);
+                if (willFav) normalized.delete(sid);
+                else normalized.add(sid);
+                writeFavSetSync(userKey, normalized);
                 applyFavUI(btn, !willFav);
                 alert("お気に入りの更新に失敗しました");
               }
@@ -2202,10 +2230,10 @@
 
             btn.dataset.busy = "0";
 
-            // 解除したらカードをリストから取り除く
+            // 解除したらカードも消す
             if (!willFav) {
               el.remove();
-              if ([...favSet].length === 0) {
+              if ([...normalized].length === 0) {
                 wrap.innerHTML =
                   '<p class="muted">お気に入り店舗がありません</p>';
               }
