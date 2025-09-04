@@ -2,7 +2,29 @@
 <html lang="ja">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <!-- Android Chrome / PWA -->
+    <meta
+      name="theme-color"
+      content="#6b1a16"
+      media="(prefers-color-scheme: light)"
+    />
+    <meta
+      name="theme-color"
+      content="#6b1a16"
+      media="(prefers-color-scheme: dark)"
+    />
+
+    <!-- iOS Safari（ステータスバーをページ背景と馴染ませる） -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+
     <title>モッタイナ</title>
 
     <!-- Leaflet CSS & JS（Google Maps は読み込まない） -->
@@ -866,6 +888,49 @@
       }
 
       /* タブのアクティブは既に var(--brand) 指定済みでOK */
+      /* iOSのノッチ下（safe area）をブランド色で塗る */
+      body::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: env(safe-area-inset-top, 0);
+        background: var(--brand);
+        z-index: 1999;
+        pointer-events: none;
+      }
+      /* セクション見出しのサイズを控えめに */
+      .sec .sec-head h2 {
+        font-size: 16px;
+        line-height: 1.35;
+        margin: 8px 0 10px;
+        font-weight: 700;
+      }
+      .sec .sec-head a {
+        font-size: 14px;
+      }
+      /* タブバー：アクティブはベタ塗りで強調 */
+      .tabbar button.active svg path,
+      .tabbar button.active svg circle,
+      .tabbar button.active svg rect,
+      .tabbar button.active svg polygon {
+        fill: currentColor;
+        stroke: currentColor;
+      }
+
+      /* ハート：アクティブ色をブランド色に統一＆目立たせる */
+      .heart.active {
+        color: var(--brand);
+        border-color: currentColor;
+        /* ほんのり背景（対応ブラウザは color-mix を使用） */
+        background: color-mix(in srgb, var(--brand) 14%, #fff);
+      }
+      @supports not (background: color-mix(in srgb, red 10%, white)) {
+        .heart.active {
+          background: rgba(0, 0, 0, 0.06);
+        } /* フォールバック */
+      }
     </style>
   </head>
 
@@ -3452,6 +3517,26 @@
           });
         });
       }
+      // ページ起動時に <meta name="theme-color"> を --brand で上書き
+      (function syncThemeColor() {
+        const m =
+          document.querySelector('meta[name="theme-color"][media]') ||
+          document.querySelector('meta[name="theme-color"]') ||
+          (function () {
+            const x = document.createElement("meta");
+            x.name = "theme-color";
+            document.head.appendChild(x);
+            return x;
+          })();
+        const brand =
+          getComputedStyle(document.documentElement)
+            .getPropertyValue("--brand")
+            .trim() || "#6b1a16";
+        // media 指定が複数ある場合は両方更新
+        document
+          .querySelectorAll('meta[name="theme-color"]')
+          .forEach((el) => el.setAttribute("content", brand));
+      })();
     </script>
   </body>
 </html>
