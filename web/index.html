@@ -1040,15 +1040,6 @@
         el?.classList.toggle("active", !!on);
         el?.setAttribute("aria-pressed", on ? "true" : "false");
       }
-      async function getUserKey() {
-        try {
-          if (liff && typeof liff.getProfile === "function") {
-            const p = await liff.getProfile();
-            return p?.userId || "anon";
-          }
-        } catch {}
-        return "anon";
-      }
 
       // --- カート／チェックアウト用の拡張状態 ---
       g.cart = {}; // { offerId: qty }
@@ -1363,45 +1354,54 @@
       }
 
       // ===== サーバ同期（追加／削除） =====
+      // ===== お気に入りAPI（追加／削除） =====
       async function favoriteAdd(shopId) {
-        const idToken = liff.getIDToken?.() || "";
+        const idToken =
+          typeof liff !== "undefined" && liff.getIDToken
+            ? liff.getIDToken()
+            : "";
         const sid = String(shopId);
-        const num = /^\d+$/.test(sid) ? Number(sid) : null;
-        const body = { shop_id: num ?? sid, shopId: sid };
+        const payload = {
+          shop_id: /^\d+$/.test(sid) ? Number(sid) : sid,
+          shopId: sid,
+        };
         try {
-          const res = await fetch(`${CONFIG.API_BASE}/api/favorite-add`, {
+          const r = await fetch(`${CONFIG.API_BASE}/api/favorite-add`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               Authorization: "Bearer " + idToken,
             },
-            body: JSON.stringify(body),
+            body: JSON.stringify(payload),
           });
-          const txt = await res.text().catch(() => "");
+          const txt = await r.text().catch(() => "");
           let j = null;
           try {
             j = JSON.parse(txt);
           } catch {}
-          if (res.ok && (j?.ok ?? true)) return { ok: true };
-          if (res.status === 409 || /already/i.test(txt))
-            return { ok: true, already: true };
-          if ([400, 404, 405].includes(res.status))
-            return { ok: false, unsupported: true, status: res.status };
-          return { ok: false, status: res.status, text: txt };
+
+          if (r.ok && (j?.ok ?? true)) return { ok: true };
+          if (r.status === 409) return { ok: true, already: true }; // 既に登録済みはOK扱い
+          if ([400, 404, 405].includes(r.status))
+            return { ok: false, unsupported: true, status: r.status };
+          return { ok: false, status: r.status, text: txt };
         } catch (e) {
           return { ok: false, error: e };
         }
       }
 
       async function favoriteRemove(shopId) {
-        const idToken = liff.getIDToken?.() || "";
+        const idToken =
+          typeof liff !== "undefined" && liff.getIDToken
+            ? liff.getIDToken()
+            : "";
         const sid = String(shopId);
         const payload = {
           shop_id: /^\d+$/.test(sid) ? Number(sid) : sid,
           shopId: sid,
         };
 
-        // ① /favorite-remove(POST)
+        // ① /api/favorite-remove (POST)
         try {
           const r = await fetch(`${CONFIG.API_BASE}/api/favorite-remove`, {
             method: "POST",
@@ -1416,7 +1416,7 @@
             return { ok: false, unsupported: true, status: r.status };
         } catch {}
 
-        // ② フォールバック: /api/favorites?shopId=... DELETE
+        // ② フォールバック: /api/favorites?shopId=... (DELETE)
         try {
           const r2 = await fetch(
             `${CONFIG.API_BASE}/api/favorites?shopId=${encodeURIComponent(
@@ -2752,6 +2752,14 @@
               });
           });
       });
+
+      // ?resetFav=1 で端末のお気に入り（このユーザー分）を一度クリア
+      if (new URLSearchParams(location.search).get("resetFav") === "1") {
+        getUserKey().then((k) => {
+          localStorage.removeItem("mottaina:fav:" + k);
+          alert("端末のお気に入りをクリアしました");
+        });
+      }
 
       // 起動
       init();
