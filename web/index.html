@@ -1348,6 +1348,88 @@
         btn?.setAttribute("aria-pressed", isFav ? "true" : "false");
       }
 
+      // ===== サーバ同期（追加／削除） =====
+      async function favoriteAdd(shopId) {
+        const idToken = liff.getIDToken?.() || "";
+        const sid = String(shopId);
+        const num = /^\d+$/.test(sid) ? Number(sid) : null;
+        const body = { shop_id: num ?? sid, shopId: sid };
+        try {
+          const res = await fetch(`${CONFIG.API_BASE}/api/favorite-add`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + idToken,
+            },
+            body: JSON.stringify(body),
+          });
+          const txt = await res.text().catch(() => "");
+          let j = null;
+          try {
+            j = JSON.parse(txt);
+          } catch {}
+          if (res.ok && (j?.ok ?? true)) return { ok: true };
+          if (res.status === 409 || /already/i.test(txt))
+            return { ok: true, already: true };
+          if ([400, 404, 405].includes(res.status))
+            return { ok: false, unsupported: true, status: res.status };
+          return { ok: false, status: res.status, text: txt };
+        } catch (e) {
+          return { ok: false, error: e };
+        }
+      }
+
+      async function favoriteRemove(shopId) {
+        const idToken = liff.getIDToken?.() || "";
+        const sid = String(shopId);
+        const payload = {
+          shop_id: /^\d+$/.test(sid) ? Number(sid) : sid,
+          shopId: sid,
+        };
+
+        // ① /favorite-remove(POST)
+        try {
+          const r = await fetch(`${CONFIG.API_BASE}/api/favorite-remove`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + idToken,
+            },
+            body: JSON.stringify(payload),
+          });
+          if (r.ok) return { ok: true };
+          if ([400, 404, 405].includes(r.status))
+            return { ok: false, unsupported: true, status: r.status };
+        } catch {}
+
+        // ② フォールバック: /api/favorites?shopId=... DELETE
+        try {
+          const r2 = await fetch(
+            `${CONFIG.API_BASE}/api/favorites?shopId=${encodeURIComponent(
+              sid
+            )}`,
+            {
+              method: "DELETE",
+              headers: { Authorization: "Bearer " + idToken },
+            }
+          );
+          if (r2.ok) return { ok: true };
+          if ([404, 405].includes(r2.status))
+            return { ok: false, unsupported: true, status: r2.status };
+          return { ok: false, status: r2.status };
+        } catch (e) {
+          return { ok: false, error: e };
+        }
+      }
+
+      // 既存互換（QRスキャン側で使用）
+      async function favPost(shopId) {
+        const r = await favoriteAdd(shopId);
+        if (!r.ok && !r.unsupported)
+          throw new Error(r.error?.message || "favorite_add_failed");
+        return r;
+      }
+
       /* ============== マップ API（Leaflet実装） ============== */
       function createLeafletAPI() {
         let _map,
@@ -2149,6 +2231,9 @@
                     { headers: { Authorization: "Bearer " + idToken } }
                   );
                   const j = await r.json().catch(() => null);
+
+                  // 追加：ユーザーがタップ済みならサーバ結果で上書きしない
+                  if (userTouched || g.favTouched.has(sid)) return;
 
                   if (
                     r.ok &&
