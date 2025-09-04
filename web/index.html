@@ -1147,6 +1147,7 @@
       g.currentShop = null; // レンダリング中の店舗情報
       g.currentOffers = []; // 店舗の提供中オファー配列
       g.favTouched = new Set(); // ★ 追加：ユーザーが一度でもハートを触った shopId を保持
+      g.favSnapshot = null; // お気に入り一覧の入室時スナップショット
 
       // --- 表示ユーティリティ ---
       function yen(n) {
@@ -2878,21 +2879,106 @@
         return card;
       }
 
+      async function openFavPage() {
+        const userKey = await getUserKey();
+        g.favSnapshot = readFavSetSync(userKey); // 入室時の集合を固定
+        renderFavoritesPage();
+      }
+
       async function renderFavoritesPage() {
         const wrap = document.getElementById("fav-list");
-        if (!wrap) return;
+        if (!wrap) return; // コンテナが無ければ何もしない
         wrap.innerHTML = "";
 
-        const ids = await getFavoriteShopIds();
-        if (!ids.length) {
-          wrap.innerHTML = `<p class="muted">お気に入りはまだありません。</p>`;
+        const favIds = Array.from(g.favSnapshot || []);
+        if (!favIds.length) {
+          wrap.innerHTML = '<p class="muted">お気に入りはありません</p>';
           return;
         }
 
-        // できるだけ __lastOffers から名前/住所を引く（なければ名前だけ）
-        for (const sid of ids) {
-          const shop = findShopFromOffers(sid);
-          const card = createFavCard(shop, true);
+        for (const sid of favIds) {
+          // 既存データのヒント → 無ければ API で取得
+          let shop = (window.__lastOffers || [])
+            .map((o) => o.shop || o.shops)
+            .find((s) => String(s?.id) === String(sid));
+          if (!shop) {
+            try {
+              shop = await fetchShopDetail(sid);
+            } catch {}
+          }
+
+          const name = shop?.name || "店舗";
+          const addr = shop?.address || "";
+
+          const card = document.createElement("article");
+          card.className = "card fav-card";
+          card.innerHTML = `
+      <div class="row">
+        <div style="min-width:0">
+          <div class="name" style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</div>
+          <div class="muted" style="font-size:12px">${addr}</div>
+          <div class="muted fav-msg" style="font-size:12px"></div>
+        </div>
+        <button class="heart active" aria-label="お気に入り" data-sid="${sid}">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+            <path d="m12 21-1.45-1.32C6 15.36 3 12.61 3 9.28 3 6.5 5.24 4.5 7.88 4.5c1.45 0 2.87.64 3.78 1.67A5.2 5.2 0 0 1 15.44 4.5C18.08 4.5 20.3 6.5 20.3 9.28c0 3.33-3 6.08-7.55 10.4L12 21Z"
+                fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>`;
+
+          // カードタップで店舗ページへ
+          card.addEventListener("click", (ev) => {
+            if (ev.target.closest(".heart")) return;
+            openShopPage(sid);
+          });
+
+          // ★ ハートのトグル（解除してもカードは消さない）
+          const btn = card.querySelector(".heart");
+          btn.onclick = async () => {
+            const userKey = await getUserKey();
+            const favSet = readFavSetSync(userKey);
+
+            const nowFav = favSet.has(sid);
+            const willFav = !nowFav;
+
+            // ローカル即時反映
+            if (willFav) favSet.add(sid);
+            else favSet.delete(sid);
+            writeFavSetSync(userKey, favSet);
+            applyFavUI(btn, willFav);
+
+            // サーバ同期（失敗時はロールバック、未対応は黙認）
+            let ok = false,
+              unsupported = false;
+            try {
+              const r = willFav
+                ? await favoriteAdd(sid)
+                : await favoriteRemove(sid);
+              ok = !!r?.ok;
+              unsupported =
+                !!r?.unsupported || [400, 404, 405].includes(r?.status);
+            } catch {}
+
+            if (!ok && !unsupported) {
+              // ロールバック
+              if (willFav) favSet.delete(sid);
+              else favSet.add(sid);
+              writeFavSetSync(userKey, favSet);
+              applyFavUI(btn, !willFav);
+              return;
+            }
+
+            // ★ 解除済みは残す（薄く＆メッセージ）
+            if (!willFav) {
+              card.classList.add("pending-remove");
+              const msg = card.querySelector(".fav-msg");
+              if (msg)
+                msg.textContent =
+                  "解除しました。このページを離れると一覧から消えます。";
+            }
+          };
+
           wrap.appendChild(card);
         }
       }
@@ -2983,6 +3069,12 @@
           const cartBarEl = document.getElementById("cart-bar");
           if (cartBarEl) {
             cartBarEl.style.display = name === "shop" ? "flex" : "none";
+          }
+
+          if (name === "fav") {
+            openFavPage(); // スナップショットで描画（非同期でOK）
+          } else {
+            g.favSnapshot = null; // 退室時に破棄 → 次回は最新が反映
           }
 
           // …関数の最後あたりに
