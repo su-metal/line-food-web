@@ -1715,8 +1715,9 @@
         const url = new URL(CONFIG.SUPABASE_URL + "/rest/v1/offers");
         url.searchParams.set(
           "select",
-          "id,title,price,qty_available,pickup_start,pickup_end,shops:shop_id(id,name,lat,lng,address)"
+          "id,title,image_url,price,qty_available,pickup_start,pickup_end,shops:shop_id(id,name,lat,lng,address,photo_url,image_url)"
         );
+
         url.searchParams.set("status", "eq.active");
         url.searchParams.set("order", "created_at.desc");
 
@@ -1952,14 +1953,22 @@
       }
 
       /* ============== ホーム描画 & 地図描画 ============== */
-      function imgFor(it) {
+      function shopImage(shop) {
+        if (!shop) return "https://placehold.co/800x600";
         return (
-          it.image_url ||
-          it.shops?.image_url ||
-          `https://placehold.co/800x600/j5b09d/ffffff?text=${encodeURIComponent(
-            it.shops?.name || "Shop"
-          )}`
+          shop.photo_url ||
+          shop.image_url ||
+          (shop.name
+            ? `https://placehold.co/800x600/j5b09d/ffffff?text=${encodeURIComponent(
+                shop.name
+              )}`
+            : "https://placehold.co/800x600")
         );
+      }
+
+      function imgFor(it) {
+        const shop = it.shop || it.shops;
+        return it.image_url || shopImage(shop);
       }
 
       function buildCardHTML(it) {
@@ -2103,9 +2112,9 @@
         };
 
         const selects = [
-          "id,name,lat,lng,address,category,station,photo_url,tel,website,instagram,twitter,facebook",
-          "id,name,lat,lng,address,category,station,photo_url,tel,website,instagram",
-          "id,name,lat,lng,address,category,station,photo_url",
+          "id,name,lat,lng,address,category,station,photo_url,image_url,tel,website,instagram,twitter,facebook",
+          "id,name,lat,lng,address,category,station,photo_url,image_url,tel,website,instagram",
+          "id,name,lat,lng,address,category,station,photo_url,image_url",
         ];
 
         for (const sel of selects) {
@@ -2188,13 +2197,7 @@
           // 最後の砦：それでも名前が無いならIDだけでも出す
           const name = shop?.name || `(ID: ${sid})`;
           const address = shop?.address || "";
-          const photo =
-            shop?.photo_url ||
-            (name
-              ? `https://placehold.co/800x600/j5b09d/ffffff?text=${encodeURIComponent(
-                  name
-                )}`
-              : `https://placehold.co/800x600`);
+          const photo = shopImage(shop);
 
           const el = document.createElement("article");
           el.className = "fav-item";
@@ -2329,13 +2332,7 @@
           dist != null ? `距離：${dist.toFixed(1)}km` : "";
 
         const hero = document.getElementById("shop-photo");
-        hero.src =
-          shop?.photo_url ||
-          (shop?.name
-            ? `https://placehold.co/1200x600/j5b09d/ffffff?text=${encodeURIComponent(
-                shop.name
-              )}`
-            : `https://placehold.co/1200x600`);
+        hero.src = shopImage(shop);
 
         document.getElementById("shop-address").textContent =
           shop?.address || "";
@@ -3368,6 +3365,7 @@
             (s) => `
     <div class="fav-card" data-shop="${s.id}">
       <img src="${
+        s.image_url ||
         s.photo_url ||
         `https://placehold.co/160x160/j5b09d/fff?text=${encodeURIComponent(
           s.name || "Shop"
