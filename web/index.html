@@ -3089,12 +3089,6 @@
           if (cartBarEl) {
             cartBarEl.style.display = name === "shop" ? "flex" : "none";
           }
-
-          if (name === "fav") {
-            openFavPage(); // スナップショットで描画（非同期でOK）
-          } else {
-            g.favSnapshot = null; // 退室時に破棄 → 次回は最新が反映
-          }
         }
 
         // ホーム上部の検索：Enterで「お店を探す」に切り替え
