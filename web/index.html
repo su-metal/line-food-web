@@ -1031,6 +1031,32 @@
         fill: currentColor;
         stroke: currentColor;
       }
+      /* ホームのセクション見出しを横並びに */
+      .sec-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between; /* 左に見出し、右に「もっと見る」 */
+        gap: 8px;
+        margin-bottom: 6px;
+      }
+      .sec-head h2 {
+        margin: 0;
+        font-size: 16px; /* 大きすぎる場合の調整。お好みで */
+        font-weight: 700;
+      }
+      .sec-head a {
+        white-space: nowrap;
+        font-size: 13px;
+        color: var(--brand);
+        text-decoration: none;
+        padding: 4px 8px;
+        border-radius: 8px;
+      }
+      @media (hover: hover) {
+        .sec-head a:hover {
+          background: rgba(0, 0, 0, 0.06);
+        }
+      }
     </style>
   </head>
 
