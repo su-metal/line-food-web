@@ -1715,7 +1715,7 @@
         const url = new URL(CONFIG.SUPABASE_URL + "/rest/v1/offers");
         url.searchParams.set(
           "select",
-          "id,title,image_url,price,qty_available,pickup_start,pickup_end,shops:shop_id(id,name,lat,lng,address,photo_url,image_url)"
+          "id,title,price,qty_available,pickup_start,pickup_end,shops:shop_id(id,name,lat,lng,address,photo_url)"
         );
 
         url.searchParams.set("status", "eq.active");
@@ -1967,13 +1967,33 @@
       }
 
       function imgFor(it) {
-        const shop = it.shop || it.shops;
-        return it.image_url || shopImage(shop);
+        try {
+          const shop = it?.shop || it?.shops || null;
+          const src =
+            it?.image_url || // もしオファー側に画像があるなら
+            shop?.photo_url || // ← 店舗のphoto_url（今回の本命）
+            shop?.image_url || // 旧プロパティとの後方互換
+            null;
+
+          const label = shop?.name || "Shop";
+          return (
+            src ||
+            `https://placehold.co/800x600/j5b09d/ffffff?text=${encodeURIComponent(
+              label
+            )}`
+          );
+        } catch {
+          return "https://placehold.co/800x600?text=Shop";
+        }
       }
 
       function buildCardHTML(it) {
         const shop = it.shop || it.shops;
-        const time = `${fmtTime(it.pickup_start)}–${fmtTime(it.pickup_end)}`;
+        const time =
+          it.pickup_start && it.pickup_end
+            ? `${fmtTime(it.pickup_start)}–${fmtTime(it.pickup_end)}`
+            : "";
+
         const dist = it.dist != null ? `${it.dist.toFixed(1)}km` : "";
         const sold = it.qty_available <= 0;
         return `
