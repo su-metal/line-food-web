@@ -2787,31 +2787,28 @@
             }
 
             updateHomeCartBadge();
-
-            // ホーム右上のカートアイコンクリック
+            
+            // ホーム右上のカートを押したら、店舗ページへ遷移してチェックアウトを開く
             document
               .getElementById("home-cart-btn")
               ?.addEventListener("click", () => {
-                // 店舗ページのカート（同一店舗内）が対象なので、店舗ページへ誘導
-                if (g.currentShop) {
-                  // すでに店舗があるなら店舗ページへ遷移
-                  document.dispatchEvent(
-                    new CustomEvent("app:showPage", {
-                      detail: { name: "shop" },
-                    })
+                const cartEmpty = !g.cart || Object.keys(g.cart).length === 0;
+
+                if (cartEmpty) {
+                  alert(
+                    "カートに商品がありません。店舗ページで商品を選ぶとカートに入ります。"
                   );
-                  // （必要なら）カートが空でなければチェックアウトを開く
-                  if (Object.keys(g.cart || {}).length > 0) {
-                    // 少し後に開く（ページ切替→DOM安定）
-                    setTimeout(
-                      () =>
-                        typeof openCheckout === "function" && openCheckout(),
-                      80
-                    );
-                  }
-                } else {
-                  alert("店舗ページで商品を選択するとカートに入ります。");
+                  return;
                 }
+
+                // 店舗ページへ切替 → チェックアウト表示
+                document.dispatchEvent(
+                  new CustomEvent("app:showPage", { detail: { name: "shop" } })
+                );
+                setTimeout(
+                  () => typeof openCheckout === "function" && openCheckout(),
+                  80
+                );
               });
           });
       });
