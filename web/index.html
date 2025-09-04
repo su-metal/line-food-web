@@ -678,6 +678,23 @@
         justify-content: space-between;
         margin: 0 0 8px;
       }
+
+      /* ホームの検索窓を横いっぱいに広げる */
+      .home-header {
+        gap: 8px;
+      } /* 好みで。なくてもOK */
+      .home-header .home-search {
+        flex: 1; /* 余白をすべて取る */
+        min-width: 0; /* はみ出し防止 */
+        margin: 0 8px 0 0; /* カートとの隙間 */
+      }
+      .home-header .home-search input {
+        width: 100%;
+      }
+      .home-header .icon-btn {
+        flex: 0 0 auto;
+      } /* カートは固定幅のまま */
+
       .icon-btn {
         position: relative;
         width: 40px;
