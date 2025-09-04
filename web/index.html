@@ -648,6 +648,15 @@
       .shop-mode .top-utilities {
         display: none !important;
       }
+
+      /* 例1: 例外を追加して店名だけは表示 */
+      .shop-mode #shop-name {
+        display: block !important;
+      }
+
+      /* 例2: そもそも h1 を隠さない（行を削除/コメントアウト） */
+      /* .shop-mode h1 { display: none !important; } */
+
       /* クリックしやすく（見た目変更なし） */
       .card-lg {
         cursor: pointer;
