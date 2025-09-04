@@ -761,6 +761,44 @@
         color: #666;
         margin-top: 2px;
       }
+
+      /* お気に入り一覧のカード */
+      .fav-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border: 1px solid #e5e2dd;
+        border-radius: 12px;
+        background: #fff;
+        padding: 10px;
+        margin: 8px 0;
+      }
+      .fav-item .thumb {
+        width: 72px;
+        height: 72px;
+        border-radius: 10px;
+        object-fit: cover;
+        background: #f2f2f2;
+      }
+      .fav-item .info {
+        flex: 1;
+        min-width: 0;
+      }
+      .fav-item .title {
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .fav-item .meta {
+        color: #666;
+        font-size: 12px;
+        margin-top: 2px;
+      }
+      .fav-item .heart {
+        width: 36px;
+        height: 36px;
+      } /* 右側の小さめハート */
     </style>
   </head>
 
@@ -2062,6 +2100,122 @@
         return null;
       }
 
+      // ========== お気に入り一覧を描画 ==========
+      async function renderFavList() {
+        const wrap = document.getElementById("fav-list");
+        if (!wrap) return;
+        wrap.innerHTML = '<p class="muted">読み込み中…</p>';
+
+        const userKey = await getUserKey();
+        const favSet = readFavSetSync(userKey);
+        const ids = [...favSet];
+        if (ids.length === 0) {
+          wrap.innerHTML = '<p class="muted">お気に入り店舗がありません</p>';
+          return;
+        }
+
+        // 詳細をまとめて取得
+        const details = await Promise.all(
+          ids.map(async (sid) => {
+            const d = await fetchShopDetail(sid).catch(() => null);
+            return d ? d : { id: sid, name: "店舗", address: "" };
+          })
+        );
+
+        // カード生成
+        wrap.innerHTML = "";
+        details.forEach((shop) => {
+          const sid = String(shop.id);
+          const photo =
+            shop.photo_url ||
+            (shop.name
+              ? `https://placehold.co/800x600/j5b09d/ffffff?text=${encodeURIComponent(
+                  shop.name
+                )}`
+              : `https://placehold.co/800x600`);
+
+          const el = document.createElement("article");
+          el.className = "fav-item";
+          el.innerHTML = `
+      <img class="thumb" src="${photo}" alt="">
+      <div class="info">
+        <div class="title">${shop.name || "店舗"}</div>
+        <div class="meta">${shop.address || ""}</div>
+      </div>
+      <button class="heart ${
+        favSet.has(sid) ? "active" : ""
+      }" aria-label="お気に入り">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+          <path d="m12 21-1.45-1.32C6 15.36 3 12.61 3 9.28 3 6.5 5.24 4.5 7.88 4.5c1.45 0 2.87.64 3.78 1.67A5.2 5.2 0 0 1 15.44 4.5C18.08 4.5 20.3 6.5 20.3 9.28c0 3.33-3 6.08-7.55 10.4L12 21Z"
+                fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    `;
+
+          // カードタップで店舗ページへ
+          el.addEventListener("click", (ev) => {
+            if (ev.target.closest(".heart")) return; // ハートは除外
+            openShopPage(sid);
+          });
+
+          // 右側ハートで即トグル（楽観更新+サーバ同期）
+          const btn = el.querySelector(".heart");
+          btn.addEventListener("click", async (ev) => {
+            ev.stopPropagation();
+            if (btn.dataset.busy === "1") return;
+            btn.dataset.busy = "1";
+
+            const nowFav = favSet.has(sid);
+            const willFav = !nowFav;
+
+            // 楽観反映 + ローカル保存
+            if (willFav) favSet.add(sid);
+            else favSet.delete(sid);
+            writeFavSetSync(userKey, favSet);
+            applyFavUI(btn, willFav);
+
+            // サーバ同期（LIFF外はスキップ）
+            if (isLIFFInClient()) {
+              try {
+                const r = willFav
+                  ? await favoriteAdd(sid)
+                  : await favoriteRemove(sid);
+                if (r.unsupported) {
+                  // 未対応: ローカル維持
+                } else if (!r.ok) {
+                  // 真の失敗: ロールバック
+                  if (willFav) favSet.delete(sid);
+                  else favSet.add(sid);
+                  writeFavSetSync(userKey, favSet);
+                  applyFavUI(btn, !willFav);
+                  alert("お気に入りの同期に失敗しました");
+                }
+              } catch {
+                // 失敗: ロールバック
+                if (willFav) favSet.delete(sid);
+                else favSet.add(sid);
+                writeFavSetSync(userKey, favSet);
+                applyFavUI(btn, !willFav);
+                alert("お気に入りの更新に失敗しました");
+              }
+            }
+
+            btn.dataset.busy = "0";
+
+            // 解除したらカードをリストから取り除く
+            if (!willFav) {
+              el.remove();
+              if ([...favSet].length === 0) {
+                wrap.innerHTML =
+                  '<p class="muted">お気に入り店舗がありません</p>';
+              }
+            }
+          });
+
+          wrap.appendChild(el);
+        });
+      }
+
       async function openShopPage(shopId, offerHint) {
         const all = window.__lastOffers || [];
         const offers = all.filter(
@@ -2608,8 +2762,11 @@
 
           if (name === "shop")
             document.getElementById("page-shop")?.classList.add("active");
-          if (name === "fav")
+          if (name === "fav") {
             document.getElementById("page-fav")?.classList.add("active");
+            document.body.classList.remove("shop-mode");
+            renderFavList();
+          }
 
           // タブのON/OFF（home / discover のみ）
           document
@@ -2787,7 +2944,7 @@
             }
 
             updateHomeCartBadge();
-            
+
             // ホーム右上のカートを押したら、店舗ページへ遷移してチェックアウトを開く
             document
               .getElementById("home-cart-btn")
