@@ -39,7 +39,12 @@
 
     <!-- アプリ内リアルタイムQRスキャン -->
     <script src="https://unpkg.com/qr-scanner@1.4.2/qr-scanner.umd.min.js"></script>
-
+    <script>
+      // 簡易判定で LIFF/LINE 内だけ帯を出す
+      if (/Line/i.test(navigator.userAgent)) {
+        document.documentElement.classList.add("line-webview");
+      }
+    </script>
     <style>
       /* ===== ベース ===== */
       :root {
@@ -930,6 +935,16 @@
         .heart.active {
           background: rgba(0, 0, 0, 0.06);
         } /* フォールバック */
+      }
+      .line-webview .top-accent {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 8px; /* 好みで */
+        background: var(--brand);
+        z-index: 2200;
+        pointer-events: none;
       }
     </style>
   </head>
@@ -3538,5 +3553,7 @@
           .forEach((el) => el.setAttribute("content", brand));
       })();
     </script>
+    <!-- ここに置く -->
+    <div class="top-accent" aria-hidden="true"></div>
   </body>
 </html>
