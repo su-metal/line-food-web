@@ -1242,6 +1242,36 @@
         z-index: 1999;
         pointer-events: none;
       }
+      /* ===== PCで店舗カードが横長になり過ぎるのを抑える ===== */
+      @media (min-width: 768px) {
+        /* タブレット以上：1枚あたりの幅をクランプ（最小300px、ビューポートの40vw、最大420px） */
+        .carousel {
+          grid-auto-columns: clamp(300px, 40vw, 420px);
+          gap: 16px;
+        }
+        /* 高さは自動にしてアスペクト比で制御 */
+        .card-lg {
+          height: auto;
+          aspect-ratio: 16 / 9;
+        }
+        /* 白パネルは少しだけ低め（読みやすさは維持） */
+        .card-lg .overlay {
+          min-height: 36%;
+        }
+      }
+
+      @media (min-width: 1024px) {
+        /* デスクトップ：さらに横に広がりにくく（最小320px、28vw、最大440px） */
+        .carousel {
+          grid-auto-columns: clamp(320px, 28vw, 440px);
+        }
+      }
+
+      /* 地図のボトムシートのカードは従来サイズを維持（上のaspect-ratioの影響を受けないように） */
+      #page-discover .map-sheet .card-lg {
+        aspect-ratio: auto;
+        height: 210px;
+      }
     </style>
   </head>
 
