@@ -279,33 +279,44 @@
         display: block;
         opacity: 0.95;
       }
+      /* カード下半分に白い面を敷く（可読性UP） */
       .card-lg .overlay {
         position: absolute;
-        inset: auto 0 0 0;
+        inset: auto 0 0 0; /* 底辺に固定 */
         padding: 12px;
-        background: linear-gradient(
-          180deg,
-          rgba(0, 0, 0, 0) 0%,
-          rgba(0, 0, 0, 0.65) 70%
-        );
+        background: rgba(255, 255, 255, 0.92); /* うっすら透ける白 */
+        color: var(--ink);
+        min-height: 52%; /* 「半分くらい」→お好みで 48~60% 調整可 */
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end; /* テキストを下寄せ */
+        border-top-left-radius: 16px;
+        border-top-right-radius: 16px;
+        backdrop-filter: saturate(115%) blur(2px); /* 対応端末のみ効く */
       }
+
+      /* タイトル/メタの色を白面前提に最適化 */
       .card-lg .title {
+        color: var(--ink);
         font-weight: 700;
         font-size: 16px;
         line-height: 1.2;
       }
       .card-lg .meta {
-        display: flex;
-        gap: 10px;
+        color: #555;
         font-size: 12px;
-        opacity: 0.95;
+        opacity: 1; /* 既存の0.95等があれば上書き */
         margin-top: 4px;
       }
+
+      /* 価格チップも白基調で視認性アップ */
       .card-lg .price {
         position: absolute;
         right: 10px;
         top: 10px;
-        background: rgba(0, 0, 0, 0.6);
+        background: rgba(255, 255, 255, 0.9);
+        color: var(--ink);
+        border: 1px solid #e5e2dd;
         border-radius: 10px;
         padding: 4px 8px;
         font-weight: 700;
