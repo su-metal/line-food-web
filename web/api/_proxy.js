@@ -1,4 +1,4 @@
-// web/api/_proxy.js  (ESM / Node runtime)
+// web/api/_proxy.js  (差分：try/catchとデバッグヘッダを強化)
 async function readBody(req) {
   if (req.method === 'GET' || req.method === 'HEAD') return null;
   const chunks = [];
@@ -19,7 +19,6 @@ export default async function proxy(req, res, { pathRewrite } = {}) {
   const path = pathRewrite || incoming.pathname;
   const target = upstream.replace(/\/$/, '') + path + (incoming.search || '');
 
-  // 転送ヘッダ（Host/Content-Length/Accept-Encoding は外す）
   const headers = { ...req.headers };
   delete headers.host;
   delete headers['content-length'];
@@ -27,24 +26,31 @@ export default async function proxy(req, res, { pathRewrite } = {}) {
   headers['x-forwarded-host'] = req.headers.host;
   headers['x-forwarded-proto'] = 'https';
 
-  const body = await readBody(req);
+  res.setHeader('x-proxy-target', target); // ← 先に付けておくと例外時も見える
 
-  const r = await fetch(target, {
-    method: req.method || 'GET',
-    headers,
-    body,
-    redirect: 'manual',
-  });
+  try {
+    const body = await readBody(req);
+    const r = await fetch(target, {
+      method: req.method || 'GET',
+      headers,
+      body,
+      redirect: 'manual',
+    });
 
-  // レスポンス転送
-  res.statusCode = r.status;
-  res.setHeader('x-proxy-target', target); // デバッグ用に必ず付ける
-  r.headers.forEach((v, k) => {
-    const key = k.toLowerCase();
-    if (key === 'content-encoding' || key === 'transfer-encoding') return;
-    res.setHeader(k, v);
-  });
+    res.statusCode = r.status;
+    r.headers.forEach((v, k) => {
+      const key = k.toLowerCase();
+      if (key === 'content-encoding' || key === 'transfer-encoding') return;
+      res.setHeader(k, v);
+    });
 
-  const buf = Buffer.from(await r.arrayBuffer());
-  res.end(buf);
+    const buf = Buffer.from(await r.arrayBuffer());
+    res.end(buf);
+  } catch (err) {
+    // ここで 500→502 にし、詳細をヘッダに出す
+    res.statusCode = 502;
+    res.setHeader('content-type', 'application/json; charset=utf-8');
+    res.setHeader('x-proxy-error', String(err?.message || err));
+    res.end(JSON.stringify({ ok: false, error: 'fetch_failed', target }));
+  }
 }
