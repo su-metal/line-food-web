@@ -6,6 +6,23 @@
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
+
+    <!-- PWA manifest -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Android のステータスバー色 -->
+    <meta name="theme-color" content="#C63D2F" />
+
+    <!-- iOS: ホーム画面追加用（完全な色指定は不可のため、黒透過＋CSSで上塗り） -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+
+    <!-- iOS のホーム画面アイコン -->
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+
     <!-- Android Chrome / PWA -->
     <meta
       name="theme-color"
@@ -92,6 +109,19 @@
       body,
       .page {
         padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0));
+      }
+
+      /* iOSのノッチ/ステータスバー下をブランド色で塗る */
+      body::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: env(safe-area-inset-top, 0);
+        background: var(--brand);
+        z-index: 1999;
+        pointer-events: none;
       }
 
       /* DEBUG: ホームのカードだけ "予約へ進む" を非表示にする */
@@ -3914,5 +3944,12 @@
     </script>
     <!-- ここに置く -->
     <div class="top-accent" aria-hidden="true"></div>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("/sw.js").catch(console.error);
+        });
+      }
+    </script>
   </body>
 </html>
