@@ -1,7 +1,11 @@
-// web/api/my-reservations.js  ← 一時スタブ（Node/ESM）
+// web/api/my-reservations.js  (temporary fallback)
 export default function handler(req, res) {
-  res.statusCode = 401; // 認証想定なので 401 を返す（200でも可）
+  // 認証が入るまでの暫定（必要なら 401 にしてもOK）
+  res.statusCode = 200;
   res.setHeader('content-type', 'application/json; charset=utf-8');
-  res.setHeader('x-stub', 'my-reservations');
-  res.end(JSON.stringify({ ok: false, reason: 'stubbed on web to avoid 508 loop' }));
+  res.setHeader('x-fallback', 'my-reservations');
+  res.end(JSON.stringify({
+    ok: true,
+    reservations: [],   // ← ここに空配列を返す
+  }));
 }
