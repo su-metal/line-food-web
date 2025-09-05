@@ -1,8 +1,9 @@
-export const runtime = 'nodejs';
-import proxy from './_proxy.js';
+// web/api/favorites.js  ← まずは疎通だけ（後でプロキシに戻せます）
+export const runtime = 'edge';
 
-export default async function handler(req, res) {
-  // デバッグ用：このヘッダが返ってきたらこのハンドラまで到達
-  res.setHeader('x-handler', 'favorites');
-  return proxy(req, res, { pathRewrite: '/api/favorites' });
+export default function handler() {
+  return new Response(
+    JSON.stringify({ ok: true, ping: 'favorites', runtime: 'edge' }),
+    { status: 200, headers: { 'content-type': 'application/json' } }
+  );
 }
