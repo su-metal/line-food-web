@@ -1,5 +1,3 @@
-// web/api/favorites.js  (ESM / Node runtime)
-import proxy from './_proxy.js';
-export default function handler(req, res) {
-  return proxy(req, res, { pathRewrite: '/api/favorites' });
-}
+const proxy = require('./_proxy');
+module.exports = (req, res) =>
+  proxy(req, res, { pathRewrite: '/api/favorites' });
