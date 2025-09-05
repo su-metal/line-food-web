@@ -1,4 +1,4 @@
-// web/api/health.js  ← ESM（CommonJS禁止）
+// web/api/health.js  ← ESM
 export const runtime = 'edge';
 
 export default function handler() {

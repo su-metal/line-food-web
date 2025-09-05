@@ -1,4 +1,4 @@
-// web/api/favorites.js  ← まずは疎通だけ（後でプロキシに戻せます）
+// web/api/favorites.js  ← ESM
 export const runtime = 'edge';
 
 export default function handler() {
