@@ -1,5 +1,5 @@
 // web/api/health.js
-export const config = { runtime: 'edge' };
+export const config = { runtime: 'nodejs20.x' };
 
 export default function handler() {
   return new Response(
