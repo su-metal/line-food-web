@@ -1,11 +1,21 @@
-// web/api/my-reservations.js  (temporary fallback)
-export default function handler(req, res) {
-  // 認証が入るまでの暫定（必要なら 401 にしてもOK）
-  res.statusCode = 200;
-  res.setHeader('content-type', 'application/json; charset=utf-8');
-  res.setHeader('x-fallback', 'my-reservations');
-  res.end(JSON.stringify({
-    ok: true,
-    reservations: [],   // ← ここに空配列を返す
-  }));
-}
+const proxy = require ? require('./_proxy') : (await import('./_proxy.js')).default;
+
+module.exports = async (req, res) => {
+  const u = new URL(req.url, `https://${req.headers.host}`);
+  const shopId = u.searchParams.get('shopId') || '';
+  const q = new URLSearchParams({
+    select: '*',
+    ...(shopId ? { 'shop_id': `eq.${shopId}` } : {})
+  }).toString();
+
+  return proxy(req, res, {
+    // ← _proxy が SUPABASE_URL を upstream に選ぶので
+    //    /rest/v1/... を素直に連結すればOK
+    pathRewrite: `/rest/v1/reservations?${q}`,
+    injectHeaders: {
+      apikey: process.env.SUPABASE_SERVICE_KEY,
+      Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}`,
+      Prefer: 'count=exact',
+    },
+  });
+};
