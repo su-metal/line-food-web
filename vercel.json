@@ -1,6 +1,8 @@
 {
-  "version": 2,
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "https://line-food-mvp.vercel.app/api/$1" }
-  ]
+  "outputDirectory": "web",
+  "functions": {
+    "web/api/**/*.js": {
+      "runtime": "nodejs20.x"
+    }
+  }
 }
