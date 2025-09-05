@@ -1,4 +1,6 @@
-export const config = { runtime: 'nodejs20.x' };
+export const runtime = 'nodejs';
 import proxy from './_proxy.js';
-export default (req, res) =>
-  proxy(req, res, { pathRewrite: '/api/favorite-remove' });
+
+export default async function handler(req, res) {
+  return proxy(req, res, { pathRewrite: '/api/favorite-remove' });
+}

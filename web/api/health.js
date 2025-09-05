@@ -1,7 +1,7 @@
-// web/api/health.js
-export const config = { runtime: 'nodejs20.x' };
+// Edge でも Node でも可。Edge のまま軽量に。
+export const runtime = 'edge';
 
-export default function handler() {
+export default async function handler() {
   return new Response(
     JSON.stringify({ ok: true, now: new Date().toISOString(), runtime: 'edge' }),
     {

@@ -1,34 +1,35 @@
-// web/api/_proxy.js
+// ESM 版 proxy
 export default async function proxy(req, res, { pathRewrite } = {}) {
-  const upstream =
-    process.env.UPSTREAM_BASE ||
-    process.env.MVP_API_BASE ||
-    'https://line-food-mvp.vercel.app';
-
-  const url = new URL(req.url, `https://${req.headers.host}`);
-  const target =
-    upstream.replace(/\/$/, '') +
-    (pathRewrite || url.pathname) +
-    (url.search || '');
-
-  res.setHeader('x-proxy-target', target); // ← 転送先可視化
-
-  const headers = { ...req.headers };
-  delete headers.host;
-  delete headers['content-length'];
-  delete headers['accept-encoding'];
-  headers['x-forwarded-host'] = req.headers.host;
-  headers['x-forwarded-proto'] = 'https';
-
-  const body = await new Promise((resolve) => {
-    if (req.method === 'GET' || req.method === 'HEAD') return resolve(null);
-    const chunks = [];
-    req.on('data', (c) => chunks.push(c));
-    req.on('end', () => resolve(Buffer.concat(chunks)));
-    req.on('error', () => resolve(null));
-  });
-
   try {
+    const upstream =
+      process.env.UPSTREAM_BASE ||
+      process.env.MVP_API_BASE ||
+      'https://line-food-mvp.vercel.app';
+
+    const incoming = new URL(req.url, 'https://dummy.local');
+    const target =
+      upstream.replace(/\/$/, '') +
+      (pathRewrite || incoming.pathname) +
+      (incoming.search || '');
+
+    // 転送ヘッダ整形
+    const headers = { ...req.headers };
+    delete headers.host;
+    delete headers['content-length'];
+    delete headers['accept-encoding'];
+    headers['x-forwarded-host'] = req.headers.host || '';
+    headers['x-forwarded-proto'] = 'https';
+
+    // body 読み込み
+    const chunks = [];
+    await new Promise((ok) => {
+      req.on('data', (c) => chunks.push(c));
+      req.on('end', ok);
+      req.on('error', ok);
+    });
+    const body = chunks.length ? Buffer.concat(chunks) : undefined;
+
+    // 転送
     const r = await fetch(target, {
       method: req.method || 'GET',
       headers,
@@ -36,25 +37,20 @@ export default async function proxy(req, res, { pathRewrite } = {}) {
       redirect: 'manual',
     });
 
+    // 応答
     res.statusCode = r.status;
     r.headers.forEach((v, k) => {
       const key = k.toLowerCase();
       if (key === 'content-encoding' || key === 'transfer-encoding') return;
       res.setHeader(k, v);
     });
-
+    res.setHeader('x-proxy-target', target);
     const buf = Buffer.from(await r.arrayBuffer());
     res.end(buf);
-  } catch (err) {
-    console.error('[proxy_failed]', err);
+  } catch (e) {
+    console.error('[proxy] error', e);
     res.statusCode = 502;
     res.setHeader('content-type', 'application/json; charset=utf-8');
-    res.setHeader('x-proxy-error', String(err?.message || err));
-    res.end(JSON.stringify({
-      ok: false,
-      error: 'proxy_failed',
-      message: String(err?.message || err),
-      target,
-    }));
+    res.end(JSON.stringify({ ok: false, error: String(e?.message || e) }));
   }
 }
