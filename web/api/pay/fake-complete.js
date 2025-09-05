@@ -1,5 +1,5 @@
-export const runtime = 'nodejs';
+// web/api/pay/fake-complete.js
 import proxy from '../_proxy.js';
-export default async function handler(req, res) {
+export default function handler(req, res) {
   return proxy(req, res, { pathRewrite: '/api/pay/fake-complete' });
 }

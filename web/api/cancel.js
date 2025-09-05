@@ -1,5 +1,5 @@
-export const runtime = 'nodejs';
+// web/api/cancel.js
 import proxy from './_proxy.js';
-export default async function handler(req, res) {
+export default function handler(req, res) {
   return proxy(req, res, { pathRewrite: '/api/cancel' });
 }
