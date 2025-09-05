@@ -1,4 +1,4 @@
-// web/api/ping.js (Edge runtime - 最小)
+// web/api/ping.js (Edge runtime)
 export const runtime = 'edge';
 export default () =>
   new Response('pong', {
