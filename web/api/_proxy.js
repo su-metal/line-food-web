@@ -11,8 +11,7 @@ export default async function proxy(req, res, { pathRewrite } = {}) {
     (pathRewrite || url.pathname) +
     (url.search || '');
 
-  // デバッグ用：転送先を必ず返す
-  res.setHeader('x-proxy-target', target);
+  res.setHeader('x-proxy-target', target); // ← 転送先可視化
 
   const headers = { ...req.headers };
   delete headers.host;
