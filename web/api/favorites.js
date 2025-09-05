@@ -1,9 +1,10 @@
-// web/api/favorites.js  ← ESM
-export const runtime = 'edge';
-
-export default function handler() {
-  return new Response(
-    JSON.stringify({ ok: true, ping: 'favorites', runtime: 'edge' }),
-    { status: 200, headers: { 'content-type': 'application/json' } }
-  );
+// web/api/favorites.js (ESM, Node runtime)
+export default function handler(req, res) {
+  res.statusCode = 200;
+  res.setHeader('content-type', 'application/json; charset=utf-8');
+  res.end(JSON.stringify({
+    ok: true,
+    ping: 'favorites',
+    runtime: 'node'
+  }));
 }
