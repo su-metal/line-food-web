@@ -1,2 +1,3 @@
 import proxy from './_proxy.js';
-export default (req, res) => proxy(req, res, { pathRewrite: '/api/my-reservations' });
+export default (req, res) =>
+  proxy(req, res, { pathRewrite: '/api/my-reservations' });
