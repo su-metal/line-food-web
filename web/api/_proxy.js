@@ -1,4 +1,4 @@
-// web/api/_proxy.js  (ESM)
+// web/api/_proxy.js (ESM, Nodeランタイム用)
 export default async function proxy(req, res, { pathRewrite } = {}) {
   const upstream =
     process.env.UPSTREAM_BASE ||
@@ -11,10 +11,10 @@ export default async function proxy(req, res, { pathRewrite } = {}) {
     (pathRewrite || url.pathname) +
     (url.search || '');
 
-  // デバッグしやすいように転送先を必ず付ける
+  // デバッグ：転送先を必ず入れる
   res.setHeader('x-proxy-target', target);
 
-  // 転送ヘッダ（Host/Content-Length/Accept-Encoding は外す）
+  // 転送ヘッダを整理
   const headers = { ...req.headers };
   delete headers.host;
   delete headers['content-length'];
@@ -22,7 +22,7 @@ export default async function proxy(req, res, { pathRewrite } = {}) {
   headers['x-forwarded-host'] = req.headers.host;
   headers['x-forwarded-proto'] = 'https';
 
-  // ボディ読み込み（GET/HEADは null）
+  // ボディ取得（GET/HEADは null）
   const body = await new Promise((resolve) => {
     if (req.method === 'GET' || req.method === 'HEAD') return resolve(null);
     const chunks = [];
@@ -49,6 +49,7 @@ export default async function proxy(req, res, { pathRewrite } = {}) {
     const buf = Buffer.from(await r.arrayBuffer());
     res.end(buf);
   } catch (err) {
+    console.error('[proxy_failed]', err);
     res.statusCode = 502;
     res.setHeader('content-type', 'application/json; charset=utf-8');
     res.setHeader('x-proxy-error', String(err?.message || err));
