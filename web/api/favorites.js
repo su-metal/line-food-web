@@ -1,3 +1,2 @@
-const proxy = require('./_proxy');
-module.exports = (req, res) =>
-  proxy(req, res, { pathRewrite: '/api/favorites' });
+import proxy from './_proxy.js';
+export default (req, res) => proxy(req, res, { pathRewrite: '/api/favorites' });
