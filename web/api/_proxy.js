@@ -1,4 +1,4 @@
-// ESM 版 proxy
+// ESM proxy for Node runtime
 export default async function proxy(req, res, { pathRewrite } = {}) {
   try {
     const upstream =
@@ -12,7 +12,6 @@ export default async function proxy(req, res, { pathRewrite } = {}) {
       (pathRewrite || incoming.pathname) +
       (incoming.search || '');
 
-    // 転送ヘッダ整形
     const headers = { ...req.headers };
     delete headers.host;
     delete headers['content-length'];
@@ -20,7 +19,6 @@ export default async function proxy(req, res, { pathRewrite } = {}) {
     headers['x-forwarded-host'] = req.headers.host || '';
     headers['x-forwarded-proto'] = 'https';
 
-    // body 読み込み
     const chunks = [];
     await new Promise((ok) => {
       req.on('data', (c) => chunks.push(c));
@@ -29,7 +27,6 @@ export default async function proxy(req, res, { pathRewrite } = {}) {
     });
     const body = chunks.length ? Buffer.concat(chunks) : undefined;
 
-    // 転送
     const r = await fetch(target, {
       method: req.method || 'GET',
       headers,
@@ -37,7 +34,6 @@ export default async function proxy(req, res, { pathRewrite } = {}) {
       redirect: 'manual',
     });
 
-    // 応答
     res.statusCode = r.status;
     r.headers.forEach((v, k) => {
       const key = k.toLowerCase();
@@ -45,6 +41,7 @@ export default async function proxy(req, res, { pathRewrite } = {}) {
       res.setHeader(k, v);
     });
     res.setHeader('x-proxy-target', target);
+
     const buf = Buffer.from(await r.arrayBuffer());
     res.end(buf);
   } catch (e) {

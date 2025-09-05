@@ -1,6 +1,8 @@
-export const runtime = 'nodejs';        // Node ランタイムで req/res を使う
-import proxy from './_proxy.js';        // ← ESM import。拡張子 .js が必須！
+export const runtime = 'nodejs';
+import proxy from './_proxy.js';
 
 export default async function handler(req, res) {
+  // デバッグ用：このヘッダが返ってきたらこのハンドラまで到達
+  res.setHeader('x-handler', 'favorites');
   return proxy(req, res, { pathRewrite: '/api/favorites' });
 }
