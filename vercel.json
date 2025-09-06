@@ -1,8 +1,4 @@
 {
   "outputDirectory": "web",
-  "functions": {
-    "web/api/**/*.js": {
-      "runtime": "nodejs20.x"
-    }
-  }
+  "functions": { "web/api/**/*.js": { "runtime": "nodejs20.x" } }
 }
