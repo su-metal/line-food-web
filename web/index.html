@@ -43,8 +43,8 @@
     />
 
     <!-- ファビコン -->
-    <link rel="icon" href="/favicon.ico">
-    <link rel="icon" href="/favicon.ico?v=20250905">
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="icon" href="/favicon.ico?v=20250905" />
 
     <title>モッタイナ</title>
 
@@ -1611,6 +1611,55 @@
       var liveScanner = typeof liveScanner === "undefined" ? null : liveScanner;
       let currentShopOffer = null;
 
+      // ============================================================================
+      // === API 通信（Cookie 同送）共通ユーティリティ ==============================
+      // ----------------------------------------------------------------------------
+      // ・/api/* へアクセスする時に、常に Cookie を同送（credentials: 'include'）する
+      // ・CONFIG.API_BASE が空なら同一オリジン（推奨: "" のまま）
+      // ・素の fetch を直接使わず、必ず apiFetch / apiJSON を経由させる
+      // ============================================================================
+      function apiUrl(path) {
+        const base = window.CONFIG?.API_BASE ?? ""; // 未定義対策
+        return base + path;
+      }
+
+      function apiFetch(path, opts = {}) {
+        return fetch(apiUrl(path), {
+          credentials: "include", // ← Cookie必ず同送
+          ...opts,
+        });
+      }
+
+      async function apiJSON(path, opts = {}) {
+        const { json, headers, ...rest } = opts;
+        const reqHeaders = new Headers(headers || {});
+        if (json !== undefined && !reqHeaders.has("content-type")) {
+          reqHeaders.set("content-type", "application/json");
+        }
+        const res = await apiFetch(path, {
+          headers: reqHeaders,
+          body: json !== undefined ? JSON.stringify(json) : rest.body,
+          ...rest,
+        });
+
+        const text = await res.text();
+        let data = null;
+        try {
+          data = text ? JSON.parse(text) : null;
+        } catch {
+          data = null;
+        }
+
+        if (!res.ok) {
+          const err = new Error(`HTTP ${res.status}`);
+          err.status = res.status;
+          err.data = data;
+          err.raw = text;
+          throw err;
+        }
+        return data;
+      }
+
       // --- Leaflet(店舗マップ)のサイズ確定を確実にする ---
       function scheduleShopMapFix() {
         if (!shopMapApi) return;
@@ -1690,51 +1739,38 @@
         if (el) el.textContent = text;
       }
 
-      // --- サイレント予約（alert出さない版） ---
+      // --- サイレント予約（UIにアラートを出さない / 成功: {ok:true,reservation}） ---
       async function reserveSilently(offer) {
         try {
           const idToken = liff.getIDToken();
-          const r = await fetch(CONFIG.API_BASE + "/api/reserve", {
+          const j = await apiJSON("/api/reserve", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer " + idToken,
-            },
-            body: JSON.stringify({ offer_id: offer.id }),
+            json: { offer_id: offer.id },
+            headers: { Authorization: "Bearer " + idToken },
           });
-          const data = await r.json().catch(() => null);
-          if (!r.ok || !data?.ok) {
-            const msg = data?.error || "reserve_failed";
-            return { ok: false, error: msg };
-          }
-          // キャッシュも更新
+          if (!j?.ok) return { ok: false, error: j?.error || "reserve_failed" };
+
           myActive.set(offer.id, {
-            id: data.reservation.id,
+            id: j.reservation.id,
             status: "reserved",
-            pickup_code: data.reservation.pickup_code || null,
+            pickup_code: j.reservation.pickup_code || null,
           });
-          return { ok: true, reservation: data.reservation };
+          return { ok: true, reservation: j.reservation };
         } catch (e) {
           return { ok: false, error: e?.message || "reserve_failed" };
         }
       }
 
-      // --- サイレント決済（alert出さない版：テスト用エンドポイント） ---
+      // --- サイレント決済（テスト用） ---
       async function payReservationSilently(reservationId) {
         try {
           const idToken = liff.getIDToken();
-          const r = await fetch(CONFIG.API_BASE + "/api/pay/fake-complete", {
+          const j = await apiJSON("/api/pay/fake-complete", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer " + idToken,
-            },
-            body: JSON.stringify({ reservation_id: reservationId }),
+            json: { reservation_id: reservationId },
+            headers: { Authorization: "Bearer " + idToken },
           });
-          const j = await r.json().catch(() => null);
-          if (!r.ok || !j?.ok) {
-            return { ok: false, error: j?.error || "pay_failed" };
-          }
+          if (!j?.ok) return { ok: false, error: j?.error || "pay_failed" };
           return { ok: true, reservation: j.reservation };
         } catch (e) {
           return { ok: false, error: e?.message || "pay_failed" };
@@ -1952,14 +1988,13 @@
         btn?.setAttribute("aria-pressed", isFav ? "true" : "false");
       }
 
-      // ===== サーバ同期（追加／削除） =====
-      // ===== お気に入りAPI（追加／削除） =====
-
       // ---- お気に入りAPI（追加／削除）: 401/403 はロールバックしない ----
       function softFail(status) {
         return [400, 401, 403, 404, 405].includes(status);
       }
 
+      // --- お気に入りを追加（POST /api/favorite-add） ---
+      // ポイント: apiJSON を使い、401/403/409 は UI をロールバックしない“ソフト失敗”に
       async function favoriteAdd(shopId) {
         const sid = String(shopId);
         const idToken =
@@ -1970,73 +2005,69 @@
           shop_id: /^\d+$/.test(sid) ? Number(sid) : sid,
           shopId: sid,
         };
-        const headers = { "Content-Type": "application/json" };
-        if (idToken) headers.Authorization = "Bearer " + idToken;
 
         try {
-          const r = await fetch(`${CONFIG.API_BASE}/api/favorite-add`, {
+          await apiJSON("/api/favorite-add", {
             method: "POST",
-            headers,
-            body: JSON.stringify(payload),
+            json: payload,
+            headers: idToken
+              ? { Authorization: "Bearer " + idToken }
+              : undefined,
           });
-          // 409=既に登録 → OK扱い
-          if (r.ok || r.status === 409) return { ok: true };
-          // ソフトエラーは UI をロールバックしない
-          if (softFail(r.status))
-            return { ok: false, unsupported: true, status: r.status };
-          return {
-            ok: false,
-            status: r.status,
-            text: await r.text().catch(() => ""),
-          };
+          return { ok: true };
         } catch (e) {
-          // ネットワーク等は“未対応扱い”にして UI を保つ
-          return { ok: false, unsupported: true, error: e?.message };
+          const s = e?.status ?? 0;
+          // 409=既に登録 / 401/403/404/405 = サーバ未対応の可能性 → UIは維持
+          if ([409, 401, 403, 404, 405].includes(s))
+            return { ok: false, unsupported: true, status: s };
+          return { ok: false, status: s, error: e?.message };
         }
       }
 
+      // --- お気に入りを解除（まず POST /api/favorite-remove、ダメなら DELETE /api/favorites?...） ---
       async function favoriteRemove(shopId) {
         const sid = String(shopId);
         const idToken =
           typeof liff !== "undefined" && liff.getIDToken
             ? liff.getIDToken()
             : "";
-        const payload = {
-          shop_id: /^\d+$/.test(sid) ? Number(sid) : sid,
-          shopId: sid,
-        };
-        const headers = { "Content-Type": "application/json" };
-        if (idToken) headers.Authorization = "Bearer " + idToken;
+        const commonAuth = idToken
+          ? { Authorization: "Bearer " + idToken }
+          : undefined;
 
-        // ① 推奨エンドポイント
+        // ① 新API（推奨）
         try {
-          const r = await fetch(`${CONFIG.API_BASE}/api/favorite-remove`, {
+          await apiJSON("/api/favorite-remove", {
             method: "POST",
-            headers,
-            body: JSON.stringify(payload),
+            json: {
+              shop_id: /^\d+$/.test(sid) ? Number(sid) : sid,
+              shopId: sid,
+            },
+            headers: commonAuth,
           });
-          if (r.ok) return { ok: true };
-          if (softFail(r.status))
-            return { ok: false, unsupported: true, status: r.status };
-        } catch {}
-
-        // ② 互換フォールバック
-        try {
-          const r2 = await fetch(
-            `${CONFIG.API_BASE}/api/favorites?shopId=${encodeURIComponent(
-              sid
-            )}`,
-            {
-              method: "DELETE",
-              headers: idToken ? { Authorization: "Bearer " + idToken } : {},
+          return { ok: true };
+        } catch (e1) {
+          const s = e1?.status ?? 0;
+          if ([401, 403, 404, 405].includes(s)) {
+            // ② 旧API（互換）へフォールバック
+            try {
+              const qs = new URLSearchParams({ shopId: sid }).toString();
+              const r = await apiFetch(`/api/favorites?${qs}`, {
+                method: "DELETE",
+                headers: commonAuth,
+              });
+              if (!r.ok) {
+                if ([401, 403, 404, 405].includes(r.status))
+                  return { ok: false, unsupported: true, status: r.status };
+                return { ok: false, status: r.status };
+              }
+              return { ok: true };
+            } catch (e2) {
+              return { ok: false, error: e2?.message };
             }
-          );
-          if (r2.ok) return { ok: true };
-          if (softFail(r2.status))
-            return { ok: false, unsupported: true, status: r2.status };
-          return { ok: false, status: r2.status };
-        } catch (e) {
-          return { ok: false, unsupported: true, error: e?.message };
+          }
+          // 真の失敗
+          return { ok: false, status: s, error: e1?.message };
         }
       }
 
@@ -2276,6 +2307,7 @@
       /* ============== 予約・決済・モーダル ============== */
       let myActive = new Map(); // offer_id -> { id, status, pickup_code }
 
+      // --- 予約ボタン（アラートを伴う通常フロー） ---
       async function reserve(offer, btn) {
         if (offer.qty_available <= 0) {
           const ok = confirm(
@@ -2290,28 +2322,24 @@
         btn.textContent = "予約中…";
         try {
           const idToken = liff.getIDToken();
-          const r = await fetch(CONFIG.API_BASE + "/api/reserve", {
+          const j = await apiJSON("/api/reserve", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer " + idToken,
-            },
-            body: JSON.stringify({ offer_id: offer.id }),
+            json: { offer_id: offer.id },
+            headers: { Authorization: "Bearer " + idToken },
           });
-          const data = await r.json();
 
-          if (!data.ok) {
-            if (data.error === "already_reserved")
+          if (!j.ok) {
+            if (j.error === "already_reserved")
               return alert("このお得袋はすでに予約済みです。");
-            if (data.error === "sold_out_or_missing")
+            if (j.error === "sold_out_or_missing")
               return alert("在庫切れ、または見つかりませんでした。");
-            throw new Error(data.error || "reserve_failed");
+            throw new Error(j.error || "reserve_failed");
           }
 
           myActive.set(offer.id, {
-            id: data.reservation.id,
+            id: j.reservation.id,
             status: "reserved",
-            pickup_code: data.reservation.pickup_code || null,
+            pickup_code: j.reservation.pickup_code || null,
           });
 
           alert("予約を作成しました。続けて「決済へ進む」を押してください。");
@@ -2361,18 +2389,16 @@
         };
       }
 
+      // --- 決済（テスト完了→QR表示 & 再読み込み） ---
       async function payReservation(reservationId, offer) {
         const idToken = liff.getIDToken();
-        const r = await fetch(CONFIG.API_BASE + "/api/pay/fake-complete", {
+        const j = await apiJSON("/api/pay/fake-complete", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: "Bearer " + idToken,
-          },
-          body: JSON.stringify({ reservation_id: reservationId }),
-        });
-        const j = await r.json().catch(() => null);
-        if (!r.ok || !j?.ok) {
+          json: { reservation_id: reservationId },
+          headers: { Authorization: "Bearer " + idToken },
+        }).catch(() => null);
+
+        if (!j?.ok) {
           const msg = j?.error || "pay_failed";
           alert("決済（テスト）に失敗しました：" + msg);
           throw new Error(msg);
@@ -2401,31 +2427,27 @@
         await loadOffers();
       }
 
+      // --- キャンセル ---
       async function cancelReservation(reservationId, onClose) {
         if (!reservationId) return alert("予約IDが見つかりません");
         if (!confirm("この予約をキャンセルしますか？")) return;
         try {
           const idToken = liff.getIDToken();
-          const r = await fetch(CONFIG.API_BASE + "/api/cancel", {
+          const j = await apiJSON("/api/cancel", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer " + idToken,
-            },
-            body: JSON.stringify({ reservation_id: reservationId }),
+            json: { reservation_id: reservationId },
+            headers: { Authorization: "Bearer " + idToken },
           });
-          let data;
-          try {
-            data = await r.json();
-          } catch {}
-          if (!r.ok || !data?.ok) {
-            const msg = data?.error || "cancel_failed";
+
+          if (!j?.ok) {
+            const msg = j?.error || "cancel_failed";
             if (msg === "too_late")
               return alert("受取開始後はキャンセルできません。");
             if (msg === "not_cancellable")
               return alert("この予約はキャンセルできません。");
             return alert("キャンセルに失敗しました：" + msg);
           }
+
           alert("キャンセルしました。");
           if (typeof onClose === "function") onClose();
           await loadOffers();
@@ -3296,22 +3318,21 @@
         }
       }
 
+      // --- 自分の予約一覧を取得（/api/my-reservations） ---
+      // 401 は“未ログイン”の正常系として握りつぶす（UI側で分岐）
       async function loadMyReservations() {
         myActive.clear();
         try {
           if (!(typeof liff !== "undefined" && liff.getIDToken)) return;
           const idToken = liff.getIDToken();
-          if (!idToken) return; // まだログイン確定前
-          const r = await fetch(CONFIG.API_BASE + "/api/my-reservations", {
+          if (!idToken) return;
+
+          const data = await apiJSON("/api/my-reservations", {
             headers: { Authorization: "Bearer " + idToken },
           });
-          if (r.status === 401) {
-            console.warn("my-reservations unauthorized (skip)");
-            return;
-          }
-          const j = await r.json().catch(() => null);
-          if (r.ok && j?.ok && Array.isArray(j.items)) {
-            j.items.forEach((x) => {
+
+          if (data?.ok && Array.isArray(data.items)) {
+            data.items.forEach((x) => {
               myActive.set(x.offer_id, {
                 id: x.id,
                 status: x.status,
@@ -3320,6 +3341,10 @@
             });
           }
         } catch (e) {
+          if (e?.status === 401) {
+            console.warn("my-reservations unauthorized (skip)");
+            return;
+          }
           console.warn("loadMyReservations failed", e);
         }
       }
