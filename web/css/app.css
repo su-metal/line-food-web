@@ -1,12 +1,15 @@
 :root {
-  --bg: #f6f0e9;
+  --bg: #f4f7f6;
   --card: #ffffff;
-  --text: #2b1a16;
-  --muted: #806a62;
-  --primary: #7b1e1e; /* ヘッダ/タブの赤 */
-  --accent: #f6b10a; /* バナーの黄 */
-  --line: #e8e2dc;
-  --ok: #0a7b32;
+  --text: #1f2a24;
+  --muted: #6a7b73;
+  /* メイン：Starbucks Green（近似 #00704A） */
+  --primary: #00704a;
+  /* 成功系も同系色に寄せる */
+  --ok: #00704a;
+  /* 弱めのアクセント（淡いグリーン） */
+  --accent: #cdebdd;
+  --line: #e3e7e5;
   --warn: #b35b00;
 }
 
@@ -36,6 +39,7 @@ body {
   gap: 0.75rem;
   padding: 0.6rem 0.9rem;
   background: var(--primary);
+  color: #fff;
   color: #fff;
 }
 .app-header .search-wrap {
@@ -207,6 +211,7 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* ===== お気に入りハート（アイコンのみ） ===== */
 .heart {
   border: 1px solid var(--line);
   background: #fff;
@@ -221,15 +226,15 @@ body {
 .heart svg {
   width: 20px;
   height: 20px;
-  color: #b11;
+  color: var(--primary);
 }
 .heart[aria-pressed="true"] {
-  background: #ffe7e7;
-  border-color: #ffc9c9;
+  background: #e6f4ee; /* 薄いグリーン背景 */
+  border-color: #bfe6d8;
 }
 .heart[aria-pressed="true"] svg path {
-  fill: #b11; /* 押下時は塗りつぶし */
-  stroke: #b11;
+  fill: var(--primary);
+  stroke: var(--primary);
 }
 
 .heart[aria-pressed="true"] {
