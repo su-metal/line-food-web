@@ -212,9 +212,10 @@ body {
   text-overflow: ellipsis;
 }
 /* ===== お気に入りハート（アイコンのみ） ===== */
+/* --- お気に入りハート：押下時は塗りつぶし、円は常に白、縁取りは現状のまま --- */
 .heart {
   border: 1px solid var(--line);
-  background: #fff;
+  background: #fff; /* 常に白背景 */
   border-radius: 999px;
   width: 36px;
   height: 36px;
@@ -228,20 +229,21 @@ body {
   height: 20px;
   color: var(--primary);
 }
+.heart svg path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+/* 押下時：ハートだけ塗りつぶす（枠線・白円は維持） */
 .heart[aria-pressed="true"] {
-  background: #e6f4ee; /* 薄いグリーン背景 */
-  border-color: #bfe6d8;
+  background: #fff;
+  border-color: var(--line);
 }
 .heart[aria-pressed="true"] svg path {
   fill: var(--primary);
   stroke: var(--primary);
 }
 
-.heart[aria-pressed="true"] {
-  background: #ffe7e7;
-  border-color: #ffc9c9;
-  color: #b11;
-}
 .subline {
   display: flex;
   gap: 0.6rem;
@@ -292,7 +294,10 @@ body {
 .tabbar a span {
   font-size: 18px;
 }
+/* --- フッターのナビ：アイコンもメイングリーン --- */
 .tabbar a.active {
   color: var(--primary);
-  font-weight: 600;
 }
+.tabbar a.active span {
+  color: var(--primary);
+} /* アイコン(emoji/SVG)も緑 */
