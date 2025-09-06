@@ -362,3 +362,36 @@ body {
   border-color: #bfe6d8;
   box-shadow: 0 0 0 2px #cdebdd inset;
 }
+
+/* ===== 価格帯チップ ===== */
+.price {
+  padding: 0 0.9rem;
+  margin-top: 0.1rem;
+}
+.chip-row {
+  display: flex;
+  gap: 0.6rem;
+  overflow-x: auto;
+  padding: 0.35rem 0 0.75rem;
+  -webkit-overflow-scrolling: touch;
+}
+.chip {
+  background: #fff;
+  color: var(--primary);
+  border: 1.5px solid var(--primary);
+  border-radius: 999px;
+  padding: 0.42rem 0.92rem;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.chip:active {
+  transform: translateY(1px);
+}
+/* 選択状態（背景は白のまま、内側に淡いグリーンのリング） */
+.chip.is-active {
+  box-shadow: 0 0 0 3px #cdebdd inset;
+  border-color: #006a45; /* 少し濃い枠 */
+}

@@ -123,6 +123,21 @@
   </div>
 </section>
 
+<!-- 価格帯（横スクロールのタグ） -->
+<section class="price">
+  <div class="chip-row" role="group" aria-label="価格帯から選ぶ">
+    <button class="chip" data-price="<=500" aria-pressed="false">
+      500円以下
+    </button>
+    <button class="chip" data-price="<=1000" aria-pressed="false">
+      1000円以下
+    </button>
+    <button class="chip" data-price="<=1500" aria-pressed="false">
+      1500円以下
+    </button>
+  </div>
+</section>
+
 <main class="container">
   <!-- 近くのお店 -->
   <div class="section-head">
@@ -399,5 +414,29 @@
       );
       if (t) activate(t);
     }
+  }
+  // ▼ 価格帯チップ：単一選択（再クリックで解除）
+  const row = document.querySelector(".chip-row");
+  if (row) {
+    row.addEventListener("click", (e) => {
+      const chip = e.target.closest(".chip");
+      if (!chip) return;
+
+      const isActive = chip.classList.contains("is-active");
+      // いったん全解除
+      row.querySelectorAll(".chip").forEach((c) => {
+        c.classList.remove("is-active");
+        c.setAttribute("aria-pressed", "false");
+      });
+
+      let price = null;
+      if (!isActive) {
+        chip.classList.add("is-active");
+        chip.setAttribute("aria-pressed", "true");
+        price = chip.dataset.price; // "<=500" など
+      }
+      console.log("[price]", price); // TODO: ここで一覧のフィルタや遷移
+      // 例）location.href = `/shops.html?price=${encodeURIComponent(price||'')}`;
+    });
   }
 </script>
