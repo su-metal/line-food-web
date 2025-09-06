@@ -4069,5 +4069,18 @@
         }
       });
     </script>
+    <script>
+      // ?debug=1 が付いている時だけ読み込む
+      (function () {
+        if (!location.search.includes("debug=1")) return;
+        var s = document.createElement("script");
+        s.src = "https://unpkg.com/vconsole@latest/dist/vconsole.min.js";
+        s.onload = function () {
+          window.vConsole = new window.VConsole();
+          console.log("vConsole ready");
+        };
+        document.head.appendChild(s);
+      })();
+    </script>
   </body>
 </html>
