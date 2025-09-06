@@ -1,5 +1,6 @@
 {
   "name": "line-food-web",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "engines": { "node": ">=22 <23" }
 }
