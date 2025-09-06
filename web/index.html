@@ -3980,5 +3980,94 @@
         });
       }
     </script>
+    <script>
+      // --- 認証一元化 ---
+      let _idToken = null;
+      async function ensureIdToken() {
+        await liff.ready;
+        if (!liff.isLoggedIn()) liff.login();
+        if (!_idToken) _idToken = liff.getIDToken();
+        return _idToken;
+      }
+      async function apiFetch(path, opts = {}) {
+        const token = await ensureIdToken(); // ★毎回必ず付与
+        const headers = new Headers(opts.headers || {});
+        if (token) headers.set("Authorization", `Bearer ${token}`);
+        return fetch(`${CONFIG.API_BASE}${path}`, {
+          ...opts,
+          headers,
+          credentials: "include",
+        });
+      }
+      async function apiJSON(path, opts = {}) {
+        const r = await apiFetch(path, opts);
+        const t = await r.text();
+        let j;
+        try {
+          j = JSON.parse(t || "{}");
+        } catch {
+          j = { ok: false, error: "Invalid JSON", raw: t };
+        }
+        if (!r.ok)
+          throw Object.assign(new Error(j.error || r.statusText), {
+            status: r.status,
+            body: j,
+          });
+        return j;
+      }
+
+      // --- お気に入りトグルの標準実装（二重実行防止 & 結果でUI更新）---
+      async function setFavorite(btn, shopId, nextOn) {
+        if (btn.dataset.loading === "1") return; // ★二重連打防止
+        btn.dataset.loading = "1";
+        btn.disabled = true;
+        try {
+          if (nextOn) {
+            await apiJSON("/api/favorite-add", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ shopId }),
+            });
+          } else {
+            // どちらでもOK：DELETE /api/favorites?shopId=... または POST /api/favorite-remove
+            await apiFetch(
+              `/api/favorites?shopId=${encodeURIComponent(shopId)}`,
+              { method: "DELETE" }
+            );
+            // await apiJSON('/api/favorite-remove', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ shopId }) });
+          }
+          // ★サーバ“成功”を真とし、UIをここで確定
+          btn.classList.toggle("on", nextOn);
+          btn.dataset.fav = nextOn ? "1" : "0";
+        } catch (e) {
+          console.error("favorite toggle failed", e);
+          // 失敗時はUIを元の状態に戻す（ここでだけ戻す）
+          const cur = btn.dataset.fav === "1";
+          btn.classList.toggle("on", cur);
+        } finally {
+          btn.disabled = false;
+          btn.dataset.loading = "0";
+        }
+      }
+
+      // 使い方例（あなたの既存コードに合わせて）
+      // const btn = document.querySelector('#favoriteBtn');
+      // btn.addEventListener('click', () => {
+      //   const shopId = btn.dataset.shopId;
+      //   const next = !(btn.dataset.fav === '1');
+      //   setFavorite(btn, shopId, next);
+      // });
+
+      // 初期ロード時：IDトークン取得完了まで誤タップを防ぐ
+      document.addEventListener("DOMContentLoaded", async () => {
+        const favBtn = document.querySelector("#favoriteBtn");
+        if (favBtn) favBtn.disabled = true;
+        try {
+          await ensureIdToken();
+        } finally {
+          if (favBtn) favBtn.disabled = false;
+        }
+      });
+    </script>
   </body>
 </html>
