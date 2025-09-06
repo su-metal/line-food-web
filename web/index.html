@@ -1,19 +1,123 @@
 <!doctype html>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>line-food-web (auth minimal)</title>
-<style>
-  body { font-family: system-ui, sans-serif; margin: 24px; }
-  button { padding: .6rem 1rem; border-radius: .5rem; }
-  pre { background:#f6f8fa; padding:12px; border-radius:6px; }
-</style>
+<title>line-food-web</title>
+<link rel="stylesheet" href="./css/app.css" />
 
-<h1>Auth Minimal</h1>
-<p><button id="btnWho">/api/whoami を呼ぶ</button></p>
-<pre id="out">ready...</pre>
+<!-- ヘッダ -->
+<header class="app-header">
+  <div class="search-wrap">
+    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M21 21l-4.3-4.3M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"/></svg>
+    <input type="search" placeholder="現在地・駅・店舗名などから探す" />
+  </div>
+  <button class="icon-btn" aria-label="通知">
+    <svg viewBox="0 0 24 24"><path d="M10 21a2 2 0 0 0 4 0M5 8a7 7 0 1 1 14 0v5l2 3H3l2-3V8Z"/></svg>
+  </button>
+</header>
 
-<!-- 1) LIFF SDK（グローバルに liff が生える） -->
+<!-- バナー -->
+<section class="banner">
+  <div class="banner-inner">
+    <div>
+      <h2>レスキュー指南書</h2>
+      <p>初めての方はこちら</p>
+    </div>
+    <button class="banner-close" aria-label="閉じる">×</button>
+  </div>
+</section>
+
+<main class="container">
+  <!-- 近くのお店 -->
+  <div class="section-head">
+    <h3>現在地付近のお店</h3>
+    <a class="more" href="#">もっと見る</a>
+  </div>
+
+  <div class="card-row">
+    <!-- カード（サンプル。画像は差し替えてOK） -->
+    <article class="shop-card">
+      <div class="thumb">
+        <img src="./photo/sample1.jpg" alt="店舗写真" />
+        <span class="stock">のこり15個</span>
+        <span class="price">¥390</span>
+      </div>
+      <div class="body">
+        <div class="title-line">
+          <h4>エクセルシオールカフェ …</h4>
+          <button class="heart fav-btn" data-shop-id="9069dcf9-4a86-475c-9cfa-aacffea7f9bb" aria-pressed="false" title="お気に入り">♡</button>
+        </div>
+        <div class="subline">
+          <span class="point">5.0%還元</span>
+          <span class="status">集計中</span>
+        </div>
+        <div class="meta">
+          <span class="time">15:00 - 21:00</span>
+          <span class="walk">六名駅から徒歩16分</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="shop-card">
+      <div class="thumb">
+        <img src="./photo/sample2.jpg" alt="店舗写真" />
+        <span class="stock">のこり1個</span>
+        <span class="price">¥900〜</span>
+      </div>
+      <div class="body">
+        <div class="title-line">
+          <h4>ベーカリーカフェ</h4>
+          <button class="heart fav-btn" data-shop-id="11111111-2222-3333-4444-555555555555" aria-pressed="false" title="お気に入り">♡</button>
+        </div>
+        <div class="subline"><span class="point">0.5%還元</span><span class="status warn">残りわずか</span></div>
+        <div class="meta"><span class="time">17:30 - 20:00</span><span class="walk">徒歩8分</span></div>
+      </div>
+    </article>
+  </div>
+
+  <!-- 最近追加 -->
+  <div class="section-head">
+    <h3>最近追加されたお店</h3>
+    <a class="more" href="#">もっと見る</a>
+  </div>
+
+  <div class="card-row">
+    <article class="shop-card rescued">
+      <div class="thumb">
+        <img src="./photo/sample3.jpg" alt="店舗写真" />
+        <span class="ribbon">Rescued!</span>
+        <span class="price">¥600</span>
+      </div>
+      <div class="body">
+        <div class="title-line">
+          <h4>deux Montagne</h4>
+          <button class="heart fav-btn" data-shop-id="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee" aria-pressed="false" title="お気に入り">♡</button>
+        </div>
+        <div class="subline"><span class="point">0.5%還元</span><span class="status">集計中</span></div>
+        <div class="meta"><span class="time">17:10 - 17:55</span><span class="walk">江曽島駅 徒歩1分</span></div>
+      </div>
+    </article>
+  </div>
+</main>
+
+<!-- 下部タブ -->
+<nav class="tabbar" aria-label="メイン">
+  <a class="active" href="#"><span>🏪</span>ホーム</a>
+  <a href="#"><span>🔎</span>お店を探す</a>
+  <a href="#"><span>❤️</span>お気に入り</a>
+  <a href="#"><span>🆘</span>レスキュー</a>
+  <a href="#"><span>👤</span>マイページ</a>
+</nav>
+
+<!-- （デバッグ要素：既存 app.js が参照するので非表示で残す） -->
+<button id="btnWho" hidden>/api/whoami を呼ぶ</button>
+<pre id="out" hidden></pre>
+
+<!-- LIFF SDK & 既存モジュール -->
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-
-<!-- 2) 画面ロジック（ESM）。内部で config.js / http.js を import します -->
 <script type="module" src="./js/app.js"></script>
+<script type="module">
+  // 既に fav.js を入れている場合は有効化
+  import('./js/fav.js').then(m=>liff.ready.then(()=>m.initAllFavButtons?.())).catch(()=>{});
+  // バナー×印
+  document.querySelector('.banner-close')?.addEventListener('click',()=>document.querySelector('.banner')?.remove());
+</script>
