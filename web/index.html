@@ -22,14 +22,104 @@
   </button>
 </header>
 
-<!-- バナー -->
-<section class="banner">
-  <div class="banner-inner">
-    <div>
-      <h2>レスキュー指南書</h2>
-      <p>初めての方はこちら</p>
-    </div>
-    <button class="banner-close" aria-label="閉じる">×</button>
+<!-- カテゴリー（横スクロール） -->
+<section class="cats">
+  <div class="cat-strip" aria-label="カテゴリー一覧">
+    <!-- パン -->
+    <button class="cat-item" data-cat="パン" aria-label="パン">
+      <span class="ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path
+            d="M3 12c0-4 3.5-7 8-7s8 3 8 7-3.6 7-8 7H7.5A3.5 3.5 0 0 1 4 15.5V12Z"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M9 8v4M12 7.5v5M15 8v4"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+          />
+        </svg>
+      </span>
+      <span class="label">パン</span>
+    </button>
+
+    <!-- ケーキ -->
+    <button class="cat-item" data-cat="ケーキ" aria-label="ケーキ">
+      <span class="ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path
+            d="M4 14h16l-1.5 6H5.5L4 14Zm2-3h12l-6-5-6 5Z"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M12 6.5c.8 0 1.5-.7 1.5-1.5S12.8 3.5 12 3.5 10.5 4.2 10.5 5s.7 1.5 1.5 1.5Z"
+            fill="currentColor"
+          />
+        </svg>
+      </span>
+      <span class="label">ケーキ</span>
+    </button>
+
+    <!-- お惣菜 -->
+    <button class="cat-item" data-cat="お惣菜" aria-label="お惣菜">
+      <span class="ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path
+            d="M3 13h18v3a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-3Z"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+          />
+          <path
+            d="M7 13V7m5 6V7m5 6V7"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+          />
+        </svg>
+      </span>
+      <span class="label">お惣菜</span>
+    </button>
+
+    <!-- お弁当 -->
+    <button class="cat-item" data-cat="お弁当" aria-label="お弁当">
+      <span class="ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <rect
+            x="3"
+            y="8"
+            width="18"
+            height="10"
+            rx="2"
+            ry="2"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+          />
+          <path d="M12 8v10M3 13h18" stroke="currentColor" stroke-width="1.8" />
+        </svg>
+      </span>
+      <span class="label">お弁当</span>
+    </button>
+
+    <!-- その他 -->
+    <button class="cat-item" data-cat="その他" aria-label="その他">
+      <span class="ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="6" r="2" fill="currentColor" />
+          <circle cx="12" cy="12" r="2" fill="currentColor" />
+          <circle cx="12" cy="18" r="2" fill="currentColor" />
+        </svg>
+      </span>
+      <span class="label">その他</span>
+    </button>
   </div>
 </section>
 
@@ -264,14 +354,50 @@
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script type="module" src="./js/app.js"></script>
 <script type="module">
-  // 既に fav.js を入れている場合は有効化
-  import("./js/fav.js")
-    .then((m) => liff.ready.then(() => m.initAllFavButtons?.()))
-    .catch(() => {});
-  // バナー×印
+  // ▼ fav.js を読み込み（キャッシュ破り付き）、LIFF準備後に初期化
+  const bust = "v20250906";
+  try {
+    const m = await import(`./js/fav.js?${bust}`).catch(() => ({}));
+    if (m.initAllFavButtons) await liff.ready.then(() => m.initAllFavButtons());
+  } catch {}
+
+  // ▼（残していても無害）バナー×
   document
     .querySelector(".banner-close")
     ?.addEventListener("click", () =>
       document.querySelector(".banner")?.remove()
     );
+
+  // ▼ カテゴリー：イベント委譲 + ARIA 対応（is-active と aria-pressed を同期）
+  const strip = document.querySelector(".cat-strip");
+  if (strip) {
+    // 初期選択（?category= パラメータがあれば反映）
+    const init = new URLSearchParams(location.search).get("category");
+
+    const activate = (btn) => {
+      strip.querySelectorAll(".cat-item.is-active").forEach((b) => {
+        b.classList.remove("is-active");
+        b.setAttribute("aria-pressed", "false");
+      });
+      btn.classList.add("is-active");
+      btn.setAttribute("aria-pressed", "true");
+
+      const cat = btn.dataset.cat;
+      console.log("[category]", cat);
+      // TODO: フィルタや遷移をここで
+      // location.href = `/shops.html?category=${encodeURIComponent(cat)}`;
+    };
+
+    strip.addEventListener("click", (e) => {
+      const btn = e.target.closest(".cat-item");
+      if (btn && strip.contains(btn)) activate(btn);
+    });
+
+    if (init) {
+      const t = [...strip.querySelectorAll(".cat-item")].find(
+        (b) => b.dataset.cat === init
+      );
+      if (t) activate(t);
+    }
+  }
 </script>

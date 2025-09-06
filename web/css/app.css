@@ -307,3 +307,58 @@ body {
 .tabbar a.active span {
   color: var(--primary);
 } /* アイコン(emoji/SVG)も緑 */
+
+/* ===== カテゴリー横スクロール ===== */
+.cats {
+  padding: 0.6rem 0.9rem 0;
+}
+.cat-strip {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  gap: 0.7rem;
+  overflow-x: auto;
+  padding: 0.2rem 0 0.6rem;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+}
+.cat-item {
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 16px;
+  padding: 0.5rem 0.8rem;
+  min-width: 86px; /* 文字が長い日本語でも崩れにくく */
+  cursor: pointer;
+}
+.cat-item .ico {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #e6f4ee; /* 薄いグリーン */
+  color: var(--primary); /* アイコンはアクセント色 */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.cat-item .ico svg {
+  width: 24px;
+  height: 24px;
+}
+.cat-item .label {
+  font-size: 13px;
+  color: var(--text);
+}
+
+/* 押下/選択時（任意・視覚効果） */
+.cat-item:active {
+  transform: translateY(1px);
+}
+.cat-item.is-active {
+  border-color: #bfe6d8;
+  box-shadow: 0 0 0 2px #cdebdd inset;
+}
