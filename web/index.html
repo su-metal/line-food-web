@@ -1,3 +1,19 @@
-<!doctype html><meta charset="utf-8">
-<title>line-food-web (clean)</title>
-<h1>It works.</h1>
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>line-food-web (auth minimal)</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 24px; }
+  button { padding: .6rem 1rem; border-radius: .5rem; }
+  pre { background:#f6f8fa; padding:12px; border-radius:6px; }
+</style>
+
+<h1>Auth Minimal</h1>
+<p><button id="btnWho">/api/whoami を呼ぶ</button></p>
+<pre id="out">ready...</pre>
+
+<!-- 1) LIFF SDK（グローバルに liff が生える） -->
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+<!-- 2) 画面ロジック（ESM）。内部で config.js / http.js を import します -->
+<script type="module" src="./js/app.js"></script>
