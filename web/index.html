@@ -4083,25 +4083,25 @@
       })();
     </script>
     <script>
-      (async function () {
-        if (!location.search.includes("debug=1")) return;
+      (async function(){
+        if (!location.search.includes('showAud=1')) return;
         try {
           await liff.ready;
+          if (!liff.isLoggedIn()) await liff.login();
           const t = liff.getIDToken();
-          function b64uToStr(s) {
-            s = s.replace(/-/g, "+").replace(/_/g, "/");
-            const m = s.length % 4;
-            if (m === 2) s += "==";
-            else if (m === 3) s += "=";
-            return atob(s);
-          }
-          const payload = JSON.parse(b64uToStr(t.split(".")[1]));
-          console.log("[LIFF] aud=", payload.aud, "sub=", payload.sub);
-          alert("aud=" + payload.aud); // 画面でも確認したい場合
-        } catch (e) {
-          console.error("aud check failed", e);
+          if (!t) { alert('ID token is null (check LIFF scopes: openid)'); return; }
+          const p = t.split('.')[1];
+          const s = p.replace(/-/g,'+').replace(/_/g,'/');
+          const pad = s.length % 4 ? '='.repeat(4 - (s.length % 4)) : '';
+          const payload = JSON.parse(atob(s + pad));
+          console.log('[AUD]', payload);
+          alert('aud=' + payload.aud + '\nsub=' + payload.sub);
+        } catch(e) {
+          console.error('aud check failed', e);
+          alert('aud check failed: ' + (e && e.message || e));
         }
       })();
     </script>
+    
   </body>
 </html>
