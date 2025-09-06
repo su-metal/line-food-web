@@ -3,8 +3,8 @@ export default function handler(req, res) {
   res.setHeader('content-type','application/json; charset=utf-8');
   res.end(JSON.stringify({
     ok: true,
-    now: new Date().toISOString(),
+    kind: 'diag',
     node: process.versions.node,
-    module: 'esm'
+    ts: new Date().toISOString()
   }));
 }
