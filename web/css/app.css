@@ -215,14 +215,13 @@ body {
 /* --- お気に入りハート：押下時は塗りつぶし、円は常に白、縁取りは現状のまま --- */
 .heart {
   border: 1px solid var(--line);
-  background: #fff; /* 常に白背景 */
+  background: #fff;
   border-radius: 999px;
   width: 36px;
   height: 36px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
 }
 .heart svg {
   width: 20px;
@@ -234,11 +233,9 @@ body {
   stroke: currentColor;
   stroke-width: 1.8;
 }
-/* 押下時：ハートだけ塗りつぶす（枠線・白円は維持） */
 .heart[aria-pressed="true"] {
   background: #fff;
-  border-color: var(--line);
-}
+} /* 円は白のまま */
 .heart[aria-pressed="true"] svg path {
   fill: var(--primary);
   stroke: var(--primary);
@@ -268,7 +265,7 @@ body {
   color: #5d4c46;
 }
 
-/* 下部タブ */
+/* タブ全体 */
 .tabbar {
   position: fixed;
   bottom: 0;
@@ -279,22 +276,31 @@ body {
   grid-template-columns: repeat(5, 1fr);
   background: #fff;
   border-top: 1px solid var(--line);
-  height: 56px;
+  height: 64px;
 }
 .tabbar a {
-  color: #6c5852;
   text-decoration: none;
-  font-size: 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 4px;
+  color: #6c5852; /* 非アクティブのラベル色 */
 }
 .tabbar a span {
   font-size: 18px;
 }
+/* アイコンは currentColor で着色（＝アクセントカラーに） */
+.tabbar .icon svg {
+  width: 22px;
+  height: 22px;
+  color: var(--primary);
+}
+.tabbar .label {
+  font-size: 12px;
+}
 /* --- フッターのナビ：アイコンもメイングリーン --- */
+/* アクティブ時：ラベルも緑に */
 .tabbar a.active {
   color: var(--primary);
 }

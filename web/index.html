@@ -3,8 +3,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>line-food-web</title>
 <script type="module" src="./js/fav.js?v=20250906b"></script>
-<link rel="stylesheet" href="./css/app.css?v=20250906b">
-
+<link rel="stylesheet" href="./css/app.css?v=20250906b" />
 
 <!-- ヘッダ -->
 <header class="app-header">
@@ -148,11 +147,113 @@
 
 <!-- 下部タブ -->
 <nav class="tabbar" aria-label="メイン">
-  <a class="active" href="#"><span>🏪</span>ホーム</a>
-  <a href="#"><span>🔎</span>お店を探す</a>
-  <a href="#"><span>❤️</span>お気に入り</a>
-  <a href="#"><span>🆘</span>レスキュー</a>
-  <a href="#"><span>👤</span>マイページ</a>
+  <a class="active" href="#">
+    <span class="icon" aria-hidden="true">
+      <!-- home/store -->
+      <svg viewBox="0 0 24 24">
+        <path
+          d="M4 10v10h16V10M2 11l10-7 10 7"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </span>
+    <span class="label">ホーム</span>
+  </a>
+  <a href="#">
+    <span class="icon" aria-hidden="true">
+      <!-- search -->
+      <svg viewBox="0 0 24 24">
+        <circle
+          cx="11"
+          cy="11"
+          r="6"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+        />
+        <path
+          d="M20 20l-3.8-3.8"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+        />
+      </svg>
+    </span>
+    <span class="label">お店を探す</span>
+  </a>
+  <a href="#">
+    <span class="icon" aria-hidden="true">
+      <!-- heart -->
+      <svg viewBox="0 0 24 24">
+        <path
+          d="M12 21s-6.7-4.2-9.2-8C1.2 10 2.1 7.2 4.6 6c1.9-1 4.3-.5 5.6 1.2C11.5 5.5 13.9 5 15.8 6c2.5 1.2 3.4 4 1.8 7-2.5 3.8-9.6 8-9.6 8Z"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+        />
+      </svg>
+    </span>
+    <span class="label">お気に入り</span>
+  </a>
+  <a href="#">
+    <span class="icon" aria-hidden="true">
+      <!-- lifebuoy -->
+      <svg viewBox="0 0 24 24">
+        <circle
+          cx="12"
+          cy="12"
+          r="9"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+        />
+        <circle
+          cx="12"
+          cy="12"
+          r="4"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+        />
+        <path
+          d="M5.6 5.6l2.2 2.2M16.2 5.6l2.2 2.2M5.6 16.2l2.2 2.2M16.2 16.2l2.2 2.2"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+        />
+      </svg>
+    </span>
+    <span class="label">レスキュー</span>
+  </a>
+  <a href="#">
+    <span class="icon" aria-hidden="true">
+      <!-- user -->
+      <svg viewBox="0 0 24 24">
+        <circle
+          cx="12"
+          cy="8"
+          r="3.2"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+        />
+        <path
+          d="M5 19a7 7 0 0 1 14 0"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+        />
+      </svg>
+    </span>
+    <span class="label">マイページ</span>
+  </a>
 </nav>
 
 <!-- （デバッグ要素：既存 app.js が参照するので非表示で残す） -->
