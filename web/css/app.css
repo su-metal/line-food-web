@@ -352,11 +352,8 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
   background: #fff;
-  border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
   border-radius: 16px;
-  padding: 0.5rem 0.8rem;
   min-width: 86px; /* 文字が長い日本語でも崩れにくく */
   cursor: pointer;
 }
@@ -526,4 +523,38 @@ main,
   width: 48px;
   height: 48px;
   object-fit: contain;
+}
+/* === カテゴリ（枠線なし & 余白タイト） === */
+.cat-row {
+  gap: 0.6rem;
+} /* 全体の並び感を少しタイトに */
+
+.cat-row .cat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.18rem; /* ← 画像とテキストの隙間を極小に */
+  padding: 0.32rem 0.44rem; /* 最小限のタップ余白だけ残す */
+  background: transparent;
+  border: none; /* ← 枠線なし */
+  border-radius: 12px;
+}
+
+.cat-row .cat-item.is-active {
+  background: var(--sub); /* 枠線の代わりにサブ色でハイライト */
+  border: none;
+}
+
+.cat-row .cat-item img {
+  width: 48px;
+  height: 48px;
+  display: block;
+  margin: 0; /* 画像まわりの余白をゼロに */
+}
+
+.cat-row .cat-item span {
+  font-size: 12px;
+  line-height: 1.15;
+  margin: 0; /* テキストの上下余白を詰める */
 }
