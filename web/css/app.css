@@ -507,46 +507,41 @@ main,
   margin-bottom: 12px;
 }
 
-/* === Category row: horizontal scroll, no wrap, tight spacing === */
-#cat-row.cat-row {
-  display: flex;
-  flex-wrap: nowrap; /* ← 折り返し禁止 */
-  gap: 0.2rem; /* 極小の項目間隔（前回の指定） */
-  padding: 0 0.12rem; /* 行の左右余白を圧縮 */
-  overflow-x: auto; /* ← 横スクロールON */
+/* === Category row: 横並び・横スクロール（div + button版） === */
+#category-row.cat-row {
+  display: flex !important;
+  flex-direction: row;
+  flex-wrap: nowrap; /* 折り返し禁止 */
+  gap: 0.2rem;
+  padding: 0 0.12rem;
+  margin: 0;
+  overflow-x: auto; /* 横スクロールON */
   -webkit-overflow-scrolling: touch;
   scroll-snap-type: x proximity;
 }
 
-#cat-row .cat-item {
-  flex: 0 0 auto; /* ← 縮小させず並べ続ける */
-  display: flex;
+/* ボタンを“横に流れる箱”にする（幅100%指定の上書きも含む） */
+#category-row .cat-item {
+  flex: 0 0 auto !important; /* 縮小・拡張しない */
+  display: inline-flex; /* 横方向スペースを最小化 */
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.12rem; /* ★ご指定どおり固定 */
+  width: auto !important;
+  min-width: clamp(64px, 18vw, 92px); /* 収まり過ぎを防いでスクロールを維持 */
+  gap: 0.12rem; /* ← ご指定どおり固定 */
   padding: 0.2rem 0.1rem;
   background: transparent;
-  border: none;
+  border: none !important; /* 残っている枠線を確実に消す */
   border-radius: 12px;
   scroll-snap-align: start;
+  appearance: none; /* UAデフォルト装飾を抑制 */
 }
 
-/* アイコン画像（残す運用でOK） */
-#cat-row .cat-item img {
+/* アイコン画像（既存の48x48＋containを踏襲） */
+#category-row .cat-item img {
   width: 48px;
   height: 48px;
   display: block;
   object-fit: contain;
-}
-
-/* 画面が極小のときにさらに詰める（任意） */
-@media (max-width: 360px) {
-  #cat-row.cat-row {
-    gap: 0.16rem;
-    padding: 0 0.08rem;
-  }
-  #cat-row .cat-item {
-    padding: 0.18rem 0.08rem;
-  }
 }
