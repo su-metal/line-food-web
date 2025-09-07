@@ -149,7 +149,7 @@ body {
 #nearby-row.card-row{
   display: grid;
   grid-auto-flow: column;        /* 横方向に並べる */
-  grid-auto-columns: 88%;        /* 1画面に1枚（少しチラ見せ） */
+  grid-auto-columns: 80%;        /* 1画面に1枚（少しチラ見せ） */
   gap: .9rem;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
