@@ -119,6 +119,35 @@
   </div>
 
   <div class="card-row" id="recent-row"></div>
+  <!-- 店舗カード テンプレート（商品概要 2行＋左サムネ を内包） -->
+  <template id="shop-card-template">
+    <article class="shop-card" data-shop-id="">
+      <div class="shop-header">
+        <span class="shop-name"></span>
+        <span class="pill new" hidden>NEW</span>
+        <button class="heart" aria-pressed="false" title="お気に入り"></button>
+      </div>
+
+      <div class="shop-thumb">
+        <img src="" alt="" loading="lazy" />
+      </div>
+
+      <!-- ▼ ここが新規：商品概要ブロック（2行表示・左に商品画像） -->
+      <div class="shop-info">
+        <div class="product-summary">
+          <img class="product-img" src="" alt="" loading="lazy" />
+          <div class="product-meta">
+            <div class="product-name"></div>
+            <div class="meta">
+              <span class="rating"></span>
+              <span class="time"></span>
+              <span class="price"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+  </template>
 </main>
 
 <!-- 下部タブ -->
@@ -311,25 +340,109 @@
     });
   }
 </script>
-<script type="module">
-  import { loadNearby } from "./js/nearby.js?v=20250907";
-  import { loadRecent } from "./js/recent.js?v=20250907";
 
-  const getFilters = () => {
+<script type="module">
+  const $ = (s, r = document) => r.querySelector(s);
+  const tpl = $("#shop-card-template");
+
+  const formatJPY = (v) =>
+    v == null ? "" : `¥${Number(v).toLocaleString("ja-JP")}〜`;
+
+  function getFilters() {
     const cat =
       document.querySelector(".cat-item.is-active")?.dataset.cat || null;
     const priceData =
       document.querySelector(".chip.is-active")?.dataset.price || null; // "<=500"
     const priceMax = priceData ? Number(priceData.replace("<=", "")) : null;
     return { category: cat, priceMax };
-  };
+  }
+
+  function renderCards(list, targetId) {
+    const wrap = document.getElementById(targetId);
+    wrap.innerHTML = "";
+    list.forEach((item) => {
+      // item 仕様（/api 側のキー名に合わせて適宜調整）:
+      // item: { id, name, thumb_url, is_new, min_price,
+      //         rating_value, rating_count,
+      //         bundle_title, bundle_thumb_url, bundle_min_price, bundle_slot }
+      const node = tpl.content.firstElementChild.cloneNode(true);
+
+      node.dataset.shopId = item.id ?? "";
+      node.querySelector(".shop-name").textContent = item.name ?? "";
+
+      const newPill = node.querySelector(".pill.new");
+      if (newPill) newPill.hidden = !item.is_new;
+
+      const shopImg = node.querySelector(".shop-thumb img");
+      if (shopImg) {
+        shopImg.src = item.thumb_url || "";
+        shopImg.alt = `${item.name ?? "店舗"}の画像`;
+      }
+
+      const pImg = node.querySelector(".product-img");
+      if (pImg) {
+        pImg.src = item.bundle_thumb_url || item.thumb_url || "";
+        pImg.alt = `${item.bundle_title ?? "おすすめセット"} の画像`;
+      }
+
+      node.querySelector(".product-name").textContent =
+        item.bundle_title ?? "おすすめセット";
+
+      const rating = node.querySelector(".meta .rating");
+      if (rating) {
+        const v = item.rating_value;
+        const c = item.rating_count;
+        rating.innerHTML =
+          v != null
+            ? `⭐ ${Number(v).toFixed(1)} <span class="count">(${
+                c ?? 0
+              })</span>`
+            : "—";
+      }
+
+      const time = node.querySelector(".meta .time");
+      if (time)
+        time.textContent = item.bundle_slot ? `🕒 ${item.bundle_slot}` : "";
+
+      const price = node.querySelector(".meta .price");
+      const pmin = item.bundle_min_price ?? item.min_price;
+      if (price) price.textContent = formatJPY(pmin);
+
+      wrap.appendChild(node);
+    });
+  }
+
+  async function fetchJSON(url, params) {
+    const qs = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v != null)
+    );
+    const r = await fetch(`${url}?${qs.toString()}`, { cache: "no-store" });
+    if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+    return r.json();
+  }
+
+  async function reloadAll() {
+    const filters = getFilters();
+    // 近くのお店
+    const nearby = await fetchJSON("/api/nearby", filters);
+    renderCards(nearby, "nearby-row");
+    // 最近追加
+    const recent = await fetchJSON("/api/shops-recent", filters);
+    renderCards(recent, "recent-row");
+  }
 
   // 初期表示
-  loadNearby(getFilters());
-  loadRecent(getFilters());
+  reloadAll().catch(console.error);
 
-  // カテゴリ/価格の既存ハンドラの最後に↓を既に入れているはずですが、recentも追加
-  // 例：
-  // items.forEach(btn => btn.addEventListener('click', () => { ...; loadNearby(getFilters()); loadRecent(getFilters()); }));
-  // row.addEventListener('click', e => { ...; loadNearby(getFilters()); loadRecent(getFilters()); });
+  // 既存のカテゴリ・価格ハンドラにフック（“console.logの直後” など末尾で呼ばれています）
+  // すでにイベントは設定済みなので、Mutation 観点で追加:
+  const catRow = document.getElementById("category-row");
+  catRow?.addEventListener("click", (e) => {
+    if (e.target.closest(".cat-item")) reloadAll().catch(console.error);
+  });
+
+  const chipRow = document.querySelector(".chip-row");
+  chipRow?.addEventListener("click", (e) => {
+    if (e.target.closest(".chip")) reloadAll().catch(console.error);
+  });
 </script>
