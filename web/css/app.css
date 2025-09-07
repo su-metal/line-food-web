@@ -524,37 +524,41 @@ main,
   height: 48px;
   object-fit: contain;
 }
-/* === カテゴリ（枠線なし & 余白タイト） === */
+/* === カテゴリ（左右の余白をさらにタイトに） === */
 .cat-row {
-  gap: 0.6rem;
-} /* 全体の並び感を少しタイトに */
+  display: flex;
+  gap: 0.4rem; /* 項目間のすき間を縮小（以前: .6rem） */
+  padding: 0 0.24rem; /* 行の左右パディングも最小限に */
+}
 
 .cat-row .cat-item {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.12rem; /* ← 画像とテキストの隙間を極小に */
-  padding: 0.32rem 0.44rem; /* 最小限のタップ余白だけ残す */
+
+  /* 画像とテキストの間隔（指定どおり） */
+  gap: 0.12rem;
+
+  /* 項目の左右パディングをさらに縮小（以前: .32rem .44rem） */
+  padding: 0.28rem 0.2rem;
+
   background: transparent;
-  border: none; /* ← 枠線なし */
+  border: none;
   border-radius: 12px;
 }
 
 .cat-row .cat-item.is-active {
-  background: var(--sub); /* 枠線の代わりにサブ色でハイライト */
-  border: none;
+  background: var(--sub);
 }
 
-.cat-row .cat-item img {
-  width: 48px;
-  height: 48px;
-  display: block;
-  margin: 0; /* 画像まわりの余白をゼロに */
-}
-
-.cat-row .cat-item span {
-  font-size: 12px;
-  line-height: 1.15;
-  margin: 0; /* テキストの上下余白を詰める */
+/* 小さめ端末はさらに詰める */
+@media (max-width: 360px) {
+  .cat-row {
+    gap: 0.32rem;
+    padding: 0 0.16rem;
+  }
+  .cat-row .cat-item {
+    padding: 0.24rem 0.16rem;
+  }
 }
