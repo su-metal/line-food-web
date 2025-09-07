@@ -157,35 +157,7 @@
     <a class="more" href="#">もっと見る</a>
   </div>
 
-  <div class="card-row">
-    <article class="shop-card rescued">
-      <div class="thumb">
-        <img src="./photo/sample3.jpg" alt="店舗写真" />
-        <span class="ribbon">Rescued!</span>
-        <span class="price">¥600</span>
-      </div>
-      <div class="body">
-        <div class="title-line">
-          <h4>deux Montagne</h4>
-          <button
-            class="heart fav-btn"
-            data-shop-id="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
-            aria-pressed="false"
-            title="お気に入り"
-          >
-            ♡
-          </button>
-        </div>
-        <div class="subline">
-          <span class="point">0.5%還元</span><span class="status">集計中</span>
-        </div>
-        <div class="meta">
-          <span class="time">17:10 - 17:55</span
-          ><span class="walk">江曽島駅 徒歩1分</span>
-        </div>
-      </div>
-    </article>
-  </div>
+  <div class="card-row" id="recent-row"></div>
 </main>
 
 <!-- 下部タブ -->
@@ -380,6 +352,8 @@
 </script>
 <script type="module">
   import { loadNearby } from "./js/nearby.js?v=20250907";
+  import { loadRecent } from "./js/recent.js?v=20250907";
+
   const getFilters = () => {
     const cat =
       document.querySelector(".cat-item.is-active")?.dataset.cat || null;
@@ -388,6 +362,13 @@
     const priceMax = priceData ? Number(priceData.replace("<=", "")) : null;
     return { category: cat, priceMax };
   };
+
+  // 初期表示
   loadNearby(getFilters());
-  // 既存のカテゴリ/価格クリックの最後にも loadNearby(getFilters()) を呼んでいる想定
+  loadRecent(getFilters());
+
+  // カテゴリ/価格の既存ハンドラの最後に↓を既に入れているはずですが、recentも追加
+  // 例：
+  // items.forEach(btn => btn.addEventListener('click', () => { ...; loadNearby(getFilters()); loadRecent(getFilters()); }));
+  // row.addEventListener('click', e => { ...; loadNearby(getFilters()); loadRecent(getFilters()); });
 </script>
