@@ -515,7 +515,7 @@ main,
 /* === カテゴリ：横スペース最小化（更に詰め） === */
 .cat-row {
   display: flex;
-  gap: 0.2rem; /* ← さらに縮める（前: .40rem） */
+  gap: 0rem; /* ← さらに縮める（前: .40rem） */
   padding: 0 0.12rem; /* 行の左右の余白も圧縮 */
 }
 
@@ -525,7 +525,7 @@ main,
   align-items: center;
   justify-content: center;
 
-  gap: 0rem; /* ← 指定通り固定 */
+  gap: 0.12rem; /* ← 指定通り固定 */
   padding: 0.2rem 0.1rem; /* ← 左右をさらに詰める（前: .28rem .20rem） */
 
   background: transparent;
