@@ -525,7 +525,7 @@ main,
   align-items: center;
   justify-content: center;
 
-  gap: 0.12rem; /* ← 指定通り固定 */
+  gap: 0rem; /* ← 指定通り固定 */
   padding: 0.2rem 0.1rem; /* ← 左右をさらに詰める（前: .28rem .20rem） */
 
   background: transparent;
