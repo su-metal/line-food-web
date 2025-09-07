@@ -449,3 +449,26 @@ body {
 .shop-card .thumb .stock {
   left: 8px !important;
 }
+
+/* === 画像上のピル配置を最終指定 === */
+.shop-card .thumb {
+  position: relative;
+}
+
+/* 価格ピル → 右下 */
+.shop-card .thumb .price {
+  position: absolute !important;
+  right: 8px !important;
+  bottom: 8px !important;
+  left: auto !important;
+  top: auto !important;
+}
+
+/* 残数/NEW → 左上（据え置き） */
+.shop-card .thumb .stock {
+  position: absolute !important;
+  left: 8px !important;
+  top: 8px !important;
+  right: auto !important;
+  bottom: auto !important;
+}

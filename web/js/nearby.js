@@ -8,13 +8,15 @@ function fmtDistance(m) {
 
 function createCard(s) {
   const el = document.createElement("article");
+  const yen = (v) => "¥" + Number(v).toLocaleString("ja-JP");
+
   el.className = "shop-card";
   el.innerHTML = `
     <div class="thumb">
       <img src="${s.photo_url || "./photo/noimg.jpg"}" alt="${s.name ?? ""}" />
       ${
-        Number.isFinite(s.min_price)
-          ? `<span class="price">¥${s.min_price}</span>`
+        Number.isFinite(Number(s.min_price))
+          ? `<span class="price">${yen(s.min_price)}〜</span>`
           : ""
       }
       ${
