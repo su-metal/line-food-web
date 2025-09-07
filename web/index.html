@@ -148,73 +148,8 @@
     <a class="more" href="#">もっと見る</a>
   </div>
 
-  <div class="card-row">
-    <!-- カード（サンプル。画像は差し替えてOK） -->
-    <article class="shop-card">
-      <div class="thumb">
-        <img src="./photo/sample1.jpg" alt="店舗写真" />
-        <span class="stock">のこり15個</span>
-        <span class="price">¥390</span>
-      </div>
-      <div class="body">
-        <div class="title-line">
-          <h4>エクセルシオールカフェ …</h4>
-          <button
-            class="heart fav-btn"
-            data-shop-id="9069dcf9-4a86-475c-9cfa-aacffea7f9bb"
-            aria-pressed="false"
-            title="お気に入り"
-          >
-            ♡
-          </button>
-        </div>
-        <div class="subline">
-          <span class="point">5.0%還元</span>
-          <span class="status">集計中</span>
-        </div>
-        <div class="meta">
-          <span class="time">15:00 - 21:00</span>
-          <span class="walk">六名駅から徒歩16分</span>
-        </div>
-      </div>
-    </article>
-
-    <article class="shop-card">
-      <div class="thumb">
-        <img src="./photo/sample2.jpg" alt="店舗写真" />
-        <span class="stock">のこり1個</span>
-        <span class="price">¥900〜</span>
-      </div>
-      <div class="body">
-        <div class="title-line">
-          <h4>ベーカリーカフェ</h4>
-          <button
-            class="heart fav-btn"
-            data-shop-id="<<UUID>>"
-            aria-pressed="false"
-            aria-label="お気に入りを切り替え"
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path
-                d="M12 21s-6.7-4.2-9.2-8C1.2 10 2.1 7.2 4.6 6c1.9-1 4.3-.5 5.6 1.2C11.5 5.5 13.9 5 15.8 6c2.5 1.2 3.4 4 1.8 7-2.5 3.8-9.6 8-9.6 8Z"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-              />
-            </svg>
-          </button>
-        </div>
-        <div class="subline">
-          <span class="point">0.5%還元</span
-          ><span class="status warn">残りわずか</span>
-        </div>
-        <div class="meta">
-          <span class="time">17:30 - 20:00</span
-          ><span class="walk">徒歩8分</span>
-        </div>
-      </div>
-    </article>
-  </div>
+  <!-- 現在地付近のお店 -->
+  <div class="card-row" id="nearby-row"></div>
 
   <!-- 最近追加 -->
   <div class="section-head">
@@ -442,4 +377,9 @@
       // 例）location.href = `/shops.html?price=${encodeURIComponent(price||'')}`;
     });
   }
+</script>
+<script type="module">
+  import { loadNearby } from "./js/nearby.js?v=1";
+  // 既存のカテゴリ/価格のハンドラの最後で実行している想定
+  loadNearby(getFilters());
 </script>
