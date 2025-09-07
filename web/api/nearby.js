@@ -1,14 +1,11 @@
-// web/api/nearby.js  ← このパスとファイル名が重要
+// web/api/nearby.js  ← サーバ用
 import { sbFetch } from './_lib/sb.js';
 
 function haversine(lat1, lon1, lat2, lon2) {
   const toRad = (d) => (d * Math.PI) / 180;
   const R = 6371000;
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  const dLat = toRad(lat2 - lat1), dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
@@ -29,7 +26,7 @@ export default async function handler(req, res) {
     }
 
     const latDelta = radius / 111_320;
-    const lngDelta = radius / (111_320 * Math.cos((lat * Math.PI) / 180) || 1e-6);
+    const lngDelta = radius / (111_320 * Math.cos((lat * Math.PI)/180) || 1e-6);
     const minLat = lat - latDelta, maxLat = lat + latDelta;
     const minLng = lng - lngDelta, maxLng = lng + lngDelta;
 
@@ -39,7 +36,7 @@ export default async function handler(req, res) {
     qs.append('lng', `gte.${minLng}`); qs.append('lng', `lte.${maxLng}`);
     if (category) qs.append('category', `eq.${category}`);
     if (Number.isFinite(priceMax)) qs.append('min_price', `lte.${priceMax}`);
-    qs.set('limit','1000');
+    qs.set('limit','1000'); // 多めに取得
 
     const r = await sbFetch(`/rest/v1/shops?${qs.toString()}`, { method:'GET' });
     if (!r.ok) throw new Error(`SB shops fetch failed: ${r.status}`);
@@ -47,15 +44,12 @@ export default async function handler(req, res) {
 
     const items = rows
       .filter(s => Number.isFinite(+s.lat) && Number.isFinite(+s.lng))
-      .map(s => {
-        const d = haversine(lat, lng, +s.lat, +s.lng);
-        return {
-          id: s.id, name: s.name || '', address: s.address || '',
-          photo_url: s.photo_url || '', category: s.category || '',
-          min_price: s.min_price ?? null, lat:+s.lat, lng:+s.lng,
-          distance_m: Math.round(d),
-        };
-      })
+      .map(s => ({
+        id: s.id, name: s.name || '', address: s.address || '',
+        photo_url: s.photo_url || '', category: s.category || '',
+        min_price: s.min_price ?? null, lat:+s.lat, lng:+s.lng,
+        distance_m: Math.round(haversine(lat, lng, +s.lat, +s.lng)),
+      }))
       .filter(s => s.distance_m <= radius)
       .sort((a,b)=>a.distance_m - b.distance_m)
       .slice(0, limit);
