@@ -11,6 +11,10 @@
   --accent: #cdebdd;
   --line: #e3e7e5;
   --warn: #b35b00;
+  /* 既存の --primary はそのまま（スタバ系グリーン） */
+  --sub: #e8f3ee; /* サブ：淡いミント（背景・選択状態に） */
+  --sub-deep: #cfe8df; /* サブの濃い目（hoverなど） */
+  --heart: #e04f5f; /* ハート：落ち着いた赤（高彩度すぎない） */
 }
 
 * {
@@ -131,25 +135,35 @@ body {
 }
 .section-head .more {
   font-size: 14px;
-  color: #a03;
+  color: var(--primary);
+  background: linear-gradient(transparent 70%, var(--sub));
   text-decoration: none;
+}
+.section-head .more:hover {
+  background: linear-gradient(transparent 60%, var(--sub-deep));
 }
 
 /* === 横スクロールカード（nearby / recent 共通） === */
-:root { --card-col-width: 80%; }  /* 幅：1枚を80%でチラ見せ */
+:root {
+  --card-col-width: 80%;
+} /* 幅：1枚を80%でチラ見せ */
 
-.card-row{
+.card-row {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: var(--card-col-width);
-  gap: .9rem;
+  gap: 0.9rem;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scroll-snap-type: x proximity;
-  padding-bottom: .4rem;
+  padding-bottom: 0.4rem;
 }
-.card-row .shop-card{ scroll-snap-align: start; }
-.card-row::-webkit-scrollbar{ display: none; }
+.card-row .shop-card {
+  scroll-snap-align: start;
+}
+.card-row::-webkit-scrollbar {
+  display: none;
+}
 
 .shop-card {
   background: var(--card);
@@ -218,34 +232,35 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* ===== お気に入りハート（アイコンのみ） ===== */
-/* --- お気に入りハート：押下時は塗りつぶし、円は常に白、縁取りは現状のまま --- */
+
+/* ========== お気に入り（ハート） ========== */
 .heart {
-  border: 1px solid var(--line);
+  color: var(--heart); /* 枠線＆アイコン色（未押下） */
+  border: 1.5px solid currentColor;
   background: #fff;
+  width: 40px;
+  height: 40px;
   border-radius: 999px;
-  width: 36px;
-  height: 36px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  display: grid;
+  place-items: center;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s;
 }
 .heart svg {
-  width: 20px;
-  height: 20px;
-  color: var(--primary);
+  width: 22px;
+  height: 22px;
 }
-.heart svg path {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
+/* hover フィードバック */
+.heart:hover {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--heart) 14%, transparent);
 }
+/* 押下時：塗りつぶし（SVG の fill を強制） */
 .heart[aria-pressed="true"] {
-  background: #fff;
-} /* 円は白のまま */
+  background: var(--heart);
+  color: #fff;
+}
 .heart[aria-pressed="true"] svg path {
-  fill: var(--primary);
-  stroke: var(--primary);
+  fill: currentColor !important;
+  stroke: currentColor;
 }
 
 .subline {
@@ -335,8 +350,8 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 0.35rem;
-  border: 1px solid var(--line);
   background: #fff;
+  border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
   border-radius: 16px;
   padding: 0.5rem 0.8rem;
   min-width: 86px; /* 文字が長い日本語でも崩れにくく */
@@ -383,9 +398,9 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 .chip {
-  background: #fff;
+  background: var(--sub);
   color: var(--primary);
-  border: 1.5px solid var(--primary);
+  border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
   border-radius: 999px;
   padding: 0.42rem 0.92rem;
   font-size: 14px;
@@ -394,34 +409,70 @@ body {
   white-space: nowrap;
   cursor: pointer;
 }
+.chip:hover {
+  background: var(--sub-deep);
+}
 .chip:active {
   transform: translateY(1px);
 }
 /* 選択状態（背景は白のまま、内側に淡いグリーンのリング） */
 .chip.is-active {
-  box-shadow: 0 0 0 3px #cdebdd inset;
-  border-color: #006a45; /* 少し濃い枠 */
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
 }
 
 /* === 画像上のピル（価格 / 残数 / NEW 共通デザイン） === */
-.shop-card .thumb{ position: relative; }
+.shop-card .thumb {
+  position: relative;
+}
 
-.shop-card .thumb .price,
-.shop-card .thumb .stock{
+/* ========== カード上のピル ========== */
+/* 価格：右下／大きめに */
+.shop-card .thumb .price {
   position: absolute;
+  right: 8px;
+  bottom: 8px;
   display: inline-flex;
   align-items: center;
-  gap: .25rem;
-  padding: .28rem .56rem;
-  border-radius: 999px;
   background: var(--primary);
   color: #fff;
+  border-radius: 999px;
+  padding: 0.4rem 0.72rem;
+  font-weight: 800;
+  font-size: 16px; /* ← 前より大きく */
+  line-height: 1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+@media (min-width: 480px) {
+  .shop-card .thumb .price {
+    font-size: 18px;
+  }
+}
+
+/* 残数/NEW：左上（据え置き） */
+.shop-card .thumb .stock {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  display: inline-flex;
+  align-items: center;
+  background: var(--primary);
+  color: #fff;
+  border-radius: 999px;
+  padding: 0.28rem 0.56rem;
   font-weight: 700;
   font-size: 12px;
   line-height: 1;
-  box-shadow: 0 2px 6px rgba(0,0,0,.12);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 
 /* 位置：価格は右下 / 残数・NEWは左上 */
-.shop-card .thumb .price{ right: 8px; bottom: 8px; }
-.shop-card .thumb .stock{ left: 8px; top: 8px; }
+.shop-card .thumb .price {
+  right: 8px;
+  bottom: 8px;
+}
+.shop-card .thumb .stock {
+  left: 8px;
+  top: 8px;
+}
