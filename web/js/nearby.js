@@ -17,12 +17,11 @@ function createCard(s) {
           ? `<span class="price">¥${s.min_price}</span>`
           : ""
       }
-      /* ▼ 追加：残り個数があれば左上に表示（>0 のときだけ） */
-${
-  Number.isFinite(s.stock_remain) && s.stock_remain > 0
-    ? `<span class="stock">残り${s.stock_remain}個</span>`
-    : ""
-}
+      ${
+        Number.isFinite(s.stock_remain) && s.stock_remain > 0
+          ? `<span class="stock">残り${s.stock_remain}個</span>`
+          : ""
+      }
     </div>
     <div class="body">
       <div class="title-line">
