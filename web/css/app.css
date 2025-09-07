@@ -145,17 +145,22 @@ body {
   padding-bottom: 0.4rem;
 }
 
-/* 近隣カード：2列（広い画面は3列） */
+/* ===== 近隣カード：1枚ずつ横スクロールに戻す ===== */
 #nearby-row.card-row{
-  display:grid;
-  grid-auto-flow:row;
-  grid-template-columns:1fr 1fr;
-  gap:.9rem;
-  overflow:visible;
+  display: grid;
+  grid-auto-flow: column;        /* 横方向に並べる */
+  grid-auto-columns: 88%;        /* 1画面に1枚（少しチラ見せ） */
+  gap: .9rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity; /* スクロール時にカード頭で止まる */
+  padding-bottom: .4rem;
 }
-@media (min-width:520px){
-  #nearby-row.card-row{ grid-template-columns:1fr 1fr 1fr; }
-}
+#nearby-row .shop-card{ scroll-snap-align: start; }
+
+/* （任意）iOS等でスクロールバーを隠したい場合 */
+/* #nearby-row.card-row::-webkit-scrollbar{ display: none; } */
+
 
 .shop-card {
   background: var(--card);
