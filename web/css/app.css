@@ -30,7 +30,6 @@ body {
   color: var(--text);
   font: 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
     "Apple Color Emoji", "Segoe UI Emoji";
-  padding-bottom: 72px; /* タブ分の余白 */
 }
 
 /* ヘッダ */
@@ -479,4 +478,34 @@ body {
 .shop-card .thumb .stock {
   left: 8px;
   top: 8px;
+}
+/* === 固定フッター対策：高さぶんだけ下に余白を確保 === */
+:root {
+  /* 実際のフッター高さに合わせて調整（例：64px〜72px） */
+  --footer-h: 64px;
+}
+
+/* 固定ナビ */
+.app-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--footer-h);
+  padding-bottom: env(safe-area-inset-bottom);
+  background: #fff; /* 必要なら */
+  z-index: 1000;
+}
+
+/* コンテンツ側に余白を確保（= フッターの下に潜らない） */
+body,
+main,
+.page,
+.container {
+  padding-bottom: calc(var(--footer-h) + env(safe-area-inset-bottom) + 16px);
+}
+
+/* 横スクロール行の最下段がフッターに被らないよう少しだけマージン */
+.card-row:last-child {
+  margin-bottom: 12px;
 }
