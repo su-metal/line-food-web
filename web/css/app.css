@@ -263,29 +263,33 @@ body {
   stroke: currentColor;
 }
 
-.subline {
+/* --- カテゴリ・距離・場所を1行で横並び --- */
+.shop-card .subline {
   display: flex;
-  gap: 0.6rem;
   align-items: center;
-  margin: 0.25rem 0 0.35rem;
-  color: var(--muted);
-  font-size: 13px;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+  font-size: 12px;
+  color: #6b7280; /* 読みやすい薄めのテキスト */
 }
-.subline .point {
-  background: #fff5;
-  border: 1px solid var(--line);
-  padding: 0.05rem 0.4rem;
+.shop-card .subline .point {
+  background: var(--sub);
+  color: var(--primary);
+  padding: 0.15rem 0.5rem;
   border-radius: 999px;
+  white-space: nowrap;
 }
-.subline .status.warn {
-  color: var(--warn);
+.shop-card .subline .status {
+  white-space: nowrap;
 }
-.meta {
-  display: flex;
-  gap: 1rem;
-  font-size: 13px;
-  color: #5d4c46;
+.shop-card .subline .place {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap; /* 住所は長いので末尾省略 */
 }
+/* 使わなくなる .meta のルールがあれば削除してOK */
 
 /* タブ全体 */
 .tabbar {

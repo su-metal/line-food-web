@@ -38,11 +38,10 @@ function createCard(s) {
         </button>
       </div>
       <div class="subline">
-        <span class="point">${s.category ?? ""}</span>
-        <span class="status">${fmtDistance(s.distance_m)}</span>
-      </div>
-      <div class="meta"><span class="address">${s.address ?? ""}</span></div>
-    </div>`;
+  <span class="point">${s.category ?? ""}</span>
+  <span class="status">${fmtDistance(s.distance_m)}</span>
+  <span class="place">${s.address ?? ""}</span>
+</div>`;
   return el;
 }
 
