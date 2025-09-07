@@ -506,19 +506,7 @@ main,
 .card-row:last-child {
   margin-bottom: 12px;
 }
-/* 既存が無ければ追加 */
-#category-row.cat-row {
-  display: grid;
-  grid-auto-flow: column;
-  gap: 0.8rem;
-  overflow: auto;
-}
-.cat-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.3rem;
-}
+
 .cat-item img {
   width: 48px;
   height: 48px;
