@@ -146,21 +146,22 @@ body {
 }
 
 /* ===== 近隣カード：1枚ずつ横スクロールに戻す ===== */
-#nearby-row.card-row{
+#nearby-row.card-row {
   display: grid;
-  grid-auto-flow: column;        /* 横方向に並べる */
-  grid-auto-columns: 80%;        /* 1画面に1枚（少しチラ見せ） */
-  gap: .9rem;
+  grid-auto-flow: column; /* 横方向に並べる */
+  grid-auto-columns: 80%; /* 1画面に1枚（少しチラ見せ） */
+  gap: 0.9rem;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scroll-snap-type: x proximity; /* スクロール時にカード頭で止まる */
-  padding-bottom: .4rem;
+  padding-bottom: 0.4rem;
 }
-#nearby-row .shop-card{ scroll-snap-align: start; }
+#nearby-row .shop-card {
+  scroll-snap-align: start;
+}
 
 /* （任意）iOS等でスクロールバーを隠したい場合 */
 /* #nearby-row.card-row::-webkit-scrollbar{ display: none; } */
-
 
 .shop-card {
   background: var(--card);
@@ -413,3 +414,30 @@ body {
   box-shadow: 0 0 0 3px #cdebdd inset;
   border-color: #006a45; /* 少し濃い枠 */
 }
+
+/* === 画像オーバーレイのピル（価格/残数/NEW 用） === */
+.shop-card .thumb {
+  position: relative;
+}
+.shop-card .thumb .price,
+.shop-card .thumb .stock,            /* 既存の NEW 用クラスも同じ見た目に */
+.shop-card .thumb .stock-badge {
+  /* 新規：残り個数用の別名 */
+  position: absolute;
+  top: 8px;
+  padding: 0.28rem 0.56rem;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+.shop-card .thumb .price {
+  right: 8px;
+} /* 価格は右上のまま */
+.shop-card .thumb .stock,
+.shop-card .thumb .stock-badge {
+  left: 8px;
+} /* 残り個数/NEW は左上 */

@@ -42,6 +42,30 @@ export default async function handler(req, res) {
     if (!r.ok) throw new Error(`SB shops fetch failed: ${r.status}`);
     const rows = await r.json();
 
+    // rows を取得した直後に追加（既に rows があります前提）
+let stockMap = new Map();
+if (rows.length) {
+  const ids = rows.map(s => s.id);
+  const inExpr = `in.(${ids
+    .map(id => `"${String(id).replace(/"/g, '\\"')}"`)
+    .join(',')})`;
+
+  const p = new URLSearchParams();
+  p.set('select', 'shop_id,stock');
+  p.set('shop_id', inExpr);
+  p.append('stock', 'gt.0');
+
+  const r2 = await sbFetch(`/rest/v1/offers?${p.toString()}`, { method: 'GET' });
+  if (r2.ok) {
+    const offers = await r2.json();
+    for (const o of offers) {
+      const k = String(o.shop_id);
+      stockMap.set(k, (stockMap.get(k) || 0) + (Number(o.stock) || 0));
+    }
+  }
+}
+
+
     const items = rows
       .filter(s => Number.isFinite(+s.lat) && Number.isFinite(+s.lng))
       .map(s => ({
@@ -49,6 +73,7 @@ export default async function handler(req, res) {
         photo_url: s.photo_url || '', category: s.category || '',
         min_price: s.min_price ?? null, lat:+s.lat, lng:+s.lng,
         distance_m: Math.round(haversine(lat, lng, +s.lat, +s.lng)),
+        stock_remain: stockMap.get(String(s.id)) ?? 0,
       }))
       .filter(s => s.distance_m <= radius)
       .sort((a,b)=>a.distance_m - b.distance_m)
