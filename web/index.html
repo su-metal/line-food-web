@@ -379,7 +379,15 @@
   }
 </script>
 <script type="module">
-  import { loadNearby } from "./js/nearby.js?v=1";
-  // 既存のカテゴリ/価格のハンドラの最後で実行している想定
+  import { loadNearby } from "./js/nearby.js?v=20250907";
+  const getFilters = () => {
+    const cat =
+      document.querySelector(".cat-item.is-active")?.dataset.cat || null;
+    const priceData =
+      document.querySelector(".chip.is-active")?.dataset.price || null; // "<=500"
+    const priceMax = priceData ? Number(priceData.replace("<=", "")) : null;
+    return { category: cat, priceMax };
+  };
   loadNearby(getFilters());
+  // 既存のカテゴリ/価格クリックの最後にも loadNearby(getFilters()) を呼んでいる想定
 </script>
