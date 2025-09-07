@@ -534,7 +534,7 @@ main,
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.18rem; /* ← 画像とテキストの隙間を極小に */
+  gap: 0.12rem; /* ← 画像とテキストの隙間を極小に */
   padding: 0.32rem 0.44rem; /* 最小限のタップ余白だけ残す */
   background: transparent;
   border: none; /* ← 枠線なし */
