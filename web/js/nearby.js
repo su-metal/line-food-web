@@ -67,21 +67,30 @@ function createCard(s) {
     if (pName) pName.textContent = b.title ?? "おすすめセット";
     const time = summaryEl.querySelector(".meta .time");
     if (time) time.textContent = b.slot ? `🕒 ${b.slot}` : "";
-    const price = summaryEl.querySelector(".meta .price");
-    if (price) {
-      if (Number.isFinite(Number(b.price_min)))
-        price.textContent = yen(b.price_min) + "〜";
-      else if (Number.isFinite(Number(s.min_price)))
-        price.textContent = yen(s.min_price) + "〜";
-      else price.textContent = "";
+
+    // 右端：価格ピル
+    const priceInline = summaryEl.querySelector(".price-inline");
+    if (priceInline) {
+      const pv = Number.isFinite(Number(b.price_min))
+        ? Number(b.price_min)
+        : Number.isFinite(Number(s.min_price))
+        ? Number(s.min_price)
+        : null;
+      if (pv != null) {
+        priceInline.textContent = yen(pv) + "〜";
+        priceInline.hidden = false;
+      } else {
+        priceInline.hidden = true;
+      }
     }
-    // 在庫ピル（右端）：ショップの残数を表示
+
+    // 右端：在庫ピル（ショップ合算）
     const stockInline = summaryEl.querySelector(".stock-inline");
     if (stockInline) {
       const remain = Number(s.stock_remain);
       if (Number.isFinite(remain) && remain > 0) {
-        stockInline.textContent = `残り${s.stock_remain}個`;
-        stockInline.hidden = false; // ← 確実に hidden を外す
+        stockInline.textContent = `残り${remain}個`;
+        stockInline.hidden = false;
       } else {
         stockInline.hidden = true;
       }
