@@ -315,11 +315,17 @@ body {
 .product-name {
   font-size: 14px;
   font-weight: 600;
-  line-height: 1.2;
+  line-height: 1.3;
   color: var(--text);
-  white-space: nowrap;
+
+  /* 2行まで表示し、溢れたら… */
+  display: -webkit-box; /* WebKit 実装 */
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+
+  line-clamp: 2; /* 標準プロパティ（将来・一部ブラウザ用） */
   overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
 }
 .product-name a {
   color: inherit;
