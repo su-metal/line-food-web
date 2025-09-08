@@ -613,9 +613,10 @@ main,
   }
 }
 
-/* サムネ内オーバーレイ配置 */
+/* 画像内のオーバーレイは念のためクリップ */
 .shop-card .thumb {
   position: relative;
+  overflow: hidden;
 }
 .shop-card .thumb .price,
 .shop-card .thumb .stock,
@@ -630,10 +631,25 @@ main,
   bottom: 0.48rem;
 }
 
-/* 残り数/NEW：左下（変更点） */
+/* 在庫/NEW ピル：左下・横書きにリセット */
 .shop-card .thumb .stock {
+  position: absolute;
+  /* 既存の縦配置を打ち消す */
+  top: auto;
+  right: auto;
+  height: auto;
+  width: auto;
+  writing-mode: horizontal-tb;
+  transform: none;
+
   left: 0.48rem;
   bottom: 0.48rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.28rem 0.64rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  line-height: 1.1;
 }
 
 /* お気に入り：右上（移動） */
