@@ -612,3 +612,56 @@ main,
     gap: 0.64rem;
   }
 }
+
+/* サムネ内オーバーレイ配置 */
+.shop-card .thumb {
+  position: relative;
+}
+.shop-card .thumb .price,
+.shop-card .thumb .stock,
+.shop-card .thumb .heart {
+  position: absolute;
+  z-index: 1;
+}
+
+/* 価格ピル：右下（現状仕様） */
+.shop-card .thumb .price {
+  right: 0.48rem;
+  bottom: 0.48rem;
+}
+
+/* 残り数/NEW：左下（変更点） */
+.shop-card .thumb .stock {
+  left: 0.48rem;
+  bottom: 0.48rem;
+}
+
+/* お気に入り：右上（移動） */
+.shop-card .thumb .heart {
+  top: 0.48rem;
+  right: 0.48rem;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: saturate(1.2) blur(4px);
+  color: var(--heart); /* currentColor を --heart に */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+.shop-card .thumb .heart svg {
+  width: 22px;
+  height: 22px;
+}
+.shop-card .thumb .heart[aria-pressed="true"] svg path {
+  fill: var(--heart);
+  stroke: var(--heart);
+}
+
+/* タップ領域の微強化（オプション） */
+.shop-card .thumb .heart:focus-visible {
+  outline: 2px solid rgba(0, 0, 0, 0.2);
+  outline-offset: 2px;
+}

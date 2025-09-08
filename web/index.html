@@ -125,6 +125,22 @@
     <article class="shop-card" data-shop-id="">
       <div class="thumb">
         <img src="./photo/noimg.jpg" alt="" loading="lazy" />
+        <!-- ▼ ここに移動：お気に入りボタン（右上） -->
+        <button
+          class="heart fav-btn"
+          data-shop-id=""
+          aria-pressed="false"
+          aria-label="お気に入りを切り替え"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M12 21s-6.7-4.2-9.2-8C1.2 10 2.1 7.2 4.6 6c1.9-1 4.3-.5 5.6 1.2C11.5 5.5 13.9 5 15.8 6c2.5 1.2 3.4 4 1.8 7-2.5 3.8-9.6 8-9.6 8Z"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+            />
+          </svg>
+        </button>
         <!-- 価格ピル／在庫 or NEW（必要に応じてJSで表示/非表示） -->
         <span class="price">¥700〜</span>
         <span class="stock">残り6個</span>
@@ -134,23 +150,7 @@
       <div class="body">
         <div class="title-line">
           <h4>店舗名</h4>
-          <button
-            class="heart fav-btn"
-            data-shop-id=""
-            aria-pressed="false"
-            aria-label="お気に入りを切り替え"
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path
-                d="M12 21s-6.7-4.2-9.2-8C1.2 10 2.1 7.2 4.6 6c1.9-1 4.3-.5 5.6 1.2C11.5 5.5 13.9 5 15.8 6c2.5 1.2 3.4 4 1.8 7-2.5 3.8-9.6 8-9.6 8Z"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-              />
-            </svg>
-          </button>
         </div>
-
         <div class="subline">
           <span class="point">カテゴリ</span>
           <span class="status">1.2 km</span>

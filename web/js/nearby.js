@@ -51,7 +51,7 @@ function createCard(s) {
 
   // タイトル・ハート
   el.querySelector(".title-line h4").textContent = safe(s.name);
-  const favBtn = el.querySelector(".heart.fav-btn");
+  const favBtn = el.querySelector(".thumb .heart.fav-btn");
   if (favBtn) favBtn.dataset.shopId = safe(s.id);
 
   // サブライン
