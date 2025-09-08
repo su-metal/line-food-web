@@ -664,6 +664,29 @@ main,
   white-space: nowrap;
 }
 
+/* 一旦どこにあっても .status/.place のアイコンは消す */
+.status::before,
+.place::before {
+  content: none !important;
+}
+
+/* 付けたいのは thumb 内のサブラインだけに限定して再指定 */
+.thumb-subline .status::before {
+  content: "📏";
+  margin-right: 0.24rem;
+}
+.thumb-subline .place::before {
+  content: "📍";
+  margin-right: 0.24rem;
+}
+
+/* テキストが空ならアイコンも出さない */
+.thumb-subline .status:empty::before,
+.thumb-subline .place:empty::before {
+  content: "";
+  display: none;
+}
+
 /* 距離：左右矢印（distance） */
 .thumb-subline .status::before {
   -webkit-mask-image: url("data:image/svg+xml;utf8,\
