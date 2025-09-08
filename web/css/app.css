@@ -756,10 +756,15 @@ main,
   font-size: 15px;
   font-weight: 600;
   line-height: 1.2;
-  color: var(--primary);
+  color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* 商品名がリンクの場合も黒に揃える */
+.product-name a {
+  color: inherit;
 }
 
 .meta {
