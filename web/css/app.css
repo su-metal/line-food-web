@@ -750,6 +750,12 @@ main,
   order: 0;
 }
 
+/* 右端ピルはデフォルト非表示 */
+.product-summary .ps-aside .stock-inline,
+.product-summary .ps-aside .price-inline {
+  display: none;
+}
+
 /* サムネ内の .stock は NEW 用だけ（数はここでは出さない） */
 .shop-card .thumb .stock {
   position: absolute;
