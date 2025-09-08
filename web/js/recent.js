@@ -38,10 +38,8 @@ function createCard(s) {
   }
   const stockPill = el.querySelector(".thumb .stock");
   if (stockPill) {
-    if (Number.isFinite(s.stock_remain) && s.stock_remain > 0) {
-      stockPill.textContent = `残り${s.stock_remain}個`;
-      stockPill.hidden = false;
-    } else if (isNew(s.created_at)) {
+    // recent のサムネ内 .stock は NEW 表示専用
+    if (isNew(s.created_at)) {
       stockPill.textContent = "NEW";
       stockPill.hidden = false;
     } else stockPill.hidden = true;
@@ -81,6 +79,16 @@ function createCard(s) {
       else if (Number.isFinite(Number(s.min_price)))
         price.textContent = yen(s.min_price) + "〜";
       else price.textContent = "";
+    }
+    // 在庫ピル（右端）
+    const stockInline = summaryEl.querySelector(".stock-inline");
+    if (stockInline) {
+      if (Number.isFinite(s.stock_remain) && s.stock_remain > 0) {
+        stockInline.textContent = `残り${s.stock_remain}個`;
+        stockInline.hidden = false;
+      } else {
+        stockInline.hidden = true;
+      }
     }
   };
   if (!bundles.length) {

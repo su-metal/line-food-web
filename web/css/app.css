@@ -697,6 +697,39 @@ main,
   margin-top: 0.72rem; /* 適度な間隔 */
 }
 
+/* product-summary を3カラムに（img / meta / stock） */
+.shop-info .product-summary {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  column-gap: 0.72rem;
+}
+
+/* 右端の在庫ピル（サマリ内） */
+.product-summary .stock-inline {
+  padding: 0.24rem 0.56rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: var(--sub);
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* サムネ内の .stock は NEW 表示専用（数は出さない） */
+.shop-card .thumb .stock {
+  left: 0.48rem;
+  bottom: 0.48rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.28rem 0.64rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  line-height: 1.1;
+}
+
+/* 省略記号と画像の横長比率など、前回の指定はそのまま有効 */
+
 .product-img {
   width: 64px;
   height: 64px;
