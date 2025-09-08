@@ -60,23 +60,24 @@ function createCard(s) {
     const time = summaryEl.querySelector(".meta .time");
     if (time) time.textContent = b.slot ? `🕒 ${b.slot}` : "";
 
-    // 右端：価格ピル
+    // 右端：価格（bundleの価格のみ／チルダなし）
     const priceInline = summaryEl.querySelector(".price-inline");
     if (priceInline) {
-      // 商品（bundle）に紐づいた価格のみ表示。チルダ不要。
       const pv = Number(b?.price_min);
       if (Number.isFinite(pv)) {
-        priceInline.textContent = yen(pv); // ← 「〜」なし
+        priceInline.textContent = yen(pv);
         priceInline.hidden = false;
       } else {
         priceInline.hidden = true;
       }
     }
-
-    // 右端：在庫ピル（ショップ合算）
+    // （使わない）meta内の価格は空に
+    const metaPrice = summaryEl.querySelector(".meta .price");
+    if (metaPrice) metaPrice.textContent = "";
+    // “商品残数” に変更
     const stockInline = summaryEl.querySelector(".stock-inline");
     if (stockInline) {
-      const remain = Number(s.stock_remain);
+      const remain = Number(b?.qty_available);
       if (Number.isFinite(remain) && remain > 0) {
         stockInline.textContent = `残り${remain}個`;
         stockInline.hidden = false;

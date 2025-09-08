@@ -51,26 +51,27 @@ function createCard(s) {
     const time = summaryEl.querySelector(".meta .time");
     if (time) time.textContent = b.slot ? `🕒 ${b.slot}` : "";
 
-    // 右端：価格ピル（bundle に紐づく価格のみ／チルダ無し）
+    // 右端：価格（bundleの価格のみ／チルダなし）
     const priceInline = summaryEl.querySelector(".price-inline");
     if (priceInline) {
-      const pv = Number(b?.price_min); // offers.price を想定
+      const pv = Number(b?.price_min);
       if (Number.isFinite(pv)) {
-        priceInline.textContent = yen(pv); // ← 「〜」なし
+        priceInline.textContent = yen(pv);
         priceInline.hidden = false;
       } else {
         priceInline.hidden = true;
       }
     }
+    // （使わない）meta内の価格は空に
     const metaPrice = summaryEl.querySelector(".meta .price");
     if (metaPrice) metaPrice.textContent = "";
-    // 在庫ピル（右端）
+
     const stockInline = summaryEl.querySelector(".stock-inline");
     if (stockInline) {
-      const remain = Number(s.stock_remain);
+      const remain = Number(b?.qty_available);
       if (Number.isFinite(remain) && remain > 0) {
-        stockInline.textContent = `残り${s.stock_remain}個`;
-        stockInline.hidden = false; // ← 確実に hidden を外す
+        stockInline.textContent = `残り${remain}個`;
+        stockInline.hidden = false;
       } else {
         stockInline.hidden = true;
       }
