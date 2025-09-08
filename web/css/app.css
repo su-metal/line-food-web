@@ -527,6 +527,7 @@ body {
   bottom: 0.48rem;
 }
 .shop-card .thumb .stock {
+  display: none !important;
   left: 0.48rem;
   bottom: 0.48rem;
   display: inline-flex;
@@ -697,7 +698,7 @@ main,
   margin-top: 0.72rem; /* 適度な間隔 */
 }
 
-/* product-summary を3カラムに（img / meta / stock） */
+/* product-summary を 3 カラム（画像 / 本文 / 在庫ピル） */
 .shop-info .product-summary {
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -705,8 +706,11 @@ main,
   column-gap: 0.72rem;
 }
 
-/* 右端の在庫ピル（サマリ内） */
+/* 右端の在庫ピル（ここを“見える”形にリセット） */
 .product-summary .stock-inline {
+  position: static; /* 絶対配置を打ち消し */
+  display: inline-flex; /* サイズが 0 にならないように */
+  align-items: center;
   padding: 0.24rem 0.56rem;
   border-radius: 999px;
   white-space: nowrap;
@@ -716,8 +720,9 @@ main,
   font-weight: 600;
 }
 
-/* サムネ内の .stock は NEW 表示専用（数は出さない） */
+/* サムネ内の .stock は NEW 用だけ（数はここでは出さない） */
 .shop-card .thumb .stock {
+  position: absolute;
   left: 0.48rem;
   bottom: 0.48rem;
   display: inline-flex;

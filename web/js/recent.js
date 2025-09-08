@@ -31,8 +31,7 @@ function createCard(s) {
       pricePill.hidden = false;
     } else pricePill.hidden = true;
   }
-  const stockPill = el.querySelector(".thumb .stock");
-  if (stockPill) stockPill.hidden = true; // NEWは使わない
+  
 
   // お気に入り
   const favBtn = el.querySelector(".thumb .heart.fav-btn");
