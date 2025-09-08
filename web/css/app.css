@@ -701,50 +701,53 @@ main,
 }
 
 .shop-info .product-summary + .product-summary {
-  margin-top: 0.72rem; /* 適度な間隔 */
+  margin-top: 0.56rem; /* 適度な間隔 */
 }
 
 /* product-summary を 3 カラム（画像 / 本文 / 在庫ピル） */
 /* 右端用カラム（価格＋在庫を縦に） */
-.shop-info .product-summary{
+.shop-info .product-summary {
   display: grid;
   grid-template-columns: auto 1fr auto; /* img / text / aside */
   align-items: center;
-  column-gap: .72rem;
+  column-gap: 0.56rem;
 }
 
-.product-summary .ps-aside{
+.product-summary .ps-aside {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: .28rem;
+  gap: 0.16rem;
   min-width: max-content;
 }
 
 /* 右端の価格ピル */
-.product-summary .price-inline{
+.product-summary .price-inline {
   display: inline-flex;
   align-items: center;
-  padding: .26rem .56rem;
+  padding: 0.18rem 0.44rem;
   border-radius: 999px;
   background: var(--primary);
   color: #fff;
   font-weight: 700;
+  line-height: 1.05;
+  order: 1;
 }
-
-
 
 /* 右端の在庫ピル（ここを“見える”形にリセット） */
 .product-summary .stock-inline {
   display: inline-flex;
   align-items: center;
-  padding: .22rem .52rem;
+  font-size: 11.5px; /* 小さく */
+  padding: 0.14rem 0.44rem; /* 上下の余白を減らす */
   border-radius: 999px;
   white-space: nowrap;
   background: var(--sub);
   border: 1px solid var(--primary);
   color: var(--primary);
   font-weight: 600;
+  line-height: 1.05;
+  order: 0;
 }
 
 /* サムネ内の .stock は NEW 用だけ（数はここでは出さない） */
@@ -780,7 +783,9 @@ main,
 }
 
 /* meta 内の価格は重複回避で非表示に */
-.product-meta .meta .price{ display: none; }
+.product-meta .meta .price {
+  display: none;
+}
 
 .product-name {
   font-size: 15px;
