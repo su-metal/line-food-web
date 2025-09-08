@@ -23,6 +23,33 @@ function minutesUntilEnd(slot) {
   return diff >= 0 ? diff : Infinity;
 }
 
+// 「終了間近」の閾値（分）
+const SOON_MINUTES = 30;
+
+// 既存の minutesUntilEnd(slot) をそのまま利用
+function shouldShowSoon(slotLabel) {
+  return minutesUntilEnd(slotLabel) <= SOON_MINUTES;
+}
+
+// .meta の中に <span class="soon"> を出し入れ
+function upsertSoon(metaEl, slotLabel) {
+  if (!metaEl) return;
+  const show = shouldShowSoon(slotLabel);
+  let tag = metaEl.querySelector(".soon");
+  if (show) {
+    if (!tag) {
+      tag = document.createElement("span");
+      tag.className = "soon";
+      tag.textContent = "終了間近";
+      metaEl.appendChild(tag);
+    } else {
+      tag.hidden = false;
+    }
+  } else {
+    tag?.remove();
+  }
+}
+
 // 既存の createCard(s) をこの版で置き換え
 function createCard(s) {
   const tpl = document.getElementById("shop-card-template");
@@ -72,6 +99,7 @@ function createCard(s) {
     if (pName) pName.textContent = b.title ?? "おすすめセット";
     const time = summaryEl.querySelector(".meta .time");
     if (time) time.textContent = b.slot ? `🕒 ${b.slot}` : "";
+    if (time) time.textContent = slotLabel ? `🕒 ${slotLabel}` : "";
 
     const metaBox = summaryEl.querySelector(".meta");
     if (metaBox) {
