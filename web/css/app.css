@@ -15,6 +15,8 @@
   --sub: #e8f3ee; /* サブ：淡いミント（背景・選択状態に） */
   --sub-deep: #cfe8df; /* サブの濃い目（hoverなど） */
   --heart: #e04f5f; /* ハート：落ち着いた赤（高彩度すぎない） */
+  --text: #111; /* 基本文字色（黒に近い） */
+  --text-weak: #2b4b42; /* サブテキスト用（お好みで） */
 }
 
 * {
@@ -23,6 +25,7 @@
 html,
 body {
   height: 100%;
+  color: var(--text);
 }
 body {
   margin: 0;
@@ -398,12 +401,12 @@ body {
 }
 .chip {
   background: var(--sub);
-  color: var(--primary);
-  border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
+  color: var(--text);
+  border: 1px solid currentColor;
   border-radius: 999px;
   padding: 0.24rem 0.92rem;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 400;
   letter-spacing: 0.02em;
   white-space: nowrap;
   cursor: pointer;
@@ -419,6 +422,12 @@ body {
   background: var(--primary);
   color: #fff;
   border-color: var(--primary);
+}
+.chip-row .chip.is-active,
+.chip-row .chip[aria-pressed="true"] {
+  color: var(--text);
+  background: var(--sub);
+  border-color: currentColor;
 }
 
 /* === 画像上のピル（価格 / 残数 / NEW 共通デザイン） === */
