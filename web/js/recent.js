@@ -52,7 +52,7 @@ function createCard(s) {
     if (time) time.textContent = b.slot ? `🕒 ${b.slot}` : "";
 
     // 価格（bundleに紐づく価格のみ／チルダ無し）
-    const priceInline = summaryEl.querySelector(".price-inline");
+    const priceInline = summaryEl.querySelector(".ps-aside .price-inline");
     if (priceInline) {
       const pv = Number(b?.price_min);
       if (Number.isFinite(pv)) {
@@ -65,7 +65,7 @@ function createCard(s) {
       }
     }
     // 残り個数（bundleに紐づく残数）
-    const stockInline = summaryEl.querySelector(".stock-inline");
+    const stockInline = summaryEl.querySelector(".ps-aside .stock-inline");
     if (stockInline) {
       const remain = Number(b?.qty_available);
       if (Number.isFinite(remain) && remain > 0) {
