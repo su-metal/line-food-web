@@ -463,6 +463,10 @@ body {
   object-fit: contain;
 }
 
+#category-row {
+  display: none !important;
+}
+
 /* 旧 .cats/.cat-strip を残している場合の無害化（任意） */
 .cats {
   padding: 0.6rem 0.9rem 0;
