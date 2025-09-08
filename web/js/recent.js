@@ -50,14 +50,20 @@ function createCard(s) {
     if (pName) pName.textContent = b.title ?? "おすすめセット";
     const time = summaryEl.querySelector(".meta .time");
     if (time) time.textContent = b.slot ? `🕒 ${b.slot}` : "";
-    const price = summaryEl.querySelector(".meta .price");
-    if (price) {
-      if (Number.isFinite(Number(b.price_min)))
-        price.textContent = yen(b.price_min) + "〜";
-      else if (Number.isFinite(Number(s.min_price)))
-        price.textContent = yen(s.min_price) + "〜";
-      else price.textContent = "";
+
+    // 右端：価格ピル（bundle に紐づく価格のみ／チルダ無し）
+    const priceInline = summaryEl.querySelector(".price-inline");
+    if (priceInline) {
+      const pv = Number(b?.price_min); // offers.price を想定
+      if (Number.isFinite(pv)) {
+        priceInline.textContent = yen(pv); // ← 「〜」なし
+        priceInline.hidden = false;
+      } else {
+        priceInline.hidden = true;
+      }
     }
+    const metaPrice = summaryEl.querySelector(".meta .price");
+    if (metaPrice) metaPrice.textContent = "";
     // 在庫ピル（右端）
     const stockInline = summaryEl.querySelector(".stock-inline");
     if (stockInline) {
