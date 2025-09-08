@@ -6,6 +6,29 @@ function fmtDistance(m) {
   return m < 1000 ? `${m} m` : `${(m / 1000).toFixed(1)} km`;
 }
 
+// 例: "10:00–18:00", "10:00-18:00", "10:00〜18:00" の終了時刻までの分
+function minutesUntilEnd(slot) {
+  if (!slot) return Infinity;
+  const m = String(slot).match(
+    /(\d{1,2}):(\d{2})\s*[-–~〜]\s*(\d{1,2}):(\d{2})/
+  );
+  if (!m) return Infinity;
+  const endH = Number(m[3]),
+    endMin = Number(m[4]);
+  const now = new Date();
+  const end = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    endH,
+    endMin,
+    0,
+    0
+  );
+  const diff = Math.floor((end - now) / 60000);
+  return diff >= 0 ? diff : Infinity;
+}
+
 // 既存の createCard(s) をこの版で置き換え
 function createCard(s) {
   const tpl = document.getElementById("shop-card-template");
@@ -59,6 +82,24 @@ function createCard(s) {
     if (pName) pName.textContent = b.title ?? "おすすめセット";
     const time = summaryEl.querySelector(".meta .time");
     if (time) time.textContent = b.slot ? `🕒 ${b.slot}` : "";
+
+    // ▼ 終了間近（60分以内）なら小さなバッジを表示
+    const metaBox = summaryEl.querySelector(".meta");
+    if (metaBox) {
+      let soon = metaBox.querySelector(".soon");
+      if (!soon) {
+        soon = document.createElement("span");
+        soon.className = "soon";
+        metaBox.appendChild(soon);
+      }
+      const mins = minutesUntilEnd(b.slot);
+      if (mins <= 60) {
+        soon.textContent = "まもなく終了";
+        soon.hidden = false;
+      } else {
+        soon.hidden = true;
+      }
+    }
 
     // 右端：価格（bundleの価格のみ／チルダなし）
     const priceInline = summaryEl.querySelector(".ps-aside .price-inline");

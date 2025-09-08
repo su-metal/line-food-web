@@ -340,6 +340,22 @@ body {
   color: var(--text-weak);
   opacity: 0.9;
 }
+
+/* 終了間近バッジ（meta内に小さく） */
+.meta .soon {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.14rem 0.44rem;
+  border-radius: 999px;
+  background: #fff7ec; /* うすいオレンジ */
+  border: 1px solid #f4c47a; /* 枠も淡く */
+  color: var(--warn); /* 既存の警告色 #b35b00 */
+  font-size: 11px;
+  line-height: 1.05;
+  white-space: nowrap;
+  margin-left: 0.2rem;
+}
+
 /* meta 内の旧価格は使わない */
 .product-meta .meta .price {
   display: none;
