@@ -89,66 +89,91 @@ function createCard(s) {
   const shopInfo = el.querySelector(".shop-info");
   const firstSummary = el.querySelector(".shop-info .product-summary");
   const bundles = Array.isArray(s.bundles) ? s.bundles.slice(0, 1) : [];
-  const fill = (summaryEl, b) => {
+  // ▼ これで置き換え（nearby.js / recent.js 共通）
+  const fill = (summaryEl, b, s) => {
+    const safe = (v) => (v == null ? "" : String(v));
+    const yen = (v) => "¥" + Number(v).toLocaleString("ja-JP");
+
+    // 画像
     const pImg = summaryEl.querySelector(".product-img");
     if (pImg) {
       pImg.src = b.thumb_url || s.photo_url || "./photo/noimg.jpg";
       pImg.alt = `${safe(b.title ?? "おすすめセット")} の画像`;
     }
+
+    // タイトル
     const pName = summaryEl.querySelector(".product-name");
     if (pName) pName.textContent = b.title ?? "おすすめセット";
+
+    // 時間帯（slot_label/slot どちらでも対応）
     const time = summaryEl.querySelector(".meta .time");
-    if (time) time.textContent = b.slot ? `🕒 ${b.slot}` : "";
+    const slotLabel = b.slot || b.slot_label || "";
     if (time) time.textContent = slotLabel ? `🕒 ${slotLabel}` : "";
 
+    // 「終了間近」バッジ（あるなら minutesUntilEnd を利用）
     const metaBox = summaryEl.querySelector(".meta");
-    if (metaBox) {
+    if (typeof minutesUntilEnd === "function" && metaBox) {
+      const SOON_MINUTES = 30;
+      const mins = minutesUntilEnd(slotLabel);
+      // 既存の .soon を出し入れ
       let soon = metaBox.querySelector(".soon");
-      if (!soon) {
-        soon = document.createElement("span");
-        soon.className = "soon";
-        metaBox.appendChild(soon);
-      }
-      const mins = minutesUntilEnd(b.slot);
-      if (mins <= 60) {
-        soon.textContent = "まもなく終了";
-        soon.hidden = false;
+      if (mins <= SOON_MINUTES) {
+        if (!soon) {
+          soon = document.createElement("span");
+          soon.className = "soon";
+          soon.textContent = "終了間近";
+          metaBox.appendChild(soon);
+        }
       } else {
-        soon.hidden = true;
+        soon?.remove();
       }
     }
 
-    // 価格（bundleに紐づく価格のみ／チルダ無し）
-    const priceInline = summaryEl.querySelector(".ps-aside .price-inline");
-    if (priceInline) {
-      const pv = Number(b?.price_min);
-      if (Number.isFinite(pv)) {
-        priceInline.textContent = "¥" + pv.toLocaleString("ja-JP");
-        priceInline.classList.add("show");
-        priceInline.removeAttribute("hidden");
-      } else {
-        priceInline.classList.remove("show");
-        priceInline.setAttribute("hidden", "");
-      }
-    }
-    // 残り個数（bundleに紐づく残数）
+    // 右端：在庫ピル（まずはバンドル単位 → 無ければ店舗合算）
     const stockInline = summaryEl.querySelector(".ps-aside .stock-inline");
     if (stockInline) {
-      const remain = Number(b?.qty_available);
+      const remain = Number.isFinite(Number(b.qty_available))
+        ? Number(b.qty_available)
+        : Number.isFinite(Number(s.stock_remain))
+        ? Number(s.stock_remain)
+        : null;
+
       if (Number.isFinite(remain) && remain > 0) {
         stockInline.textContent = `残り${remain}個`;
         stockInline.classList.add("show");
-        stockInline.removeAttribute("hidden");
+        stockInline.hidden = false;
       } else {
         stockInline.classList.remove("show");
-        stockInline.setAttribute("hidden", "");
+        stockInline.hidden = true;
+      }
+    }
+
+    // 右端：価格ピル（バンドルの price / price_min → 無ければ店の min_price）
+    const priceInline = summaryEl.querySelector(".ps-aside .price-inline");
+    if (priceInline) {
+      const priceVal = Number.isFinite(Number(b.price))
+        ? Number(b.price)
+        : Number.isFinite(Number(b.price_min))
+        ? Number(b.price_min)
+        : Number.isFinite(Number(s.min_price))
+        ? Number(s.min_price)
+        : null;
+
+      if (priceVal != null) {
+        priceInline.textContent = yen(priceVal); // 「〜」は付けない
+        priceInline.classList.add("show");
+        priceInline.hidden = false;
+      } else {
+        priceInline.classList.remove("show");
+        priceInline.hidden = true;
       }
     }
   };
+
   if (!bundles.length) {
     if (shopInfo) shopInfo.remove();
   } else {
-    fill(firstSummary, bundles[0]);
+    fill(firstSummary, bundles[0], s);
     const total = Array.isArray(s.bundles) ? s.bundles.length : 0;
     if (total > 1 && shopInfo) {
       const moreWrap = document.createElement("div");
