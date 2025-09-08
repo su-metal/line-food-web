@@ -628,6 +628,26 @@ main,
   font-weight: 600;
 }
 
+/* 3件以上のとき“他 n セット”チップを右下に */
+.shop-info .more-wrap {
+  margin-top: 0.56rem;
+  display: flex;
+  justify-content: flex-end;
+}
+.shop-info .more-bundles {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.22rem 0.56rem;
+  border-radius: 999px;
+  background: var(--sub);
+  border: 1px dashed var(--primary);
+  color: var(--primary);
+  font-size: 12px;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
 /* 距離：左右矢印（distance） */
 .thumb-subline .status::before {
   -webkit-mask-image: url("data:image/svg+xml;utf8,\

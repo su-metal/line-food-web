@@ -429,7 +429,7 @@
     const priceData =
       document.querySelector(".chip.is-active")?.dataset.price || null; // "<=500"
     const priceMax = priceData ? Number(priceData.replace("<=", "")) : null;
-    return { category: cat, priceMax };
+    return { category: cat, priceMax, sort: sortMode };
   };
 
   // 初期表示
