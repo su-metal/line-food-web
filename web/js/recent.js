@@ -23,16 +23,6 @@ function createCard(s) {
     thumbImg.alt = safe(s.name);
   }
 
-  // ピル
-  const pricePill = el.querySelector(".thumb .price");
-  if (pricePill) {
-    if (Number.isFinite(Number(s.min_price))) {
-      pricePill.textContent = yen(s.min_price) + "〜";
-      pricePill.hidden = false;
-    } else pricePill.hidden = true;
-  }
-  
-
   // お気に入り
   const favBtn = el.querySelector(".thumb .heart.fav-btn");
   if (favBtn) favBtn.dataset.shopId = safe(s.id);

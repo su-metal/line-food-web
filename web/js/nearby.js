@@ -28,14 +28,6 @@ function createCard(s) {
     thumbImg.alt = safe(s.name);
   }
 
-  // ピル
-  const pricePill = el.querySelector(".thumb .price");
-  if (pricePill) {
-    if (Number.isFinite(Number(s.min_price))) {
-      pricePill.textContent = yen(s.min_price) + "〜";
-      pricePill.hidden = false;
-    } else pricePill.hidden = true;
-  }
   // サムネ内の .stock は（nearby では）使わない
   const stockBadge = el.querySelector(".thumb .stock");
   if (stockBadge) stockBadge.hidden = true;
