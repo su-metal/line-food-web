@@ -258,7 +258,7 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin: 0;           /* 全方向 0（互換性重視） */
+  margin: 0; /* 全方向 0（互換性重視） */
 }
 .thumb-subline {
   display: flex;
@@ -570,6 +570,55 @@ main,
 .page,
 .container {
   padding-bottom: calc(var(--footer-h) + env(safe-area-inset-bottom) + 16px);
+}
+
+/* === thumb-info の距離(.status)・場所(.place)にアイコン付与 === */
+.thumb-subline .status::before,
+.thumb-subline .place::before {
+  content: "";
+  display: inline-block;
+  width: 0.95em;
+  height: 0.95em;
+  margin-right: 0.28rem;
+  vertical-align: -0.12em;
+  background-color: currentColor; /* 文字色(=白)にフィット */
+  opacity: 0.95;
+  /* Safari/Chrome */
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+  /* Firefox */
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+}
+
+/* 距離：左右矢印（distance） */
+.thumb-subline .status::before {
+  -webkit-mask-image: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'>\
+  <path d='M3 11h18v2H3z'/>\
+  <path d='M7 8l-4 4 4 4v-3h5v-2H7z'/>\
+  <path d='M17 8v3h5v2h-5v3l4-4-4-4z'/>\
+</svg>");
+  mask-image: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'>\
+  <path d='M3 11h18v2H3z'/>\
+  <path d='M7 8l-4 4 4 4v-3h5v-2H7z'/>\
+  <path d='M17 8v3h5v2h-5v3l4-4-4-4z'/>\
+</svg>");
+}
+
+/* 場所：ピン（location） */
+.thumb-subline .place::before {
+  -webkit-mask-image: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'>\
+  <path d='M12 2C8.7 2 6 4.7 6 8c0 4.9 6 12 6 12s6-7.1 6-12c0-3.3-2.7-6-6-6zm0 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4z'/>\
+</svg>");
+  mask-image: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'>\
+  <path d='M12 2C8.7 2 6 4.7 6 8c0 4.9 6 12 6 12s6-7.1 6-12c0-3.3-2.7-6-6-6zm0 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4z'/>\
+</svg>");
 }
 
 /* ========== レスポンシブ微調整 ========== */
