@@ -176,7 +176,7 @@ body {
   position: relative;
   overflow: hidden;
   border-radius: 16px 16px 0 0; /* 下左右は0 */
-  aspect-ratio: 2/1; /* 横長 */
+  aspect-ratio: 21/9; /* 横長 */
 }
 .shop-card .thumb img {
   position: absolute;
