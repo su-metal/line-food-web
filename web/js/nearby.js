@@ -63,13 +63,10 @@ function createCard(s) {
     // 右端：価格ピル
     const priceInline = summaryEl.querySelector(".price-inline");
     if (priceInline) {
-      const pv = Number.isFinite(Number(b.price_min))
-        ? Number(b.price_min)
-        : Number.isFinite(Number(s.min_price))
-        ? Number(s.min_price)
-        : null;
-      if (pv != null) {
-        priceInline.textContent = yen(pv) + "〜";
+      // 商品（bundle）に紐づいた価格のみ表示。チルダ不要。
+      const pv = Number(b?.price_min);
+      if (Number.isFinite(pv)) {
+        priceInline.textContent = yen(pv); // ← 「〜」なし
         priceInline.hidden = false;
       } else {
         priceInline.hidden = true;

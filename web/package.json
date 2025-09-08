@@ -2,5 +2,10 @@
   "name": "line-food-web",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22 <23" }
+  "engines": {
+    "node": ">=22 <23"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.57.2"
+  }
 }
