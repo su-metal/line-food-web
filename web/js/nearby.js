@@ -6,14 +6,13 @@ function fmtDistance(m) {
   return m < 1000 ? `${m} m` : `${(m / 1000).toFixed(1)} km`;
 }
 
+// 既存の createCard(s) をこの版で置き換え
 function createCard(s) {
   const tpl = document.getElementById("shop-card-template");
   const yen = (v) => "¥" + Number(v).toLocaleString("ja-JP");
   const safe = (v) => (v == null ? "" : String(v));
 
-  // テンプレートが無い場合の保護
   if (!tpl) {
-    console.warn("[nearby] #shop-card-template not found");
     const fallback = document.createElement("article");
     fallback.className = "shop-card";
     fallback.textContent = safe(s.name || "店舗");
@@ -22,86 +21,69 @@ function createCard(s) {
 
   const el = tpl.content.firstElementChild.cloneNode(true);
 
-  // 画像・価格ピル・在庫ピル
+  // 画像
   const thumbImg = el.querySelector(".thumb img");
   if (thumbImg) {
     thumbImg.src = s.photo_url || "./photo/noimg.jpg";
     thumbImg.alt = safe(s.name);
   }
 
+  // ピル
   const pricePill = el.querySelector(".thumb .price");
   if (pricePill) {
     if (Number.isFinite(Number(s.min_price))) {
       pricePill.textContent = yen(s.min_price) + "〜";
       pricePill.hidden = false;
-    } else {
-      pricePill.hidden = true;
-    }
+    } else pricePill.hidden = true;
   }
-
   const stockPill = el.querySelector(".thumb .stock");
   if (stockPill) {
     if (Number.isFinite(s.stock_remain) && s.stock_remain > 0) {
       stockPill.textContent = `残り${s.stock_remain}個`;
       stockPill.hidden = false;
-    } else {
-      stockPill.hidden = true; // nearby は NEW 表示なし
-    }
+    } else stockPill.hidden = true;
   }
 
-  // タイトル・ハート
-  el.querySelector(".title-line h4").textContent = safe(s.name);
+  // お気に入り
   const favBtn = el.querySelector(".thumb .heart.fav-btn");
   if (favBtn) favBtn.dataset.shopId = safe(s.id);
 
-  // サブライン
-  const point = el.querySelector(".subline .point");
-  const status = el.querySelector(".subline .status");
-  const place = el.querySelector(".subline .place");
+  // ★ オーバーレイ内のテキスト
+  el.querySelector(".thumb-info .thumb-title").textContent = safe(s.name);
+  const point = el.querySelector(".thumb-info .point");
+  const status = el.querySelector(".thumb-info .status");
+  const place = el.querySelector(".thumb-info .place");
   if (point) point.textContent = safe(s.category);
   if (status) status.textContent = fmtDistance(s.distance_m);
   if (place) place.textContent = safe(s.address);
 
-  // ▼ 商品概要（bundles 最大2件）。無ければ非表示。
+  // ▼ 商品概要（bundles 最大2件）
   const shopInfo = el.querySelector(".shop-info");
   const firstSummary = el.querySelector(".shop-info .product-summary");
   const bundles = Array.isArray(s.bundles) ? s.bundles.slice(0, 2) : [];
-
+  const fill = (summaryEl, b) => {
+    const pImg = summaryEl.querySelector(".product-img");
+    if (pImg) {
+      pImg.src = b.thumb_url || s.photo_url || "./photo/noimg.jpg";
+      pImg.alt = `${safe(b.title ?? "おすすめセット")} の画像`;
+    }
+    const pName = summaryEl.querySelector(".product-name");
+    if (pName) pName.textContent = b.title ?? "おすすめセット";
+    const time = summaryEl.querySelector(".meta .time");
+    if (time) time.textContent = b.slot ? `🕒 ${b.slot}` : "";
+    const price = summaryEl.querySelector(".meta .price");
+    if (price) {
+      if (Number.isFinite(Number(b.price_min)))
+        price.textContent = yen(b.price_min) + "〜";
+      else if (Number.isFinite(Number(s.min_price)))
+        price.textContent = yen(s.min_price) + "〜";
+      else price.textContent = "";
+    }
+  };
   if (!bundles.length) {
-    // bundles がまだ来ていないならブロックごと隠す
     if (shopInfo) shopInfo.remove();
   } else {
-    // 1件目を上書き
-    const fill = (summaryEl, b) => {
-      const pImg = summaryEl.querySelector(".product-img");
-      if (pImg) {
-        pImg.src = b.thumb_url || s.photo_url || "./photo/noimg.jpg";
-        pImg.alt = `${safe(b.title ?? "おすすめセット")} の画像`;
-      }
-      const pName = summaryEl.querySelector(".product-name");
-      if (pName) pName.textContent = b.title ?? "おすすめセット";
-
-      const rating = summaryEl.querySelector(".meta .rating");
-      if (rating) rating.textContent = "—"; // 評価データ未提供のためダッシュ
-
-      const time = summaryEl.querySelector(".meta .time");
-      if (time) time.textContent = b.slot ? `🕒 ${b.slot}` : "";
-
-      const price = summaryEl.querySelector(".meta .price");
-      if (price) {
-        if (Number.isFinite(Number(b.price_min))) {
-          price.textContent = yen(b.price_min) + "〜";
-        } else if (Number.isFinite(Number(s.min_price))) {
-          price.textContent = yen(s.min_price) + "〜";
-        } else {
-          price.textContent = "";
-        }
-      }
-    };
-
     fill(firstSummary, bundles[0]);
-
-    // 2件目があれば複製して追加
     if (bundles[1]) {
       const second = firstSummary.cloneNode(true);
       fill(second, bundles[1]);

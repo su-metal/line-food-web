@@ -120,12 +120,13 @@
 
   <div class="card-row" id="recent-row"></div>
 
-  <!-- 店舗カード テンプレート：商品概要（2行＋左サムネ）内包 -->
+  <!-- 店舗カード テンプレート：compact（bodyをサムネ内に重ねる） -->
   <template id="shop-card-template">
     <article class="shop-card" data-shop-id="">
       <div class="thumb">
         <img src="./photo/noimg.jpg" alt="" loading="lazy" />
-        <!-- ▼ ここに移動：お気に入りボタン（右上） -->
+
+        <!-- 右上：お気に入り -->
         <button
           class="heart fav-btn"
           data-shop-id=""
@@ -141,24 +142,25 @@
             />
           </svg>
         </button>
-        <!-- 価格ピル／在庫 or NEW（必要に応じてJSで表示/非表示） -->
+
+        <!-- ピル -->
         <span class="price">¥700〜</span>
+        <!-- 右下 -->
         <span class="stock">残り6個</span>
-        <!-- <span class="stock">NEW</span> -->
+        <!-- 左下 -->
+
+        <!-- ここが“元 body”の情報 -->
+        <div class="thumb-info">
+          <h4 class="thumb-title">店舗名</h4>
+          <div class="thumb-subline">
+            <span class="point">カテゴリ</span>
+            <span class="status">1.2 km</span>
+            <span class="place">住所など</span>
+          </div>
+        </div>
       </div>
 
-      <div class="body">
-        <div class="title-line">
-          <h4>店舗名</h4>
-        </div>
-        <div class="subline">
-          <span class="point">カテゴリ</span>
-          <span class="status">1.2 km</span>
-          <span class="place">住所など</span>
-        </div>
-      </div>
-
-      <!-- ▼ 商品概要ゾーン（2行表示タイプ／左に商品サムネ） -->
+      <!-- 下：商品概要（2行・左サムネ） -->
       <div class="shop-info">
         <div class="product-summary">
           <img
@@ -176,13 +178,7 @@
             </div>
           </div>
         </div>
-
-        <!-- 2商品表示にしたい場合は、上の .product-summary をもう一つ複製してください -->
-        <!--
-      <div class="product-summary">
-        ...
       </div>
-      --></div>
     </article>
   </template>
 </main>

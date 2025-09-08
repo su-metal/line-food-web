@@ -433,6 +433,35 @@ body {
 /* === 画像上のピル（価格 / 残数 / NEW 共通デザイン） === */
 .shop-card .thumb {
   position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  aspect-ratio: 2 / 1; /* 横長・縦を圧縮 */
+}
+
+.shop-card .thumb img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+/* 下部にスクリーン（読みやすさ向上） */
+.shop-card .thumb::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 48%;
+  pointer-events: none;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.62) 0%,
+    rgba(0, 0, 0, 0.38) 55%,
+    rgba(0, 0, 0, 0) 100%
+  );
 }
 
 /* ========== カード上のピル ========== */
@@ -483,6 +512,107 @@ body {
 .shop-card .thumb .stock {
   left: 8px;
   top: 8px;
+}
+
+/* ピル/ハートの配置（既存指定があれば上書き不要） */
+.shop-card .thumb .price,
+.shop-card .thumb .stock,
+.shop-card .thumb .heart {
+  position: absolute;
+  z-index: 3;
+}
+
+.shop-card .thumb .price {
+  right: 0.48rem;
+  bottom: 0.48rem;
+}
+.shop-card .thumb .stock {
+  left: 0.48rem;
+  bottom: 0.48rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.28rem 0.64rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  line-height: 1.1;
+}
+.shop-card .thumb .heart {
+  top: 0.48rem;
+  right: 0.48rem;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: saturate(1.2) blur(4px);
+  color: var(--heart);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+.shop-card .thumb .heart svg {
+  width: 22px;
+  height: 22px;
+}
+.shop-card .thumb .heart[aria-pressed="true"] svg path {
+  fill: var(--heart);
+  stroke: var(--heart);
+}
+
+/* “元 body”の情報をオーバーレイ */
+.thumb-info {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  padding: 0.56rem 0.72rem 0.68rem;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+}
+.thumb-title {
+  font-size: 17px;
+  line-height: 1.2;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis; /* …で省略 */
+}
+.thumb-subline {
+  display: flex;
+  align-items: center;
+  gap: 0.56rem;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.2;
+  color: rgba(255, 255, 255, 0.95);
+}
+.thumb-subline .point {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.12rem 0.44rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+.thumb-subline .place {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis; /* …で省略 */
+}
+
+/* 下の“商品概要”はややコンパクトに */
+.shop-info {
+  padding: 0.6rem 0.72rem 0.76rem;
+}
+.shop-info .product-summary + .product-summary {
+  margin-top: 0.64rem;
 }
 /* === 固定フッター対策：高さぶんだけ下に余白を確保 === */
 :root {
