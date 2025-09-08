@@ -753,7 +753,12 @@ main,
 /* 右端ピルはデフォルト非表示 */
 .product-summary .ps-aside .stock-inline,
 .product-summary .ps-aside .price-inline {
-  display: none;
+  display: none !important;
+}
+
+.product-summary .ps-aside .stock-inline.show,
+.product-summary .ps-aside .price-inline.show {
+  display: inline-flex !important; /* 表示時 */
 }
 
 /* サムネ内の .stock は NEW 用だけ（数はここでは出さない） */

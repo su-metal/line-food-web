@@ -66,24 +66,28 @@ function createCard(s) {
       const pv = Number(b?.price_min);
       if (Number.isFinite(pv)) {
         priceInline.textContent = "¥" + pv.toLocaleString("ja-JP");
-        priceInline.hidden = false;
+        priceInline.classList.add("show");
+        priceInline.removeAttribute("hidden");
       } else {
-        priceInline.hidden = true;
+        priceInline.classList.remove("show");
+        priceInline.setAttribute("hidden", "");
       }
     }
     // （使わない）meta内の価格は空に
     const metaPrice = summaryEl.querySelector(".meta .price");
     if (metaPrice) metaPrice.textContent = "";
-    
-    // “商品残数” に変更
+
+    // 残り個数（bundleに紐づく残数）
     const stockInline = summaryEl.querySelector(".stock-inline");
     if (stockInline) {
       const remain = Number(b?.qty_available);
       if (Number.isFinite(remain) && remain > 0) {
         stockInline.textContent = `残り${remain}個`;
-        stockInline.hidden = false;
+        stockInline.classList.add("show");
+        stockInline.removeAttribute("hidden");
       } else {
-        stockInline.hidden = true;
+        stockInline.classList.remove("show");
+        stockInline.setAttribute("hidden", "");
       }
     }
   };
