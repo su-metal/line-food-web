@@ -258,6 +258,7 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin: 0;           /* 全方向 0（互換性重視） */
 }
 .thumb-subline {
   display: flex;
