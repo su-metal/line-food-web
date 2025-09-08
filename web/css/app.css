@@ -293,7 +293,7 @@ body {
 /* 3カラム：画像 / テキスト / 右端（価格・在庫） */
 .shop-info .product-summary {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto 1fr max-content; /* 右端は縮まない列 */
   align-items: center;
   column-gap: 0.56rem;
 }
@@ -340,6 +340,7 @@ body {
 
 /* 右端カラム（価格・残数） */
 .product-summary .ps-aside {
+  grid-column: 3;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -354,6 +355,17 @@ body {
 .product-summary .ps-aside .stock-inline.show,
 .product-summary .ps-aside .price-inline.show {
   display: inline-flex !important;
+}
+.product-summary .ps-aside .stock-inline {
+  order: 0;
+}
+.product-summary .ps-aside .price-inline {
+  order: 1;
+}
+/* 万一、ps-aside の外に出たピルは出さない */
+.product-summary > .price-inline,
+.product-summary > .stock-inline {
+  display: none !important;
 }
 
 /* ピル見た目 */
