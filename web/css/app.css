@@ -501,18 +501,20 @@ body {
   padding: 0.35rem 0 0.75rem;
   -webkit-overflow-scrolling: touch;
 }
+/* コンパクト版チップ */
 .chip {
   background: transparent;
   color: var(--text);
   border: 1px solid currentColor;
   border-radius: 999px;
-  padding: 0.24rem 0.92rem;
-  font-size: 14px;
+  padding: 0.18rem 0.56rem; /* ← もっと狭く */
+  font-size: 12px; /* ← 12px に */
   font-weight: 400;
   letter-spacing: 0.02em;
   white-space: nowrap;
   cursor: pointer;
 }
+
 .chip:hover {
   background: var(--sub-deep);
 }
