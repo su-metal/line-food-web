@@ -174,7 +174,7 @@ export async function loadNearby({
     row.innerHTML = `<article class="shop-card"><div class="body"><div class="title-line"><h4>近くにお店が見つかりません</h4></div></div></article>`;
     return;
   }
-  // 並び替え：近い / 安い
+  // 並び替え（近い / 安い / 終了間近）
   const priceOf = (shop) => {
     const p =
       Array.isArray(shop.bundles) && shop.bundles.length
@@ -187,8 +187,43 @@ export async function loadNearby({
         : Number(shop.min_price);
     return Number.isFinite(p) ? p : Infinity;
   };
+  const minutesUntilEnd = (slot) => {
+    if (!slot) return Infinity;
+    // "10:00–18:00" / "10:00-18:00" / "10:00〜18:00" に対応
+    const m = String(slot).match(
+      /(\d{1,2}):(\d{2})\s*[-–~〜]\s*(\d{1,2}):(\d{2})/
+    );
+    if (!m) return Infinity;
+    const endH = Number(m[3]),
+      endM = Number(m[4]);
+    const now = new Date();
+    const end = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      endH,
+      endM,
+      0,
+      0
+    );
+    const diffMin = Math.floor((end - now) / 60000);
+    return diffMin >= 0 ? diffMin : Infinity; // もう終わってたら対象外
+  };
+  const soonestEnd = (shop) => {
+    if (!Array.isArray(shop.bundles) || !shop.bundles.length) return Infinity;
+    return shop.bundles.reduce(
+      (min, b) => Math.min(min, minutesUntilEnd(b.slot)),
+      Infinity
+    );
+  };
   if (sort === "cheap") {
     pool.sort((a, b) => priceOf(a) - priceOf(b) || a.distance_m - b.distance_m);
+  } else if (sort === "urgent") {
+    pool.sort((a, b) => {
+      const sa = soonestEnd(a),
+        sb = soonestEnd(b);
+      return sa - sb || a.distance_m - b.distance_m;
+    });
   } else {
     pool.sort((a, b) => a.distance_m - b.distance_m);
   }
