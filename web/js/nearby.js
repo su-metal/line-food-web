@@ -78,9 +78,10 @@ function createCard(s) {
     // 在庫ピル（右端）：ショップの残数を表示
     const stockInline = summaryEl.querySelector(".stock-inline");
     if (stockInline) {
-      if (Number.isFinite(s.stock_remain) && s.stock_remain > 0) {
+      const remain = Number(s.stock_remain);
+      if (Number.isFinite(remain) && remain > 0) {
         stockInline.textContent = `残り${s.stock_remain}個`;
-        stockInline.hidden = false;
+        stockInline.hidden = false; // ← 確実に hidden を外す
       } else {
         stockInline.hidden = true;
       }

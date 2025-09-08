@@ -1,11 +1,6 @@
 // web/js/recent.js
 import { apiJSON } from "./http.js";
 
-function isNew(created_at) {
-  if (!created_at) return false;
-  const seven = 7 * 24 * 60 * 60 * 1000;
-  return Date.now() - new Date(created_at).getTime() < seven;
-}
 // 既存の createCard(s) をこの版で置き換え
 function createCard(s) {
   const tpl = document.getElementById("shop-card-template");
@@ -37,13 +32,7 @@ function createCard(s) {
     } else pricePill.hidden = true;
   }
   const stockPill = el.querySelector(".thumb .stock");
-  if (stockPill) {
-    // recent のサムネ内 .stock は NEW 表示専用
-    if (isNew(s.created_at)) {
-      stockPill.textContent = "NEW";
-      stockPill.hidden = false;
-    } else stockPill.hidden = true;
-  }
+  if (stockPill) stockPill.hidden = true; // NEWは使わない
 
   // お気に入り
   const favBtn = el.querySelector(".thumb .heart.fav-btn");
@@ -83,9 +72,10 @@ function createCard(s) {
     // 在庫ピル（右端）
     const stockInline = summaryEl.querySelector(".stock-inline");
     if (stockInline) {
-      if (Number.isFinite(s.stock_remain) && s.stock_remain > 0) {
+      const remain = Number(s.stock_remain);
+      if (Number.isFinite(remain) && remain > 0) {
         stockInline.textContent = `残り${s.stock_remain}個`;
-        stockInline.hidden = false;
+        stockInline.hidden = false; // ← 確実に hidden を外す
       } else {
         stockInline.hidden = true;
       }
