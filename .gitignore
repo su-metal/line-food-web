@@ -1,2 +1,5 @@
 .vercel/
 .vercel/
+node_modules/
+web/node_modules/
+web/package-lock.json
