@@ -65,7 +65,7 @@ function createCard(s) {
     if (priceInline) {
       const pv = Number(b?.price_min);
       if (Number.isFinite(pv)) {
-        priceInline.textContent = yen(pv);
+        priceInline.textContent = "¥" + pv.toLocaleString("ja-JP");
         priceInline.hidden = false;
       } else {
         priceInline.hidden = true;
@@ -74,6 +74,7 @@ function createCard(s) {
     // （使わない）meta内の価格は空に
     const metaPrice = summaryEl.querySelector(".meta .price");
     if (metaPrice) metaPrice.textContent = "";
+    
     // “商品残数” に変更
     const stockInline = summaryEl.querySelector(".stock-inline");
     if (stockInline) {

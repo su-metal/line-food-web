@@ -51,21 +51,18 @@ function createCard(s) {
     const time = summaryEl.querySelector(".meta .time");
     if (time) time.textContent = b.slot ? `🕒 ${b.slot}` : "";
 
-    // 右端：価格（bundleの価格のみ／チルダなし）
+    // 右端：価格（bundleの価格のみ／チルダ無し）
     const priceInline = summaryEl.querySelector(".price-inline");
     if (priceInline) {
       const pv = Number(b?.price_min);
       if (Number.isFinite(pv)) {
-        priceInline.textContent = yen(pv);
+        priceInline.textContent = "¥" + pv.toLocaleString("ja-JP");
         priceInline.hidden = false;
       } else {
         priceInline.hidden = true;
       }
     }
-    // （使わない）meta内の価格は空に
-    const metaPrice = summaryEl.querySelector(".meta .price");
-    if (metaPrice) metaPrice.textContent = "";
-
+    // 在庫ピル（右端）：bundle の残数を表示
     const stockInline = summaryEl.querySelector(".stock-inline");
     if (stockInline) {
       const remain = Number(b?.qty_available);
