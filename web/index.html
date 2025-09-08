@@ -102,6 +102,28 @@
   </div>
 </section>
 
+<!-- ▼ クイックソート（近い｜安い） -->
+<section class="quick">
+  <div class="seg-row" role="tablist" aria-label="並び替え">
+    <button
+      type="button"
+      class="seg-btn is-active"
+      data-sort="near"
+      aria-selected="true"
+    >
+      近い
+    </button>
+    <button
+      type="button"
+      class="seg-btn"
+      data-sort="cheap"
+      aria-selected="false"
+    >
+      安い
+    </button>
+  </div>
+</section>
+
 <main class="container">
   <!-- 近くのお店 -->
   <div class="section-head">
@@ -374,6 +396,32 @@
 <script type="module">
   import { loadNearby } from "./js/nearby.js?v=20250907";
   import { loadRecent } from "./js/recent.js?v=20250907";
+
+  // --- クイックソート（近い / 安い） ---
+  let sortMode = localStorage.getItem("sortMode") || "near";
+  const seg = document.querySelector(".seg-row");
+  if (seg) {
+    // 初期選択
+    seg.querySelectorAll(".seg-btn").forEach((btn) => {
+      const on = btn.dataset.sort === sortMode;
+      btn.classList.toggle("is-active", on);
+      btn.setAttribute("aria-selected", on ? "true" : "false");
+    });
+    seg.addEventListener("click", (e) => {
+      const btn = e.target.closest(".seg-btn");
+      if (!btn) return;
+      seg.querySelectorAll(".seg-btn").forEach((b) => {
+        b.classList.remove("is-active");
+        b.setAttribute("aria-selected", "false");
+      });
+      btn.classList.add("is-active");
+      btn.setAttribute("aria-selected", "true");
+      sortMode = btn.dataset.sort || "near";
+      localStorage.setItem("sortMode", sortMode);
+      // 再読込
+      loadNearby(getFilters());
+    });
+  }
 
   const getFilters = () => {
     const cat =

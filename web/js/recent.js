@@ -39,7 +39,7 @@ function createCard(s) {
   // ▼ 商品概要（bundles 最大2件）
   const shopInfo = el.querySelector(".shop-info");
   const firstSummary = el.querySelector(".shop-info .product-summary");
-  const bundles = Array.isArray(s.bundles) ? s.bundles.slice(0, 2) : [];
+  const bundles = Array.isArray(s.bundles) ? s.bundles.slice(0, 1) : [];
   const fill = (summaryEl, b) => {
     const pImg = summaryEl.querySelector(".product-img");
     if (pImg) {
@@ -82,10 +82,15 @@ function createCard(s) {
     if (shopInfo) shopInfo.remove();
   } else {
     fill(firstSummary, bundles[0]);
-    if (bundles[1]) {
-      const second = firstSummary.cloneNode(true);
-      fill(second, bundles[1]);
-      shopInfo.appendChild(second);
+    const total = Array.isArray(s.bundles) ? s.bundles.length : 0;
+    if (total > 1 && shopInfo) {
+      const moreWrap = document.createElement("div");
+      moreWrap.className = "more-wrap";
+      const chip = document.createElement("span");
+      chip.className = "more-bundles";
+      chip.textContent = `他 ${total - 1} セット`;
+      moreWrap.appendChild(chip);
+      shopInfo.appendChild(moreWrap);
     }
   }
 

@@ -594,6 +594,35 @@ main,
   mask-position: center;
   mask-size: contain;
 }
+/* === Quick sort segment === */
+.quick {
+  padding: 0.2rem 0.9rem 0.4rem;
+}
+.seg-row {
+  display: inline-flex;
+  gap: 0;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.seg-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0.42rem 0.84rem;
+  font-size: 14px;
+  color: var(--text);
+  cursor: pointer;
+}
+.seg-btn + .seg-btn {
+  border-left: 1px solid var(--line);
+}
+.seg-btn.is-active {
+  background: var(--sub);
+  color: var(--primary);
+  font-weight: 600;
+}
 
 /* 距離：左右矢印（distance） */
 .thumb-subline .status::before {

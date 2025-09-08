@@ -48,7 +48,7 @@ function createCard(s) {
   // ▼ 商品概要（bundles 最大2件）
   const shopInfo = el.querySelector(".shop-info");
   const firstSummary = el.querySelector(".shop-info .product-summary");
-  const bundles = Array.isArray(s.bundles) ? s.bundles.slice(0, 2) : [];
+  const bundles = Array.isArray(s.bundles) ? s.bundles.slice(0, 1) : [];
   const fill = (summaryEl, b) => {
     const pImg = summaryEl.querySelector(".product-img");
     if (pImg) {
@@ -95,10 +95,16 @@ function createCard(s) {
     if (shopInfo) shopInfo.remove();
   } else {
     fill(firstSummary, bundles[0]);
-    if (bundles[1]) {
-      const second = firstSummary.cloneNode(true);
-      fill(second, bundles[1]);
-      shopInfo.appendChild(second);
+    // 他にも商品があれば「他 n セット」チップを表示
+    const total = Array.isArray(s.bundles) ? s.bundles.length : 0;
+    if (total > 1 && shopInfo) {
+      const moreWrap = document.createElement("div");
+      moreWrap.className = "more-wrap";
+      const chip = document.createElement("span");
+      chip.className = "more-bundles";
+      chip.textContent = `他 ${total - 1} セット`;
+      moreWrap.appendChild(chip);
+      shopInfo.appendChild(moreWrap);
     }
   }
 
@@ -109,6 +115,7 @@ export async function loadNearby({
   category = null,
   priceMax = null,
   radius = 3000,
+  sort = "near", // 'near' | 'cheap'
 } = {}) {
   const TARGET = 6;
   const row = document.getElementById("nearby-row");
@@ -166,6 +173,24 @@ export async function loadNearby({
   if (!pool.length) {
     row.innerHTML = `<article class="shop-card"><div class="body"><div class="title-line"><h4>近くにお店が見つかりません</h4></div></div></article>`;
     return;
+  }
+  // 並び替え：近い / 安い
+  const priceOf = (shop) => {
+    const p =
+      Array.isArray(shop.bundles) && shop.bundles.length
+        ? Number(
+            shop.bundles.reduce(
+              (m, b) => Math.min(m, Number(b.price_min) || Infinity),
+              Infinity
+            )
+          )
+        : Number(shop.min_price);
+    return Number.isFinite(p) ? p : Infinity;
+  };
+  if (sort === "cheap") {
+    pool.sort((a, b) => priceOf(a) - priceOf(b) || a.distance_m - b.distance_m);
+  } else {
+    pool.sort((a, b) => a.distance_m - b.distance_m);
   }
   for (const s of pool.slice(0, TARGET)) row.appendChild(createCard(s));
 
