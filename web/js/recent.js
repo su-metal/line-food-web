@@ -7,15 +7,15 @@ function minutesUntilEnd(slot) {
     /(\d{1,2}):(\d{2})\s*[-–~〜]\s*(\d{1,2}):(\d{2})/
   );
   if (!m) return Infinity;
-  const endH = Number(m[3]),
-    endMin = Number(m[4]);
+  const endH = +m[3],
+    endM = +m[4];
   const now = new Date();
   const end = new Date(
     now.getFullYear(),
     now.getMonth(),
     now.getDate(),
     endH,
-    endMin,
+    endM,
     0,
     0
   );
@@ -105,67 +105,59 @@ function createCard(s) {
     const pName = summaryEl.querySelector(".product-name");
     if (pName) pName.textContent = b.title ?? "おすすめセット";
 
-    // 時間帯（slot_label/slot どちらでも対応）
-    const time = summaryEl.querySelector(".meta .time");
-    const slotLabel = b.slot || b.slot_label || "";
-    if (time) time.textContent = slotLabel ? `🕒 ${slotLabel}` : "";
-
-    // 「終了間近」バッジ（あるなら minutesUntilEnd を利用）
-    const metaBox = summaryEl.querySelector(".meta");
-    if (typeof minutesUntilEnd === "function" && metaBox) {
-      const SOON_MINUTES = 30;
-      const mins = minutesUntilEnd(slotLabel);
-      // 既存の .soon を出し入れ
-      let soon = metaBox.querySelector(".soon");
-      if (mins <= SOON_MINUTES) {
-        if (!soon) {
-          soon = document.createElement("span");
-          soon.className = "soon";
-          soon.textContent = "終了間近";
-          metaBox.appendChild(soon);
-        }
+    // 時間帯 + あと◯分
+    const timeEl = summaryEl.querySelector(".product-meta .time");
+    const etaEl = summaryEl.querySelector(".product-meta .eta");
+    const slot = b.slot || b.slot_label || "";
+    if (timeEl) timeEl.textContent = slot ? `🕒 ${slot}` : "";
+    if (etaEl) {
+      const mins = minutesUntilEnd(slot);
+      if (Number.isFinite(mins) && mins < 180) {
+        // 3時間以内だけ出す
+        etaEl.textContent = `あと${mins}分`;
+        etaEl.hidden = false;
+        etaEl.classList.toggle("eta--soon", mins <= 30); // 30分以下で警告色
       } else {
-        soon?.remove();
+        etaEl.hidden = true;
+        etaEl.classList.remove("eta--soon");
       }
     }
 
-    // 右端：在庫ピル（まずはバンドル単位 → 無ければ店舗合算）
-    const stockInline = summaryEl.querySelector(".ps-aside .stock-inline");
-    if (stockInline) {
-      const remain = Number.isFinite(Number(b.qty_available))
-        ? Number(b.qty_available)
-        : Number.isFinite(Number(s.stock_remain))
-        ? Number(s.stock_remain)
+    // 在庫（バンドル優先→無ければ店舗合算）
+    const stockEl = summaryEl.querySelector(".ps-aside .stock-inline");
+    if (stockEl) {
+      const remain = Number.isFinite(+b.qty_available)
+        ? +b.qty_available
+        : Number.isFinite(+s.stock_remain)
+        ? +s.stock_remain
         : null;
-
       if (Number.isFinite(remain) && remain > 0) {
-        stockInline.textContent = `残り${remain}個`;
-        stockInline.classList.add("show");
-        stockInline.hidden = false;
+        stockEl.textContent = `残り${remain}個`;
+        stockEl.classList.add("show");
+        stockEl.hidden = false;
       } else {
-        stockInline.classList.remove("show");
-        stockInline.hidden = true;
+        stockEl.classList.remove("show");
+        stockEl.hidden = true;
       }
     }
 
-    // 右端：価格ピル（バンドルの price / price_min → 無ければ店の min_price）
-    const priceInline = summaryEl.querySelector(".ps-aside .price-inline");
-    if (priceInline) {
-      const priceVal = Number.isFinite(Number(b.price))
-        ? Number(b.price)
-        : Number.isFinite(Number(b.price_min))
-        ? Number(b.price_min)
-        : Number.isFinite(Number(s.min_price))
-        ? Number(s.min_price)
+    // 価格（バンドル price > price_min > 店の min_price）
+    const priceEl = summaryEl.querySelector(".ps-aside .price-inline");
+    if (priceEl) {
+      const pv = Number.isFinite(+b.price)
+        ? +b.price
+        : Number.isFinite(+b.price_min)
+        ? +b.price_min
+        : Number.isFinite(+s.min_price)
+        ? +s.min_price
         : null;
-
-      if (priceVal != null) {
-        priceInline.textContent = yen(priceVal); // 「〜」は付けない
-        priceInline.classList.add("show");
-        priceInline.hidden = false;
+      if (pv != null) {
+        priceEl.textContent = yen(pv);
+        priceEl.classList.add("show");
+        priceEl.hidden = false;
       } else {
-        priceInline.classList.remove("show");
-        priceInline.hidden = true;
+        priceEl.classList.remove("show");
+        priceEl.hidden = true;
       }
     }
   };
@@ -174,6 +166,11 @@ function createCard(s) {
     if (shopInfo) shopInfo.remove();
   } else {
     fill(firstSummary, bundles[0], s);
+    if (bundles[1]) {
+      const second = firstSummary.cloneNode(true);
+      fill(second, bundles[1], s);
+      shopInfo.appendChild(second);
+    }
     const total = Array.isArray(s.bundles) ? s.bundles.length : 0;
     if (total > 1 && shopInfo) {
       const moreWrap = document.createElement("div");
