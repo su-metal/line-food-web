@@ -267,22 +267,69 @@ export async function loadNearby({
   if (!row) return;
   row.innerHTML = `<article class="shop-card"><div class="body"><div class="title-line"><h4>読み込み中…</h4></div></div></article>`;
 
-  // geolocation
+  // --- geolocation（フォールバック付き） ---
   let lat, lng;
+  let usedLastLoc = false;
+
   try {
     const pos = await new Promise((resolve, reject) => {
       if (!navigator.geolocation) return reject(new Error("no_geolocation"));
       navigator.geolocation.getCurrentPosition(resolve, reject, {
         enableHighAccuracy: false,
-        timeout: 8000,
+        timeout: 10000, // 少しだけ余裕
         maximumAge: 60000,
       });
     });
     lat = pos.coords.latitude;
     lng = pos.coords.longitude;
+
+    // 成功したら“前回の位置”として保持
+    try {
+      localStorage.setItem(
+        "lastLoc",
+        JSON.stringify({ lat, lng, ts: Date.now() })
+      );
+    } catch {}
   } catch {
-    row.innerHTML = `<article class="shop-card"><div class="body"><div class="title-line"><h4>現在地が取得できませんでした</h4></div></div></article>`;
-    return;
+    // 1) 直近の位置が保存されていればそれで続行（近い順はだいたい成立）
+    try {
+      const last = JSON.parse(localStorage.getItem("lastLoc") || "null");
+      if (last && Number.isFinite(last.lat) && Number.isFinite(last.lng)) {
+        lat = last.lat;
+        lng = last.lng;
+        usedLastLoc = true;
+        console.warn("[nearby] geolocation failed; use last known location");
+      }
+    } catch {}
+
+    // 2) それも無ければ“新着おすすめ”で代替（近い順は不可）
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      console.warn("[nearby] no location; fallback to recent items");
+      row.innerHTML = `
+      <article class="shop-card"><div class="body">
+        <div class="title-line">
+          <h4>現在地が取得できませんでした</h4>
+          <p class="note">近い順は使えないため、新着おすすめを表示します。</p>
+          <button class="retry-loc" type="button" style="margin-top:.4rem;padding:.28rem .6rem;border:1px solid var(--line);border-radius:999px;background:#fff;">位置情報を再取得</button>
+        </div>
+      </div></article>`;
+
+      try {
+        const data = await apiJSON(`/api/shops-recent?limit=${TARGET}`);
+        row.innerHTML = "";
+        (data.items || [])
+          .slice(0, TARGET)
+          .forEach((s) => row.appendChild(createCard(s)));
+      } catch (e) {
+        row.innerHTML = `<article class="shop-card"><div class="body"><div class="title-line"><h4>おすすめの取得にも失敗しました</h4></div></div></article>`;
+      }
+
+      // 再試行ボタン
+      row.querySelector(".retry-loc")?.addEventListener("click", () => {
+        loadNearby({ category, priceMax, radius, sort });
+      });
+      return; // ← ここで終了（フォールバック表示済み）
+    }
   }
 
   const radii = [radius, 5000, 8000, 12000, 20000];
