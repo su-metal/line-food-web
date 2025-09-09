@@ -4,18 +4,16 @@
 
 /* ---------- Design tokens ---------- */
 :root {
-  :root {
-    --bg: #fafbf9;
-    --card: #ffffff;
-    --ink: #1f2937;
-    --line: #e5e7eb;
+  --bg: #fafbf9;
+  --card: #ffffff;
+  --ink: #1f2937;
+  --line: #e5e7eb;
 
-    --primary: #14532d; /* 深いフォレスト（白文字AA） */
-    --tint: #e7f2ec; /* セージ寄りの面/タグ */
+  --primary: #14532d; /* 深いフォレスト（白文字AA） */
+  --tint: #e7f2ec; /* セージ寄りの面/タグ */
 
-    --heart: #dc5460;
-    --warn: #8a3f0b;
-  }
+  --heart: #dc5460;
+  --warn: #8a3f0b;
 
   --footer-h: 64px;
 }
