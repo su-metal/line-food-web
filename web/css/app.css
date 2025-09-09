@@ -1664,3 +1664,21 @@ main,
   width: 18px;
   height: 18px;
 }
+
+/* avatarを非表示にしている前提で、左の空きを詰める */
+.card-v3 .card-head .store {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem; /* ← ほぼ詰める（必要なら 0 にしてもOK） */
+  min-width: 0;
+}
+
+/* 念のため、店名ブロックの左マージンもゼロに */
+.card-v3 .card-head .store .store-meta {
+  margin-left: 0 !important;
+}
+
+/* ヘッダの左右/上下パディングも少しだけ絞る（お好みで） */
+.card-v3 .card-head {
+  padding: 0.56rem 0.72rem 0.44rem; /* 上 右左 下 */
+}
