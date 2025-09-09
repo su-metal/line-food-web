@@ -190,7 +190,7 @@ function createCard(s) {
     // 時間
     const slotLabel = b?.slot_label || b?.slot || b?.time || "";
     const t = rowEl.querySelector(".time");
-    if (t) t.textContent = slotLabel ? `|| ${slotLabel}` : "";
+    if (t) t.textContent = slotLabel || "";
 
     // 終了間近
     const soon = rowEl.querySelector(".soon");
