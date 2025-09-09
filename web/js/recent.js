@@ -1,6 +1,53 @@
 // web/js/recent.js
 import { apiJSON } from "./http.js";
 
+// --- 終了間近（SOON）ヘルパー -------------------------------
+const SOON_MINUTES = 30;
+
+function minutesUntilEnd(slot) {
+  if (!slot) return Infinity;
+  const m = String(slot).match(
+    /(\d{1,2}):(\d{2})\s*[-–~〜]\s*(\d{1,2}):(\d{2})/
+  );
+  if (!m) return Infinity;
+  const endH = Number(m[3]),
+    endMin = Number(m[4]);
+  const now = new Date();
+  const end = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    endH,
+    endMin,
+    0,
+    0
+  );
+  const diff = Math.floor((end - now) / 60000);
+  return diff >= 0 ? diff : Infinity;
+}
+
+function shouldShowSoon(slotLabel) {
+  return minutesUntilEnd(slotLabel) <= SOON_MINUTES;
+}
+
+function upsertSoon(metaEl, slotLabel) {
+  if (!metaEl) return;
+  const show = shouldShowSoon(slotLabel);
+  let tag = metaEl.querySelector(".soon");
+  if (show) {
+    if (!tag) {
+      tag = document.createElement("span");
+      tag.className = "soon";
+      tag.textContent = "終了間近";
+      metaEl.appendChild(tag);
+    } else {
+      tag.hidden = false;
+    }
+  } else {
+    tag?.remove();
+  }
+}
+
 /* ===== Utils ===== */
 const NOIMG = "./img/noimg.svg";
 const yen = (v) => "¥" + Number(v).toLocaleString("ja-JP");
@@ -97,18 +144,11 @@ function createCard(s) {
     const slotLabel = b?.slot_label || b?.slot || b?.time || "";
     const t = rowEl.querySelector(".time");
     if (t) t.textContent = slotLabel ? `🕒 ${slotLabel}` : "";
+    const meta = rowEl.querySelector(".product-meta, .meta");
+    upsertSoon(meta, slotLabel);
 
     // 終了間近
     const soon = rowEl.querySelector(".soon");
-    if (soon) {
-      const left = minutesUntilEnd(slotLabel);
-      if (left <= 30) {
-        soon.textContent = "終了間近";
-        soon.hidden = false;
-      } else {
-        soon.hidden = true;
-      }
-    }
 
     // 価格（bundle優先）
     const priceVal = [b?.price_min, b?.price]
