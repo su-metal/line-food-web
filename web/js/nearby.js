@@ -109,17 +109,20 @@ function createCard(s) {
   const titleNode = el.querySelector(".store-name, .thumb-title, h4");
   if (titleNode) titleNode.textContent = name;
 
-  // NEW: ヘッダ背景フォトをセット
+  // --- 背景写真（ショップ写真 or 最初のバンドル画像を利用） ---
   const head = el.querySelector(".card-head");
   if (head) {
-    const headUrl =
+    const bg =
       s.photo_url ||
       (Array.isArray(s.bundles) && s.bundles[0]?.thumb_url) ||
       "";
-    head.style.setProperty(
-      "--head-photo",
-      headUrl ? `url("${headUrl}")` : "none"
-    );
+    if (bg) {
+      head.style.setProperty("--head-bg", `url("${bg}")`);
+      head.classList.add("has-photo");
+    } else {
+      head.style.removeProperty("--head-bg");
+      head.classList.remove("has-photo");
+    }
   }
 
   const avatar = el.querySelector(".avatar");

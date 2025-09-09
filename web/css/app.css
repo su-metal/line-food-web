@@ -1609,3 +1609,58 @@ main,
   position: relative;
   z-index: 1;
 }
+/* === カードヘッダに背景写真＆スクリーン === */
+.card-head {
+  position: relative;
+  overflow: hidden; /* 角丸内に背景を収める */
+  min-height: 68px; /* 既存の高さは維持 */
+}
+
+/* 写真があるときだけ背景を出す */
+.card-head.has-photo {
+  background-image: var(--head-bg); /* JSからセット */
+  background-size: cover;
+  background-position: center;
+}
+
+/* 濃いめの黒スクリーン（視認性UP） */
+.card-head.has-photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8); /* ←ご要望どおり 0.8 */
+  pointer-events: none;
+}
+
+/* 中身はスクリーンの上に */
+.card-head.has-photo > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* 店名は白＋控えめの影で読みやすく */
+.card-head.has-photo .store-name {
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+/* チップは白ピルで反転（2〜3色運用を崩さない） */
+.card-head.has-photo .store-sub .chip {
+  background: rgba(255, 255, 255, 0.9);
+  color: #1b2a26;
+  border-color: transparent;
+}
+
+/* ハートは常に見えるように */
+.card-head .heart {
+  position: absolute; /* すでに絶対配置なら不要 */
+  top: 8px;
+  right: 8px;
+  z-index: 2; /* スクリーンより上 */
+  background: #fff;
+  border: 2px solid #e5636a;
+}
+.card-head .heart svg {
+  width: 18px;
+  height: 18px;
+}
