@@ -4,7 +4,7 @@
 
 /* ---------- Design tokens ---------- */
 :root {
-  --bg: #fafaf7;
+  --bg: #fbfaf7;
   --card: #ffffff;
   --ink: #111827; /* やや濃い本文色 */
   --line: #e1e6e3;
