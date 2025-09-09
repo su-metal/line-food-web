@@ -679,8 +679,8 @@ main,
   bottom: 0;
   height: 3px;
   background: var(--primary); /* 黒アクセント */
-  /* opacity: 0.12;
-} */ 
+/* opacity: 0.12;
+} */
 .app-header .icon-btn svg {
   stroke: var(--primary);
 }
@@ -721,4 +721,69 @@ main,
 }
 .app-header input {
   color: var(--ink);
+}
+/* === Search bar: bigger & make icon visible ===================== */
+.app-header {
+  padding: 0.9rem 1rem; /* ヘッダー上下を少し広げる */
+  gap: 0.9rem;
+}
+
+.app-header .search-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 48px; /* ボックス高さを底上げ */
+  padding: 0.62rem 1rem; /* 内側の上下余白を増やす */
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted); /* ← currentColor でアイコン色になる */
+}
+
+/* SVG本体＆path両方に指定して“必ず”描画させる */
+.app-header .search-wrap svg {
+  flex: 0 0 auto;
+  display: block;
+  width: 20px;
+  height: 20px;
+  stroke: currentColor !important;
+  fill: none !important;
+  stroke-width: 2;
+}
+.app-header .search-wrap svg path {
+  stroke: currentColor !important;
+  fill: none !important;
+  stroke-width: 2;
+}
+
+/* 入力文字とプレースホルダも見やすく */
+.app-header input[type="search"] {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1.2;
+  padding: 2px 0; /* 文字の上下余白を少し */
+}
+.app-header input::placeholder {
+  color: var(--muted);
+}
+
+/* 画面が広いときはさらに余裕を */
+@media (min-width: 480px) {
+  .app-header {
+    padding: 1rem 1.1rem;
+  }
+  .app-header .search-wrap {
+    min-height: 52px;
+    padding: 0.7rem 1.1rem;
+    gap: 0.7rem;
+  }
+  .app-header .search-wrap svg {
+    width: 22px;
+    height: 22px;
+  }
 }
