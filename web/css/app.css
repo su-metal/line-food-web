@@ -1463,3 +1463,23 @@ main,
 }
 
 /* 旧v1/v2の見た目と干渉させないために thumb 系は使わない（未定義でOK） */
+
+/* === Heart size: smaller === */
+.card-v3 .card-head .heart,
+.shop-card .thumb .heart,
+.heart {
+  width: 32px !important; /* 40→32 / 36→32 を上書き */
+  height: 32px !important;
+}
+
+.card-v3 .card-head .heart svg,
+.shop-card .thumb .heart svg,
+.heart svg {
+  width: 18px !important; /* 22→18 */
+  height: 18px !important;
+}
+
+/* 押下時の見た目はそのまま、枠の主張だけ少し弱めたい場合（任意） */
+.heart {
+  border-width: 1.2px;
+}
