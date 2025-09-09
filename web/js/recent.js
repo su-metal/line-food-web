@@ -200,7 +200,7 @@ function createCard(s) {
     // 時間
     const slotLabel = b?.slot_label || b?.slot || b?.time || "";
     const t = rowEl.querySelector(".time");
-    if (t) t.textContent = slotLabel ? `🕒 ${slotLabel}` : "";
+    if (t) t.textContent = slotLabel ? `|| ${slotLabel}` : "";
     const meta = rowEl.querySelector(".product-meta, .meta");
     upsertSoon(meta, slotLabel);
 
