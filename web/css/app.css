@@ -812,6 +812,6 @@ main,
   color: #aab2bb;
   font-size: 14px;
 }
-.cat-row{
+#category-row.cat-row {
   display: none;
 }
