@@ -191,7 +191,7 @@
         <div class="product-summary">
           <img
             class="product-img"
-            src="./photo/noimg.jpg"
+            src="./photo/noimg.svg"
             alt=""
             loading="lazy"
           />
@@ -340,7 +340,7 @@
 <script type="module" src="./js/app.js"></script>
 <script type="module">
   // ▼ fav.js を読み込み（キャッシュ破り付き）、LIFF準備後に初期化
-  const bust = "v20250906";
+  const bust = "v20250909c";
   try {
     const m = await import(`./js/fav.js?${bust}`).catch(() => ({}));
     if (m.initAllFavButtons) await liff.ready.then(() => m.initAllFavButtons());
@@ -459,6 +459,6 @@
   // row.addEventListener('click', e => { ...; loadNearby(getFilters()); loadRecent(getFilters()); });
 </script>
 <script type="module">
-  import { loadNearby } from "./js/nearby.js?v=20250909e";
-  import { loadRecent } from "./js/recent.js?v=20250909e";
+  import { loadNearby } from "./js/nearby.js?v=20250909c";
+  import { loadRecent } from "./js/recent.js?v=20250909c";
 </script>
