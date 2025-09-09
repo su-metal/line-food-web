@@ -671,3 +671,14 @@ main,
 .app-header .search-wrap {
   border: 1px solid #e5e7eb;
 }
+/* === Header: Charcoal Gradient ======================= */
+.app-header{
+  background: linear-gradient(180deg, #1f2937 0%, #111827 100%);
+  color:#fff;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.app-header .icon-btn svg{ stroke:#fff; }
+.app-header .search-wrap{
+  background: rgba(255,255,255,.9);
+  border:1px solid rgba(255,255,255,.2);
+}
