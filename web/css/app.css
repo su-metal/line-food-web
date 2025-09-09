@@ -1597,7 +1597,7 @@ main,
   background-image: var(--head-photo); /* JSからセット */
   background-size: cover;
   background-position: center;
-  opacity: 0.2; /* うっすら */
+  opacity: 0.8; /* うっすら */
   filter: saturate(0.9) contrast(0.95) brightness(1.02);
   transform: scale(1.02); /* 端の切れ対策に僅かに拡大 */
   pointer-events: none;
