@@ -1543,26 +1543,28 @@ main,
   height: 16px;
 }
 
-/* === SOON バッジを重ね配置（本文の右端・ps-aside には干渉しない） === */
-.shop-card.card-v3 .product-summary {
-  grid-template-columns: 72px 1fr auto;
-}
+/* === 「終了間近」を“時間”の下の独立行にする（ps-asideに干渉しない） === */
 
-/* メタ行の右端にスペースを確保して、そこに SOON を絶対配置 */
+/* 余計な絶対配置を撤回 */
 .shop-card.card-v3 .product-meta {
-  position: relative;
-  padding-right: 88px; /* ← ここでSOON分の“空き”を確保（幅を変えるなら調整） */
-  white-space: nowrap;
+  position: static;
+  padding-right: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap; /* 折り返しを許可 */
 }
 
-/* SOON を重ねる（meta 行の中央に） */
+/* SOON を独立行に。meta 内で 100% 幅を取り、下段に回す */
 .shop-card.card-v3 .product-meta .soon {
-  position: absolute;
-  right: 0; /* product-meta の右端に固定 */
-  top: 50%;
-  transform: translateY(-50%);
-  margin: 0;
-  /* ピルのサイズ調整（お好みで） */
+  position: static;
+  transform: none;
+  margin: 2px 0 0;
+  flex-basis: 100%; /* ここが肝。時間の下に改行される */
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+
   padding: 0.16rem 0.56rem;
   border-radius: 999px;
   background: #fff7ec;
@@ -1572,14 +1574,12 @@ main,
   line-height: 1.05;
 }
 
-/* とても狭い端末では下に逃がす（任意） */
+/* 極狭端末でも同じ挙動にしておく */
 @media (max-width: 340px) {
   .shop-card.card-v3 .product-meta {
-    padding-right: 0;
+    gap: 0.5rem;
   }
   .shop-card.card-v3 .product-meta .soon {
-    position: static; /* 通常フローに戻す */
-    transform: none;
-    margin-left: 6px;
+    font-size: 11px;
   }
 }
