@@ -546,47 +546,71 @@ main,
     gap: 0.5rem;
   }
 }
-/* ===== Responsive: mobile = horizontal scroll / desktop+ = grid wrap ===== */
-@media (min-width: 768px) {
-  /* 中央寄せと幅 */
-  .container {
-    max-width: 1100px; /* 好みで 1000〜1200px に調整可 */
-    margin-inline: auto;
-  }
+/* ==== Keep horizontal scroll on all breakpoints, clamp card width ==== */
+/* まずデフォルト（モバイル〜小タブレット） */
+:root {
+  /* 例: 最小320px, 画面幅の86%, 最大380px の範囲でカード幅を自動調整 */
+  --card-col-width: clamp(320px, 86vw, 380px);
+}
 
-  /* 横スクロール -> グリッド（2列） */
+/* 画面が広くなったら、横スクロールのまま “適度な固定幅” に近づける */
+@media (min-width: 640px) {
+  :root {
+    --card-col-width: 360px;
+  }
+}
+@media (min-width: 900px) {
+  :root {
+    --card-col-width: 400px;
+  }
+}
+@media (min-width: 1200px) {
+  :root {
+    --card-col-width: 440px;
+  }
+}
+
+/* 横スクロールを常に維持（過去にPCでグリッド化した設定を打ち消す） */
+.card-row {
+  /* 既存: 横スクロール用の横流し＋各カードのカラム幅 */
+  grid-auto-flow: column;
+  grid-auto-columns: var(--card-col-width);
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+}
+@media (min-width: 768px) {
   .card-row {
-    display: grid;
-    grid-auto-flow: row; /* カードを縦に積む＝通常の流れ */
-    grid-auto-columns: unset; /* モバイルのauto-columnsを無効化 */
-    grid-template-columns: repeat(2, minmax(320px, 1fr));
-    gap: 1rem;
-    overflow: visible; /* スクロールをやめる */
-    scroll-snap-type: none;
-    -webkit-overflow-scrolling: auto;
+    /* 万一、以前のCSSで PC時にグリッド化していたら明示的に上書き */
+    grid-auto-flow: column !important;
+    grid-template-columns: none !important;
+    grid-auto-columns: var(--card-col-width) !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x proximity !important;
+    -webkit-overflow-scrolling: touch;
   }
   .card-row .shop-card {
-    scroll-snap-align: unset; /* スナップも無効化 */
-    width: auto; /* 念のため幅の固定を解除 */
+    scroll-snap-align: start;
+    width: auto; /* 念のため固定幅化の残りを消す */
   }
 }
 
-@media (min-width: 1024px) {
-  /* 3列 */
-  .container {
-    max-width: 1280px;
-  }
-  .card-row {
-    grid-template-columns: repeat(3, minmax(320px, 1fr));
-  }
+/* 画像のアスペクト比は固定（既にある指定を強めに） */
+.shop-card .thumb {
+  aspect-ratio: 21 / 9;
+}
+.shop-card .thumb img {
+  object-fit: cover;
 }
 
-@media (min-width: 1400px) {
-  /* 4列（必要なければ削除OK） */
-  .container {
-    max-width: 1440px;
-  }
-  .card-row {
-    grid-template-columns: repeat(4, minmax(320px, 1fr));
-  }
+/* リスト側のサムネも固定 */
+.product-summary .thumb-wrap {
+  width: 88px;
+  height: 88px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.product-summary .thumb-wrap .product-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
