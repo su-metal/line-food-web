@@ -168,7 +168,6 @@ function createCard(s) {
     <span class="stock-inline" hidden></span>
     <span class="price-inline" hidden></span>
   </div>`;
-
     return row;
   };
 
@@ -194,6 +193,7 @@ function createCard(s) {
     const slotLabel = b?.slot_label || b?.slot || b?.time || "";
     const t = rowEl.querySelector(".time");
     if (t) t.textContent = slotLabel || "";
+    rowEl.dataset.slot = slotLabel;
 
     // 終了間近
     const soon = rowEl.querySelector(".soon");
