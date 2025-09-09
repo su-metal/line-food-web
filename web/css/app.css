@@ -4,16 +4,24 @@
 
 /* ---------- Design tokens ---------- */
 :root {
-  --bg: #f5f8f7;
-  --card: #ffffff;
-  --ink: #111827; /* やや濃い本文色 */
-  --line: #e1e6e3;
+  /* 基本トークン */
+  --bg: #0f1316; /* ページ背景：ほぼ黒 */
+  --surface: #141a1e; /* カード/ヘッダの面：黒に近いグレー */
+  --card: #141a1e;
+  --ink: #e7edf2; /* 本文色（明るめの白） */
+  --text: var(--ink);
+  --text-weak: #a5b0b8; /* サブテキスト */
+  --line: #202930; /* 枠線：低コントラストの青みグレー */
 
-  --primary: #0a6b61; /* 深めのエメラルド */
-  --tint: #d6efea; /* 淡いグリーンの面/タグ */
+  /* アクセント（2〜3色運用） */
+  --primary: #1aa39b; /* 深ティール（白文字AA） */
+  --tint: #113b39; /* ごく淡いティールの面/タグ */
+  --sub: #0e2f2c; /* さらに淡いティールのサブ面 */
+  --heart: #ff6b7a; /* お気に入り */
+  --warn: #f59e0b; /* 終了間近（アンバー） */
 
-  --heart: #e25460;
-  --warn: #9a4b0c;
+  /* 互換（古いCSSで使用している可能性がある変数） */
+  --brand: var(--primary);
 
   --footer-h: 64px;
 }
@@ -628,4 +636,127 @@ main,
   #category-row.cat-row {
     max-width: min(92vw, 1040px);
   }
+}
+/* 背景・本文色をダーク向けに */
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ヘッダ：黒面＋検索ボックスをダーク化 */
+.app-header {
+  background: var(--surface);
+  color: var(--text);
+}
+.app-header .search-wrap {
+  background: #0f171b;
+  border: 1px solid var(--line);
+}
+.app-header .search-wrap svg {
+  stroke: #7b8a92;
+}
+.app-header input {
+  color: var(--text);
+}
+.app-header input::placeholder {
+  color: #7b8a92;
+}
+
+/* カード面・枠線 */
+.shop-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: 0 6px 18px rgba(2, 6, 23, 0.35); /* ダークは影を弱めに */
+}
+
+/* サムネの下グラデをダーク向けに少し強める */
+.shop-card .thumb::after {
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0));
+}
+
+/* “店名ヘッダに写真”のスクリーンを濃く（読みやすさ重視） */
+.card-head.has-photo::after {
+  background: rgba(0, 0, 0, 0.5);
+}
+.card-head.has-photo .store-name {
+  color: #fff;
+}
+.card-head.has-photo .store-sub .chip {
+  background: rgba(255, 255, 255, 0.92);
+  color: #162024;
+  border-color: transparent;
+}
+
+/* 商品名・メタの色 */
+.product-name {
+  color: var(--text);
+}
+.product-meta {
+  color: var(--text-weak);
+}
+
+/* 終了間近：ダークでも馴染むアンバーの半透明ピル */
+.product-summary .thumb-wrap .soon-overlay,
+.product-meta .soon {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.8);
+  color: var(--warn);
+}
+
+/* 右端ピル（在庫/価格）をダーク用トーンに */
+.ps-aside .stock-inline.show {
+  background: rgba(26, 163, 155, 0.12); /* ティールのごく淡い面 */
+  border: 1px solid rgba(26, 163, 155, 0.65);
+  color: var(--primary);
+}
+.ps-aside .price-inline.show {
+  background: var(--primary);
+  color: #0b1113; /* ほんの少し暗い白でにじみ防止 */
+}
+
+/* カテゴリチップ（上段の丸タグ）をダーク化 */
+.shop-card.card-v3 .store-sub .chip {
+  background: #0f171b;
+  border: 1px solid var(--line);
+  color: var(--text);
+}
+
+/* 価格帯チップ（もし再表示するとき） */
+.chip {
+  color: var(--text);
+  border-color: var(--line);
+}
+.chip.is-active,
+.chip[aria-pressed="true"] {
+  background: #0f171b;
+  border-color: var(--primary);
+  color: var(--text);
+}
+
+/* タブバーのダーク化 */
+.tabbar {
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+}
+.tabbar a {
+  color: #96a3ab;
+}
+.tabbar a.active {
+  color: var(--primary);
+}
+.tabbar .icon svg {
+  color: var(--primary);
+}
+
+/* ハート（白背景が浮かないよう控えめに） */
+.card-v3 .card-head .heart,
+.shop-card .thumb .heart,
+.heart {
+  background: #0f171b;
+  border: 1.2px solid #ff6b7a;
+  color: #ff6b7a;
+}
+.heart[aria-pressed="true"] {
+  background: #ff6b7a;
+  color: #0b0f11;
 }
