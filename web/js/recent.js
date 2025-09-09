@@ -26,6 +26,18 @@ function minutesUntilEnd(slot) {
   return diff >= 0 ? diff : Infinity;
 }
 
+// --- client-side distance fallback (haversine) ---
+function calcDistanceMeters(lat1, lng1, lat2, lng2) {
+  const toRad = (v) => (v * Math.PI) / 180;
+  const R = 6371000; // m
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return Math.round(2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+}
+
 function shouldShowSoon(slotLabel) {
   return minutesUntilEnd(slotLabel) <= SOON_MINUTES;
 }
@@ -229,19 +241,53 @@ export async function loadRecent({
 } = {}) {
   const row = document.getElementById("recent-row");
   if (!row) return;
-
   row.innerHTML = `<article class="shop-card"><div class="body"><div class="title-line"><h4>読み込み中…</h4></div></div></article>`;
 
+  // ① 現在地を（可能なら）取得
+  let lat, lng;
+  try {
+    const pos = await new Promise((resolve, reject) => {
+      if (!navigator.geolocation) return reject(new Error("no_geolocation"));
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: false,
+        timeout: 8000,
+        maximumAge: 60000,
+      });
+    });
+    lat = pos.coords.latitude;
+    lng = pos.coords.longitude;
+  } catch {
+    // 取れなくても続行（距離は後で補完 or 空表示）
+  }
+
+  // ② クエリを組み立て（lat/lng が取れていれば付与）
   const qs = new URLSearchParams();
   if (category) qs.set("category", category);
   if (Number.isFinite(priceMax)) qs.set("priceMax", String(priceMax));
   qs.set("limit", String(limit));
+  if (Number.isFinite(lat) && Number.isFinite(lng)) {
+    qs.set("lat", String(lat));
+    qs.set("lng", String(lng));
+  }
 
   try {
     const data = await apiJSON(`/api/shops-recent?${qs.toString()}`);
     row.innerHTML = "";
 
-    const items = (data.items || []).slice(0, limit);
+    // ③ APIが distance_m を返さない場合のフォールバック計算
+    const items = (data.items || []).slice(0, limit).map((it) => {
+      if (
+        !Number.isFinite(it.distance_m) &&
+        Number.isFinite(lat) &&
+        Number.isFinite(lng) &&
+        Number.isFinite(it.lat) &&
+        Number.isFinite(it.lng)
+      ) {
+        it.distance_m = calcDistanceMeters(lat, lng, it.lat, it.lng);
+      }
+      return it;
+    });
+
     if (!items.length) {
       row.innerHTML = `<article class="shop-card"><div class="body"><div class="title-line"><h4>新着がありません</h4></div></div></article>`;
       return;
@@ -249,7 +295,7 @@ export async function loadRecent({
 
     for (const s of items) row.appendChild(createCard(s));
 
-    // お気に入りの初期化
+    // お気に入り初期化
     try {
       const fav = await import("./fav.js");
       fav.initAllFavButtons?.();
