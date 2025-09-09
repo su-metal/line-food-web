@@ -4,7 +4,7 @@
 
 /* ---------- Design tokens ---------- */
 :root {
-  --bg: #F8F4EC;
+  --bg: #f8f4ec;
   --card: #ffffff;
   --ink: #111827; /* やや濃い本文色 */
   --line: #e1e6e3;
@@ -688,4 +688,39 @@ main,
 .app-header .search-wrap {
   background: #f8fafc;
   border: 1px solid var(--line);
+}
+/* === Header = page background / remove overlay ================== */
+.app-header {
+  background: var(--bg) !important; /* 本体と同じ薄ベージュ */
+  color: var(--ink);
+  box-shadow: none;
+  border-bottom: 1px solid var(--line);
+}
+
+/* もし残っていたら :after/:before を完全に無効化 */
+.app-header::before,
+.app-header::after {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+}
+
+/* アイコン類はベージュ上でも見やすい濃い色に */
+.app-header .icon-btn {
+  color: var(--ink);
+}
+.app-header .icon-btn svg {
+  stroke: var(--ink);
+}
+
+/* 検索ボックスは白箱＋薄い枠に寄せる（任意） */
+.app-header .search-wrap {
+  background: #fff;
+  border: 1px solid var(--line);
+}
+.app-header .search-wrap svg {
+  stroke: var(--muted);
+}
+.app-header input {
+  color: var(--ink);
 }
