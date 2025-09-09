@@ -1675,7 +1675,6 @@ main,
   gap: 0.5rem; /* もともと広ければ少し詰める。不要なら削除OK */
 }
 
-
 /* avatarを非表示にしている前提で、左の空きを詰める */
 .card-v3 .card-head .store {
   display: flex;
@@ -1692,4 +1691,8 @@ main,
 /* ヘッダの左右/上下パディングも少しだけ絞る（お好みで） */
 .card-v3 .card-head {
   padding: 0.56rem 0.72rem 0.44rem; /* 上 右左 下 */
+}
+/* TEMP: 価格帯チップを一旦非表示 */
+.price {
+  display: none !important;
 }
