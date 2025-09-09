@@ -184,11 +184,12 @@ function createCard(s) {
 
   const FallbackImg = "./img/noimg.svg";
 
+  // 画像やテキストを1行に反映
   const setRow = (rowEl, b) => {
     // 画像
     const img = rowEl.querySelector(".product-img");
     if (img) {
-      img.src = b?.thumb_url || s.photo_url || FallbackImg;
+      img.src = b?.thumb_url || s.photo_url || NOIMG;
       img.alt = `${safe(b?.title ?? b?.name ?? "おすすめセット")} の画像`;
     }
 
@@ -200,14 +201,17 @@ function createCard(s) {
       );
     }
 
-    // 時間
+    // 時間（← これが無くてエラーになっていました）
+    const slotLabel = b?.slot_label || b?.slot || b?.time || "";
     const t = rowEl.querySelector(".time");
-    if (t) t.textContent = slotLabel ? `🕒 ${slotLabel}` : "";
+    if (t) t.textContent = slotLabel || "";
     rowEl.dataset.slot = slotLabel;
 
-    // 画像左下のバッジを制御
+    // 「終了間近」：画像左下のオーバーレイを使う
     const overlay = rowEl.querySelector(".soon-overlay");
-    if (overlay) overlay.hidden = !(minutesUntilEnd(slotLabel) <= SOON_MINUTES);
+    if (overlay) {
+      overlay.hidden = minutesUntilEnd(slotLabel) > SOON_MINUTES;
+    }
 
     // 価格（bundle優先）
     const priceVal = [b?.price_min, b?.price]
