@@ -4,17 +4,17 @@
 
 /* ---------- Design tokens ---------- */
 :root {
-  --bg: #f6faf9;
+  --bg: #fafaf7;
   --card: #ffffff;
-  --text: #0f172a;
-  --text-weak: #475569;
-  --line: #e2e8f0;
+  --ink: #1f2937; /* やや柔らかい黒 */
+  --line: #e5e7eb;
 
-  --primary: #0ea5a4; /* エメラルド */
-  --brand: var(--primary);
-  --sub: #e6fffb; /* ごく淡いミント */
-  --heart: #e2535f;
-  --warn: #b35b00;
+  --primary: #146c60; /* 深いグリーン：白文字AA */
+  --tint: #f7e9e3; /* 淡アプリコット(面/タグ背景) */
+  --sub: #e8f3ee; /* ごく薄いセージ */
+
+  --heart: #dc5460;
+  --warn: #b45309;
 
   --footer-h: 64px;
 }
