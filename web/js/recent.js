@@ -2,6 +2,7 @@
 import { apiJSON } from "./http.js";
 
 // 共通ユーティリティ（先頭に追加）
+// 共通ユーティリティ（先頭に置く）
 const $one = (root, ...sels) => {
   for (const s of sels.flat()) {
     const el = root.querySelector(s);
@@ -16,17 +17,12 @@ const showPill = (el, v) => {
   if (!el) return;
   const has = v != null && String(v).trim() !== "";
   el.hidden = !has;
-  el.classList.toggle("show", has); // CSS が .show で表示するルールに対応
+  el.classList.toggle("show", has);
   if (has) el.textContent = v;
 };
 const yen = (v) => "¥" + Number(v).toLocaleString("ja-JP");
 const safe = (v) => (v == null ? "" : String(v));
-const fmtDistance = (m) =>
-  !Number.isFinite(m)
-    ? ""
-    : m < 1000
-    ? `${m} m`
-    : `${(m / 1000).toFixed(1)} km`;
+// ※ fmtDistance は既存の関数をそのまま使う
 
 // "10:00–18:00" / "10:00-18:00" / "10:00〜18:00" に対応
 function minutesUntilEnd(slot) {
