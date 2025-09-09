@@ -1665,6 +1665,17 @@ main,
   height: 18px;
 }
 
+/* --- avatar 一時非表示（card-v3限定） --- */
+.card-v3 .card-head .avatar {
+  display: none !important;
+}
+
+/* avatarを消したぶん、店名ブロックを詰める微調整（必要なら） */
+.card-v3 .card-head .store {
+  gap: 0.5rem; /* もともと広ければ少し詰める。不要なら削除OK */
+}
+
+
 /* avatarを非表示にしている前提で、左の空きを詰める */
 .card-v3 .card-head .store {
   display: flex;
