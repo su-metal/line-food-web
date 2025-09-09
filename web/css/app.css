@@ -4,17 +4,29 @@
 
 /* ---------- Design tokens ---------- */
 :root {
-  --bg: #f6faf9; /* ページ背景 */
-  --card: #ffffff; /* カード面 */
-  --ink: #0f172a; /* 文字(黒系) */
-  --line: #e2e8f0; /* 枠線 */
+  :root {
+    /* neutrals */
+    --bg: #f6faf9;
+    --card: #fff;
+    --surface: var(--card);
+    --text: #0f172a;
+    --ink: var(--text);
+    --text-weak: #475569;
+    --line: #e2e8f0;
 
-  --primary: #0f766e; /* メイン(濃ティール)：白文字とAAクリア */
-  --tint: #e6fffb; /* ごく薄いミント(面/タグ背景) */
-  --sub: #ecfeff; /* もう一段階の薄ミント(行間の面など) */
+    /* brand (暗めティール/グリーン) */
+    --primary: #065f46; /* 濃いエメラルド */
+    --brand: var(--primary);
+    --tint: #d7f3ea; /* very light mint */
+    --sub: #e9fbf5; /* card補助面 */
+    --accent: var(--tint);
 
-  --heart: #e2535f; /* お気に入り */
-  --warn: #b45309;
+    /* status */
+    --heart: #e2535f;
+    --warn: #b35b00;
+
+    --footer-h: 64px;
+  }
 
   --footer-h: 64px;
 }
