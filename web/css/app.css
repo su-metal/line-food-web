@@ -4,14 +4,14 @@
 
 /* ---------- Design tokens ---------- */
 :root {
-  --bg: #f8f4ec;
+  --bg: #fafaf7;
   --card: #ffffff;
   --ink: #111827; /* やや濃い本文色 */
   --line: #e1e6e3;
 
   --primary: #111827; /* 黒系アクセント（Slate 900） */
   --brand: var(--primary);
-  --sub: #f1f2f4; /* アクティブ/チップ用の淡いグレー */
+  --sub: #f3f4f1; /* アクティブ/チップ用の淡いグレー */
   --tint: #e7e9ee;
 
   --heart: #e25460;
@@ -786,4 +786,29 @@ main,
     width: 22px;
     height: 22px;
   }
+}
+/* === Search placeholder: lighter & smaller ======================= */
+.app-header input[type="search"]::placeholder {
+  color: #aab2bb; /* 薄いグレー（今より淡く） */
+  font-size: 14px; /* プレースホルダーだけ小さく */
+  opacity: 1; /* Safari 用の見え方安定 */
+}
+
+/* 各ブラウザ用のベンダープレフィックス */
+.app-header input[type="search"]::-webkit-input-placeholder {
+  color: #aab2bb;
+  font-size: 14px;
+}
+.app-header input[type="search"]::-moz-placeholder {
+  color: #aab2bb;
+  font-size: 14px;
+  opacity: 1;
+}
+.app-header input[type="search"]:-ms-input-placeholder {
+  color: #aab2bb;
+  font-size: 14px;
+}
+.app-header input[type="search"]::-ms-input-placeholder {
+  color: #aab2bb;
+  font-size: 14px;
 }
