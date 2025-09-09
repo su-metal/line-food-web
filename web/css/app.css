@@ -4,16 +4,16 @@
 
 /* ---------- Design tokens ---------- */
 :root {
-  --bg: #f7fafc;
-  --card: #ffffff;
-  --ink: #0f172a;
-  --line: #e2e8f0;
+  --bg: #f6faf9; /* ページ背景 */
+  --card: #ffffff; /* カード面 */
+  --ink: #0f172a; /* 文字(黒系) */
+  --line: #e2e8f0; /* 枠線 */
 
-  --primary: #2563eb; /* 濃インディゴ：白文字AA */
-  --tint: #ecfccb; /* 薄ピスタチオ(面/タグ背景) */
-  --sub: #f1f8e8; /* ごく薄グリーン(任意) */
+  --primary: #0f766e; /* メイン(濃ティール)：白文字とAAクリア */
+  --tint: #e6fffb; /* ごく薄いミント(面/タグ背景) */
+  --sub: #ecfeff; /* もう一段階の薄ミント(行間の面など) */
 
-  --heart: #e2535f;
+  --heart: #e2535f; /* お気に入り */
   --warn: #b45309;
 
   --footer-h: 64px;
