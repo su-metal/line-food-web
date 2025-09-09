@@ -546,26 +546,47 @@ main,
     gap: 0.5rem;
   }
 }
-/* ===== Desktop: clamp card width & center container ===== */
+/* ===== Responsive: mobile = horizontal scroll / desktop+ = grid wrap ===== */
 @media (min-width: 768px) {
-  /* 1枚のカード幅を固定気味に（必要なら 420〜520px で微調整） */
-  :root {
-    --card-col-width: 460px;
+  /* 中央寄せと幅 */
+  .container {
+    max-width: 1100px; /* 好みで 1000〜1200px に調整可 */
+    margin-inline: auto;
   }
 
-  /* コンテナは中央寄せ。2枚 + 余白ぶんの幅を上限に */
-  .container {
-    max-width: calc(var(--card-col-width) * 2 + 2rem); /* 2rem ≒ 両列の余白 */
-    margin-inline: auto;
+  /* 横スクロール -> グリッド（2列） */
+  .card-row {
+    display: grid;
+    grid-auto-flow: row; /* カードを縦に積む＝通常の流れ */
+    grid-auto-columns: unset; /* モバイルのauto-columnsを無効化 */
+    grid-template-columns: repeat(2, minmax(320px, 1fr));
+    gap: 1rem;
+    overflow: visible; /* スクロールをやめる */
+    scroll-snap-type: none;
+    -webkit-overflow-scrolling: auto;
+  }
+  .card-row .shop-card {
+    scroll-snap-align: unset; /* スナップも無効化 */
+    width: auto; /* 念のため幅の固定を解除 */
   }
 }
 
-@media (min-width: 1200px) {
-  /* さらに広い画面では少しだけ広げる（任意） */
-  :root {
-    --card-col-width: 480px;
-  }
+@media (min-width: 1024px) {
+  /* 3列 */
   .container {
-    max-width: calc(var(--card-col-width) * 2 + 2rem);
+    max-width: 1280px;
+  }
+  .card-row {
+    grid-template-columns: repeat(3, minmax(320px, 1fr));
+  }
+}
+
+@media (min-width: 1400px) {
+  /* 4列（必要なければ削除OK） */
+  .container {
+    max-width: 1440px;
+  }
+  .card-row {
+    grid-template-columns: repeat(4, minmax(320px, 1fr));
   }
 }
