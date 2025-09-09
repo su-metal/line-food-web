@@ -663,15 +663,29 @@ main,
   color: var(--primary);
 }
 
-
-/* === Header: Charcoal Gradient ======================= */
-.app-header{
-  background: linear-gradient(180deg, #1f2937 0%, #111827 100%);
-  color:#fff;
-  border-bottom: 1px solid rgba(255,255,255,.06);
+/* === Header: Light Bar =============================== */
+.app-header {
+  background: #fff;
+  color: var(--text);
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
-.app-header .icon-btn svg{ stroke:#fff; }
-.app-header .search-wrap{
-  background: rgba(255,255,255,.9);
-  border:1px solid rgba(255,255,255,.2);
+.app-header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--primary); /* 黒アクセント */
+  opacity: 0.12; /* 強めたい時は .18〜.2 */
+}
+.app-header .icon-btn svg {
+  stroke: var(--primary);
+}
+.app-header .search-wrap {
+  background: #f8fafc;
+  border: 1px solid var(--line);
 }
