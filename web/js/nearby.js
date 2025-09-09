@@ -192,20 +192,12 @@ function createCard(s) {
     // 時間
     const slotLabel = b?.slot_label || b?.slot || b?.time || "";
     const t = rowEl.querySelector(".time");
-    if (t) t.textContent = slotLabel || "";
+    if (t) t.textContent = slotLabel ? `🕒 ${slotLabel}` : "";
     rowEl.dataset.slot = slotLabel;
 
-    // 終了間近
-    const soon = rowEl.querySelector(".soon");
-    if (soon) {
-      const left = minutesUntilEnd(slotLabel);
-      if (left <= 30) {
-        soon.textContent = "終了間近";
-        soon.hidden = false;
-      } else {
-        soon.hidden = true;
-      }
-    }
+    // 終了間近（画像左下のバッジを出す）
+    const overlay = rowEl.querySelector(".soon-overlay");
+    if (overlay) overlay.hidden = !(minutesUntilEnd(slotLabel) <= SOON_MINUTES);
 
     // 価格（bundle優先）
     const priceVal = [b?.price_min, b?.price]
