@@ -4,16 +4,16 @@
 
 /* ---------- Design tokens ---------- */
 :root {
-  --bg: #fafbf9;
+  --bg: #f5f8f7;
   --card: #ffffff;
-  --ink: #1f2937;
-  --line: #e5e7eb;
+  --ink: #111827; /* やや濃い本文色 */
+  --line: #e1e6e3;
 
-  --primary: #14532d; /* 深いフォレスト（白文字AA） */
-  --tint: #e7f2ec; /* セージ寄りの面/タグ */
+  --primary: #0a6b61; /* 深めのエメラルド */
+  --tint: #d6efea; /* 淡いグリーンの面/タグ */
 
-  --heart: #dc5460;
-  --warn: #8a3f0b;
+  --heart: #e25460;
+  --warn: #9a4b0c;
 
   --footer-h: 64px;
 }
