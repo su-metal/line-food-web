@@ -1483,3 +1483,34 @@ main,
 .heart {
   border-width: 1.2px;
 }
+
+/* Heart: center perfectly & round joins */
+.heart {
+  display: grid;
+  place-items: center;
+  line-height: 1; /* ベースライン影響を除去 */
+  padding: 0;
+}
+
+/* SVGはブロック化して正確に中央へ */
+.heart svg {
+  display: block;
+  width: 18px; /* 必要なら 16px/20px に */
+  height: 18px;
+}
+
+/* 先端が潰れないように丸い線端/線結合を指定 */
+.heart svg path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* 微妙に上寄りに見える端末向け微調整（不要なら削除OK） */
+@supports (transform: translateY(0.5px)) {
+  .heart svg {
+    transform: translateY(0.5px);
+  }
+}
