@@ -7,10 +7,6 @@
 <title>line-food-web</title>
 <link rel="stylesheet" href="./css/app.css?v=20250909b" />
 <!-- 旧: v=20250907 を使っている行を削除 -->
-<script type="module">
-  import { loadNearby } from "./js/nearby.js?v=20250909c";
-  import { loadRecent } from "./js/recent.js?v=20250909c";
-</script>
 
 <!-- ヘッダ -->
 <header class="app-header">
@@ -459,4 +455,8 @@
   // 例：
   // items.forEach(btn => btn.addEventListener('click', () => { ...; loadNearby(getFilters()); loadRecent(getFilters()); }));
   // row.addEventListener('click', e => { ...; loadNearby(getFilters()); loadRecent(getFilters()); });
+</script>
+<script type="module">
+  import { loadNearby } from "./js/nearby.js?v=20250909e";
+  import { loadRecent } from "./js/recent.js?v=20250909e";
 </script>
