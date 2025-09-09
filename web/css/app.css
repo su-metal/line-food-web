@@ -663,14 +663,7 @@ main,
   color: var(--primary);
 }
 
-/* ヘッダもアクセントを踏襲（黒系のまま） */
-.app-header {
-  background: var(--primary);
-  color: #fff;
-}
-.app-header .search-wrap {
-  border: 1px solid #e5e7eb;
-}
+
 /* === Header: Charcoal Gradient ======================= */
 .app-header{
   background: linear-gradient(180deg, #1f2937 0%, #111827 100%);
