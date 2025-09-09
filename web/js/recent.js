@@ -78,24 +78,22 @@ function createCard(s) {
   const titleNode = el.querySelector(".store-name, .thumb-title, h4");
   if (titleNode) titleNode.textContent = name;
 
-  const avatar = el.querySelector(".avatar");
-  if (avatar && !avatar.querySelector("img")) {
-    avatar.textContent = name.trim()[0] || "S";
-  }
-
-  // --- ヘッダ背景（店の写真をうっすら表示） ---
+  // NEW: ヘッダ背景フォトをセット
   const head = el.querySelector(".card-head");
   if (head) {
-    // 店の代表写真 → なければ最初のバンドル画像を拝借
-    const coverUrl =
+    const headUrl =
       s.photo_url ||
       (Array.isArray(s.bundles) && s.bundles[0]?.thumb_url) ||
       "";
-    if (coverUrl) {
-      head.style.setProperty("--cover", `url("${coverUrl}")`);
-    } else {
-      head.style.removeProperty("--cover");
-    }
+    head.style.setProperty(
+      "--head-photo",
+      headUrl ? `url("${headUrl}")` : "none"
+    );
+  }
+
+  const avatar = el.querySelector(".avatar");
+  if (avatar && !avatar.querySelector("img")) {
+    avatar.textContent = name.trim()[0] || "S";
   }
 
   el.querySelector(".point, .chip.cat, .category")?.replaceChildren(
