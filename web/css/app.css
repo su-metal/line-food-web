@@ -667,12 +667,11 @@ main,
 .app-header {
   background: #fff;
   color: var(--text);
-  /* border-bottom: 1px solid var(--line); */
   position: sticky;
   top: 0;
   z-index: 10;
 }
-.app-header::after {
+/* .app-header::after {
   content: "";
   position: absolute;
   left: 0;
@@ -680,8 +679,8 @@ main,
   bottom: 0;
   height: 3px;
   background: var(--primary); /* 黒アクセント */
-  opacity: 0.12; /* 強めたい時は .18〜.2 */
-}
+  /* opacity: 0.12;
+} */ 
 .app-header .icon-btn svg {
   stroke: var(--primary);
 }
@@ -694,7 +693,6 @@ main,
   background: var(--bg) !important; /* 本体と同じ薄ベージュ */
   color: var(--ink);
   box-shadow: none;
-  /* border-bottom: 1px solid var(--line); */
 }
 
 /* もし残っていたら :after/:before を完全に無効化 */
