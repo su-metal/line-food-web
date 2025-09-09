@@ -6,24 +6,16 @@
 :root {
   :root {
     /* neutrals */
-    --bg: #f6faf9;
-    --card: #fff;
-    --surface: var(--card);
-    --text: #0f172a;
-    --ink: var(--text);
-    --text-weak: #475569;
-    --line: #e2e8f0;
+    --bg: #fafbf9;
+    --card: #ffffff;
+    --ink: #1f2937;
+    --line: #e5e7eb;
 
-    /* brand (暗めティール/グリーン) */
-    --primary: #065f46; /* 濃いエメラルド */
-    --brand: var(--primary);
-    --tint: #d7f3ea; /* very light mint */
-    --sub: #e9fbf5; /* card補助面 */
-    --accent: var(--tint);
+    --primary: #14532d; /* 深いフォレスト（白文字AA） */
+    --tint: #e7f2ec; /* セージ寄りの面/タグ */
 
-    /* status */
-    --heart: #e2535f;
-    --warn: #b35b00;
+    --heart: #dc5460;
+    --warn: #8a3f0b;
 
     --footer-h: 64px;
   }
