@@ -153,19 +153,22 @@ function createCard(s) {
     const row = document.createElement("div");
     row.className = "product-summary";
     row.innerHTML = `
-      <img class="product-img" alt="">
-      <div class="product-main">
-        <div class="product-name"></div>
-        <div class="product-meta">
-          <span class="time"></span>
-          <span class="eta" hidden></span>
-          <span class="soon" hidden></span>
-        </div>
-      </div>
-      <div class="ps-aside">
-        <span class="stock-inline" hidden></span>
-        <span class="price-inline" hidden></span>
-      </div>`;
+  <div class="thumb-wrap">
+    <img class="product-img" alt="">
+    <span class="soon-overlay" hidden>終了間近</span>
+  </div>
+  <div class="product-main">
+    <div class="product-name"></div>
+    <div class="product-meta">
+      <span class="time"></span>
+      <span class="eta" hidden></span>
+    </div>
+  </div>
+  <div class="ps-aside">
+    <span class="stock-inline" hidden></span>
+    <span class="price-inline" hidden></span>
+  </div>`;
+
     return row;
   };
 
