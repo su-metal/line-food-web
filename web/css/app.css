@@ -1468,8 +1468,8 @@ main,
 .card-v3 .card-head .heart,
 .shop-card .thumb .heart,
 .heart {
-  width: 32px !important; /* 40→32 / 36→32 を上書き */
-  height: 32px !important;
+  width: 28px !important; /* 40→32 / 36→32 を上書き */
+  height: 28px !important;
 }
 
 .card-v3 .card-head .heart svg,
@@ -1513,4 +1513,32 @@ main,
   .heart svg {
     transform: translateY(0.5px);
   }
+}
+
+/* Heart をカード右上に固定配置 */
+.shop-card.card-v3 {
+  position: relative;
+}
+
+.shop-card.card-v3 .card-head {
+  /* 右上に浮かせたハートと重ならないよう余白確保 */
+  padding-right: 56px; /* ←ハート40px + 余白16px。サイズ変えたら調整 */
+}
+
+/* ここで位置を上に持ち上げる（数字だけ好みで微調整OK） */
+.shop-card.card-v3 .card-head .heart {
+  position: absolute;
+  top: 8px; /* もっと上に → 4px / ギリ上なら 2px などに */
+  right: 12px;
+  z-index: 2;
+}
+
+/* もし小さめにしたいなら（任意） */
+.shop-card.card-v3 .card-head .heart {
+  width: 32px;
+  height: 32px;
+}
+.shop-card.card-v3 .card-head .heart svg {
+  width: 16px;
+  height: 16px;
 }
