@@ -38,6 +38,35 @@ function calcDistanceMeters(lat1, lng1, lat2, lng2) {
   return Math.round(2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
 
+// 文字→数値を安全に
+const num = (v) => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+};
+
+// 店オブジェクトから緯度経度をいろんなキー名で探す
+function extractLatLng(obj) {
+  const lat =
+    num(obj?.lat) ??
+    num(obj?.latitude) ??
+    num(obj?.lat_deg) ??
+    num(obj?.location?.lat) ??
+    num(obj?.coords?.lat) ??
+    num(obj?.geo?.lat);
+
+  const lng =
+    num(obj?.lng) ??
+    num(obj?.lon) ??
+    num(obj?.longitude) ??
+    num(obj?.lng_deg) ??
+    num(obj?.location?.lng) ??
+    num(obj?.location?.lon) ??
+    num(obj?.coords?.lng) ??
+    num(obj?.geo?.lng);
+
+  return [lat, lng];
+}
+
 function shouldShowSoon(slotLabel) {
   return minutesUntilEnd(slotLabel) <= SOON_MINUTES;
 }
@@ -274,16 +303,17 @@ export async function loadRecent({
     const data = await apiJSON(`/api/shops-recent?${qs.toString()}`);
     row.innerHTML = "";
 
-    // ③ APIが distance_m を返さない場合のフォールバック計算
+    // ③ APIが distance_m を返さない場合のフォールバック計算（多様なキー名に対応）
     const items = (data.items || []).slice(0, limit).map((it) => {
       if (
         !Number.isFinite(it.distance_m) &&
         Number.isFinite(lat) &&
-        Number.isFinite(lng) &&
-        Number.isFinite(it.lat) &&
-        Number.isFinite(it.lng)
+        Number.isFinite(lng)
       ) {
-        it.distance_m = calcDistanceMeters(lat, lng, it.lat, it.lng);
+        const [slat, slng] = extractLatLng(it);
+        if (slat != null && slng != null) {
+          it.distance_m = calcDistanceMeters(lat, lng, slat, slng);
+        }
       }
       return it;
     });
