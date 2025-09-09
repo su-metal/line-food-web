@@ -152,11 +152,21 @@
 
   <!-- 店舗カード テンプレート：compact（bodyをサムネ内に重ねる） -->
   <template id="shop-card-template">
-    <article class="shop-card card-v2" data-shop-id="">
-      <div class="thumb">
-        <img src="./photo/noimg.jpg" alt="" loading="lazy" />
-
-        <!-- 右上：お気に入り -->
+    <!-- v3: コンパクト・ヘッダ/本文の2段構成。サムネのオーバーレイは廃止 -->
+    <article class="shop-card card-v3" data-shop-id="">
+      <!-- ヘッダ：店名＋カテゴリ/距離/住所＋お気に入り -->
+      <header class="card-head">
+        <div class="store">
+          <div class="avatar" aria-hidden="true">S</div>
+          <div class="store-meta">
+            <h4 class="store-name">店舗名</h4>
+            <div class="store-sub">
+              <span class="chip point">カテゴリ</span>
+              <span class="chip status">1.2 km</span>
+              <span class="chip place">住所など</span>
+            </div>
+          </div>
+        </div>
         <button
           class="heart fav-btn"
           data-shop-id=""
@@ -172,37 +182,32 @@
             />
           </svg>
         </button>
+      </header>
 
-        <!-- サムネ下部オーバーレイ -->
-        <div class="thumb-info">
-          <h4 class="thumb-title">店舗名</h4>
-          <div class="thumb-subline">
-            <span class="point">カテゴリ</span>
-            <span class="status">1.2 km</span>
-            <span class="place">住所など</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- 本文 -->
-      <div class="shop-info">
+      <!-- 本文：代表セット1件（必要なら2件目以降はクローンして挿入） -->
+      <div class="card-body">
         <div class="product-summary">
-          <img class="product-img" src="" alt="" />
+          <img
+            class="product-img"
+            src="./photo/noimg.jpg"
+            alt=""
+            loading="lazy"
+          />
           <div class="product-main">
-            <div class="product-name"></div>
+            <div class="product-name">商品名が入ります（2行まで）</div>
             <div class="product-meta">
-              <span class="time"></span>
+              <span class="time">08:00–10:00</span>
               <span class="eta" hidden></span>
               <span class="soon" hidden>終了間近</span>
             </div>
           </div>
           <div class="ps-aside">
-            <span class="stock-inline" hidden></span>
-            <span class="price-inline" hidden></span>
+            <span class="stock-inline" hidden>残り8個</span>
+            <span class="price-inline" hidden>¥1,000</span>
           </div>
         </div>
 
-        <!-- 3件以上の時に出す -->
+        <!-- 3件以上のときに JS で hidden を外し、数字を書き換え -->
         <div class="more-wrap" hidden>
           <button class="more-bundles">
             他 <span class="n">1</span> セット

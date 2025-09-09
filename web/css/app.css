@@ -1292,3 +1292,174 @@ main,
 .shop-card.card-v2 .thumb .stock {
   display: none !important;
 }
+/* ===== Card v3 : コンパクトなリスト型 =================================== */
+.shop-card.card-v3 {
+  --r: 16px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+/* --- ヘッダ ------------------------------------------------------------ */
+.shop-card.card-v3 .card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.8rem 0.9rem 0.6rem;
+  border-bottom: 1px solid var(--line);
+}
+.shop-card.card-v3 .store {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+.shop-card.card-v3 .avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--sub);
+  color: var(--primary);
+  font-weight: 700;
+}
+.shop-card.card-v3 .store-meta {
+  min-width: 0;
+}
+.shop-card.card-v3 .store-name {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.2;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.shop-card.card-v3 .store-sub {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.28rem;
+  font-size: 12px;
+  line-height: 1.1;
+  color: var(--text-weak);
+}
+.shop-card.card-v3 .store-sub .chip {
+  background: #fff;
+  border: 1px solid var(--line);
+  color: var(--text);
+  padding: 0.18rem 0.48rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* --- 本文 -------------------------------------------------------------- */
+.shop-card.card-v3 .card-body {
+  padding: 0.7rem 0.9rem 0.9rem;
+}
+
+.shop-card.card-v3 .product-summary {
+  display: grid;
+  grid-template-columns: 72px 1fr auto; /* 画像 / 本文 / 右端ピル列 */
+  column-gap: 0.7rem;
+  row-gap: 0.28rem;
+  align-items: start;
+}
+.shop-card.card-v3 .product-img {
+  width: 72px;
+  height: 72px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: #f2f2f2;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+.shop-card.card-v3 .product-name {
+  margin: 0;
+  font-size: 15.5px;
+  line-height: 1.28;
+  font-weight: 600;
+  color: var(--text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.shop-card.card-v3 .product-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.56rem;
+  font-size: 12.5px;
+  line-height: 1.2;
+  color: var(--text-weak);
+  margin-top: 0.2rem;
+}
+.shop-card.card-v3 .product-meta .time::before {
+  content: "🕒";
+  margin-right: 0.25rem;
+}
+
+/* 右端：縦積みピル */
+.shop-card.card-v3 .ps-aside {
+  justify-self: end;
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.16rem;
+  min-width: max-content;
+}
+.shop-card.card-v3 .stock-inline,
+.shop-card.card-v3 .price-inline {
+  display: none;
+}
+
+.shop-card.card-v3 .stock-inline.show {
+  display: inline-flex;
+  padding: 0.14rem 0.48rem;
+  border-radius: 999px;
+  background: var(--sub);
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.05;
+}
+.shop-card.card-v3 .price-inline.show {
+  display: inline-flex;
+  padding: 0.18rem 0.52rem;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 800;
+  font-size: 12.5px;
+  line-height: 1.05;
+}
+
+/* 追加セット誘導 */
+.shop-card.card-v3 .more-wrap {
+  margin-top: 0.6rem;
+  display: flex;
+  justify-content: flex-end;
+}
+.shop-card.card-v3 .more-bundles {
+  appearance: none;
+  border: 1px dashed var(--primary);
+  background: var(--sub);
+  color: var(--primary);
+  padding: 0.22rem 0.64rem;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+/* 2件目以降を同カード内に積む場合の区切り */
+.shop-card.card-v3 .product-summary + .product-summary {
+  border-top: 1px dashed var(--line);
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+}
+
+/* 旧v1/v2の見た目と干渉させないために thumb 系は使わない（未定義でOK） */
