@@ -614,3 +614,19 @@ main,
   height: 100%;
   object-fit: cover;
 }
+/* === Center the horizontal category row on screen === */
+#category-row.cat-row {
+  justify-content: center; /* 収まる場合は中央寄せ */
+  max-width: min(92vw, 920px); /* 広い画面では行自体を中央に */
+  margin-inline: auto; /* 中央配置 */
+  padding-inline: 0.12rem; /* 既存の余白を維持 */
+  overflow-x: auto; /* 横スクロールは維持 */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 画面がより広いときは少しだけ幅を広げてもOK（お好みで） */
+@media (min-width: 1200px) {
+  #category-row.cat-row {
+    max-width: min(92vw, 1040px);
+  }
+}
