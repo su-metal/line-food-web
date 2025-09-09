@@ -1542,3 +1542,44 @@ main,
   width: 16px;
   height: 16px;
 }
+
+/* === SOON バッジを重ね配置（本文の右端・ps-aside には干渉しない） === */
+.shop-card.card-v3 .product-summary {
+  grid-template-columns: 72px 1fr auto;
+}
+
+/* メタ行の右端にスペースを確保して、そこに SOON を絶対配置 */
+.shop-card.card-v3 .product-meta {
+  position: relative;
+  padding-right: 88px; /* ← ここでSOON分の“空き”を確保（幅を変えるなら調整） */
+  white-space: nowrap;
+}
+
+/* SOON を重ねる（meta 行の中央に） */
+.shop-card.card-v3 .product-meta .soon {
+  position: absolute;
+  right: 0; /* product-meta の右端に固定 */
+  top: 50%;
+  transform: translateY(-50%);
+  margin: 0;
+  /* ピルのサイズ調整（お好みで） */
+  padding: 0.16rem 0.56rem;
+  border-radius: 999px;
+  background: #fff7ec;
+  border: 1px solid #f4c47a;
+  color: var(--warn);
+  font-size: 11.5px;
+  line-height: 1.05;
+}
+
+/* とても狭い端末では下に逃がす（任意） */
+@media (max-width: 340px) {
+  .shop-card.card-v3 .product-meta {
+    padding-right: 0;
+  }
+  .shop-card.card-v3 .product-meta .soon {
+    position: static; /* 通常フローに戻す */
+    transform: none;
+    margin-left: 6px;
+  }
+}
