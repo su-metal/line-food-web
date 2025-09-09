@@ -176,6 +176,14 @@ function createCard(s) {
         eta.removeAttribute("style");
       }
     }
+    const soonMin = minutesUntilEnd(b.slot);
+    const meta = summaryEl.querySelector(".product-meta");
+    if (soonMin <= 20 && meta && !meta.querySelector(".soon")) {
+      const badge = document.createElement("span");
+      badge.className = "soon";
+      badge.textContent = "終了間近";
+      meta.appendChild(badge);
+    }
   };
 
   if (!bundles.length) {
