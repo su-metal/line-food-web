@@ -546,3 +546,26 @@ main,
     gap: 0.5rem;
   }
 }
+/* ===== Desktop: clamp card width & center container ===== */
+@media (min-width: 768px) {
+  /* 1枚のカード幅を固定気味に（必要なら 420〜520px で微調整） */
+  :root {
+    --card-col-width: 460px;
+  }
+
+  /* コンテナは中央寄せ。2枚 + 余白ぶんの幅を上限に */
+  .container {
+    max-width: calc(var(--card-col-width) * 2 + 2rem); /* 2rem ≒ 両列の余白 */
+    margin-inline: auto;
+  }
+}
+
+@media (min-width: 1200px) {
+  /* さらに広い画面では少しだけ広げる（任意） */
+  :root {
+    --card-col-width: 480px;
+  }
+  .container {
+    max-width: calc(var(--card-col-width) * 2 + 2rem);
+  }
+}
