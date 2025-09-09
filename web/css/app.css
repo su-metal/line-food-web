@@ -1583,3 +1583,40 @@ main,
     font-size: 11px;
   }
 }
+
+/* === card-head に “うっすら背景写真” を重ねる ================== */
+.shop-card.card-v3 .card-head {
+  position: relative;
+  overflow: hidden; /* 背景をはみ出させない */
+}
+
+.shop-card.card-v3 .card-head::before {
+  content: "";
+  position: absolute;
+  inset: -2px; /* 端のにじみ対策で少し広げる */
+  background-image: var(--cover, none); /* JSで入れる */
+  background-size: cover;
+  background-position: center;
+  filter: blur(2px) saturate(1.05); /* ほんのり */
+  opacity: 0.18; /* 文字可読を保つため控えめ */
+  z-index: 0;
+}
+
+/* 文字の可読性をさらに担保（上から薄く白グラデ） */
+.shop-card.card-v3 .card-head::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.85),
+    rgba(255, 255, 255, 1)
+  );
+  z-index: 1;
+}
+
+/* 中身（店名・チップ・ハート）は前面へ */
+.shop-card.card-v3 .card-head > * {
+  position: relative;
+  z-index: 2;
+}

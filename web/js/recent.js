@@ -83,6 +83,21 @@ function createCard(s) {
     avatar.textContent = name.trim()[0] || "S";
   }
 
+  // --- ヘッダ背景（店の写真をうっすら表示） ---
+  const head = el.querySelector(".card-head");
+  if (head) {
+    // 店の代表写真 → なければ最初のバンドル画像を拝借
+    const coverUrl =
+      s.photo_url ||
+      (Array.isArray(s.bundles) && s.bundles[0]?.thumb_url) ||
+      "";
+    if (coverUrl) {
+      head.style.setProperty("--cover", `url("${coverUrl}")`);
+    } else {
+      head.style.removeProperty("--cover");
+    }
+  }
+
   el.querySelector(".point, .chip.cat, .category")?.replaceChildren(
     document.createTextNode(safe(s.category || ""))
   );
