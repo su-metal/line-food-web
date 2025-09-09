@@ -96,7 +96,6 @@ function upsertSoon(metaEl, slotLabel) {
   }
 }
 
-
 // === 置き換え: createCard(s) 全体 ===
 function createCard(s) {
   const tpl = document.getElementById("shop-card-template");
@@ -132,32 +131,64 @@ function createCard(s) {
   const placeEl = el.querySelector(".thumb-subline .place");
   if (placeEl) placeEl.textContent = safe(s.address || "");
 
-  // -------- 商品概要（最大2件） --------
-  const shopInfo = el.querySelector(".shop-info");
-  const rowTpl = el.querySelector(".shop-info .product-summary");
+  // ▼ 商品概要（bundles 最大2件）ここから置き換え
+  const container0 = el.querySelector(".shop-info");
+  if (container0) container0.innerHTML = ""; // ダミー行を完全クリア
+
+  // API の bundles から最大2件だけ使う
   const bundles = Array.isArray(s.bundles) ? s.bundles.slice(0, 2) : [];
 
-  const fillRow = (row, b) => {
-    const pImg = row.querySelector(".product-img");
-    if (pImg) {
-      pImg.src = b.thumb_url || s.photo_url || NOIMG;
-      pImg.alt = `${safe(b.title ?? "おすすめセット")} の画像`;
-    }
-    const pName = row.querySelector(".product-name");
-    if (pName) pName.textContent = safe(b.title ?? "おすすめセット");
+  // .shop-info が無ければ作る
+  let container = el.querySelector(".shop-info");
+  if (!container) {
+    container = document.createElement("div");
+    container.className = "shop-info";
+    el.appendChild(container);
+  }
 
-    const slotLabel = b.slot_label || b.slot || b.time || "";
+  // 1行分を作って埋める
+  function renderRow(b) {
+    const row = document.createElement("div");
+    row.className = "product-summary";
+    row.innerHTML = `
+    <img class="product-img" alt="">
+    <div class="product-main">
+      <div class="product-name"></div>
+      <div class="product-meta">
+        <span class="time"></span>
+        <span class="eta" hidden></span>
+      </div>
+    </div>
+    <div class="ps-aside">
+      <span class="stock-inline" hidden></span>
+      <span class="price-inline" hidden></span>
+    </div>
+  `;
+
+    // 画像
+    const img = row.querySelector(".product-img");
+    if (img) {
+      img.src = b.thumb_url || s.photo_url || NOIMG;
+      img.alt = `${b.title ?? b.name ?? "おすすめセット"} の画像`;
+    }
+
+    // タイトル
+    const nameEl = row.querySelector(".product-name");
+    if (nameEl) nameEl.textContent = b.title ?? b.name ?? "おすすめセット";
+
+    // 時間帯
+    const slotLabel = b.slot_label ?? b.slot ?? b.time ?? "";
     const timeEl = row.querySelector(".time");
     if (timeEl) timeEl.textContent = slotLabel ? `🕒 ${slotLabel}` : "";
 
-    // 価格: bundle優先 → shop
-    const pv = [b.price_min, b.price, s.min_price]
-      .map(Number)
-      .find((v) => Number.isFinite(v));
+    // 価格（bundle → shop の順で拾う）
     const priceEl = row.querySelector(".price-inline");
+    const priceVal = [b.price_min, b.price, s.min_price]
+      .map(Number)
+      .find((n) => Number.isFinite(n));
     if (priceEl) {
-      if (Number.isFinite(pv)) {
-        priceEl.textContent = yen(pv);
+      if (Number.isFinite(priceVal)) {
+        priceEl.textContent = yen(priceVal);
         priceEl.hidden = false;
         priceEl.classList.add("show");
       } else {
@@ -166,11 +197,11 @@ function createCard(s) {
       }
     }
 
-    // 在庫: bundle.qty_available → b.stock → shop.stock_remain
-    const remain = [b.qty_available, b.stock, s.stock_remain]
-      .map((v) => Number(v))
-      .find((v) => Number.isFinite(v));
+    // 在庫（bundle優先）
     const stockEl = row.querySelector(".stock-inline");
+    const remain = [b.qty_available, b.stock, s.stock_remain]
+      .map((n) => Number(n))
+      .find((n) => Number.isFinite(n));
     if (stockEl) {
       if (Number.isFinite(remain) && remain > 0) {
         stockEl.textContent = `残り${remain}個`;
@@ -181,31 +212,28 @@ function createCard(s) {
         stockEl.classList.remove("show");
       }
     }
-  };
 
-  if (shopInfo && rowTpl) {
-    // いったん空にしてから埋める
-    shopInfo.innerHTML = "";
-    if (bundles[0]) {
-      const r1 = rowTpl.cloneNode(true);
-      fillRow(r1, bundles[0]);
-      shopInfo.appendChild(r1);
-    }
-    if (bundles[1]) {
-      const r2 = rowTpl.cloneNode(true);
-      fillRow(r2, bundles[1]);
-      shopInfo.appendChild(r2);
-    }
-    // 3件以上なら「他 n セット」
+    return row;
+  }
+
+  // 描画
+  if (bundles.length === 0) {
+    // 何も無ければ .shop-info 自体を消す
+    container.remove();
+  } else {
+    bundles.forEach((b) => container.appendChild(renderRow(b)));
+
+    // “他 n セット”
     const remainCnt =
       (Array.isArray(s.bundles) ? s.bundles.length : 0) - bundles.length;
     if (remainCnt > 0) {
       const moreWrap = document.createElement("div");
       moreWrap.className = "more-wrap";
       moreWrap.innerHTML = `<button class="more-bundles">他 ${remainCnt} セット</button>`;
-      shopInfo.appendChild(moreWrap);
+      container.appendChild(moreWrap);
     }
   }
+  // ▼ 商品概要 ここまで
 
   return el;
 }
