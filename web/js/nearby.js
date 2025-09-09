@@ -1,7 +1,12 @@
 // web/js/nearby.js  ← フロント用（ブラウザで実行）
 import { apiJSON } from "./http.js";
 
-// 共通ユーティリティ（先頭に追加）
+// 距離の表示用（m→"850 m" / km→"1.2 km"）
+function fmtDistance(m) {
+  if (!Number.isFinite(m)) return "";
+  return m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`;
+}
+
 // 共通ユーティリティ（先頭に置く）
 const $one = (root, ...sels) => {
   for (const s of sels.flat()) {
@@ -22,7 +27,6 @@ const showPill = (el, v) => {
 };
 const yen = (v) => "¥" + Number(v).toLocaleString("ja-JP");
 const safe = (v) => (v == null ? "" : String(v));
-// ※ fmtDistance は既存の関数をそのまま使う
 
 // "10:00–18:00" / "10:00-18:00" / "10:00〜18:00" に対応
 function minutesUntilEnd(slot) {
