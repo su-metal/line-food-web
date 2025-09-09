@@ -151,9 +151,8 @@
   <div class="card-row" id="recent-row"></div>
 
   <!-- 店舗カード テンプレート：compact（bodyをサムネ内に重ねる） -->
-  <!-- 店舗カード テンプレート：compact（bodyをサムネ内に重ねる） -->
   <template id="shop-card-template">
-    <article class="shop-card" data-shop-id="">
+    <article class="shop-card card-v2" data-shop-id="">
       <div class="thumb">
         <img src="./photo/noimg.jpg" alt="" loading="lazy" />
 
@@ -174,7 +173,7 @@
           </svg>
         </button>
 
-        <!-- 画像オーバーレイ：店名/カテゴリ/距離/住所 -->
+        <!-- サムネ下部オーバーレイ -->
         <div class="thumb-info">
           <h4 class="thumb-title">店舗名</h4>
           <div class="thumb-subline">
@@ -185,31 +184,29 @@
         </div>
       </div>
 
-      <!-- 下：商品概要（2行・左サムネ） -->
+      <!-- 本文 -->
       <div class="shop-info">
         <div class="product-summary">
           <img class="product-img" src="" alt="" />
-
-          <!-- ★ 直下の子にする：ここが "head" -->
-          <div class="product-name"></div>
-
-          <!-- ★ 直下の子にする：ここが "meta" -->
-          <div class="product-meta">
-            <span class="time"></span>
-            <span class="eta" hidden></span>
-            <!-- 例: あと25分 -->
+          <div class="product-main">
+            <div class="product-name"></div>
+            <div class="product-meta">
+              <span class="time"></span>
+              <span class="eta" hidden></span>
+              <span class="soon" hidden>終了間近</span>
+            </div>
           </div>
-
-          <!-- 右端：在庫＆価格（縦積み） -->
           <div class="ps-aside">
             <span class="stock-inline" hidden></span>
             <span class="price-inline" hidden></span>
           </div>
         </div>
 
-        <!-- 3件以上ある時に使うチップ（JSで文言/表示切替） -->
+        <!-- 3件以上の時に出す -->
         <div class="more-wrap" hidden>
-          <button type="button" class="more-bundles"></button>
+          <button class="more-bundles">
+            他 <span class="n">1</span> セット
+          </button>
         </div>
       </div>
     </article>

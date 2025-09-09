@@ -1078,3 +1078,217 @@ main,
   font-size: 19px;
   font-weight: 800;
 }
+
+/* === Card v2 ===================================================== */
+
+/* 枠・影・余白 */
+.shop-card.card-v2 {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+}
+
+/* サムネ：横長＋下グラデ */
+.shop-card.card-v2 .thumb {
+  position: relative;
+  aspect-ratio: 20/9;
+  border-radius: 16px 16px 0 0;
+  overflow: hidden;
+  background: #eaeaea;
+}
+.shop-card.card-v2 .thumb img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+.shop-card.card-v2 .thumb::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 52%;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.62),
+    rgba(0, 0, 0, 0.38) 55%,
+    rgba(0, 0, 0, 0)
+  );
+  pointer-events: none;
+}
+/* 右上ハート（現行流用） */
+.shop-card.card-v2 .thumb .heart {
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 2;
+}
+
+/* サムネ下部情報 */
+.shop-card.card-v2 .thumb-info {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  padding: 0.58rem 0.72rem 0.72rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+}
+.shop-card.card-v2 .thumb-title {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.2;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.shop-card.card-v2 .thumb-subline {
+  display: flex;
+  align-items: center;
+  gap: 0.56rem;
+  min-width: 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.95);
+}
+.shop-card.card-v2 .thumb-subline .point {
+  flex: 0 0 auto;
+  padding: 0.12rem 0.44rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+/* 本文パディング */
+.shop-card.card-v2 .shop-info {
+  padding: 0.7rem 0.84rem 0.9rem;
+}
+
+/* 1行の商品 = 画像 / タイトル+メタ / 右ピル列 の3カラム */
+.shop-card.card-v2 .product-summary {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  column-gap: 0.56rem;
+  row-gap: 0.24rem;
+  align-items: start;
+}
+.shop-card.card-v2 .product-img {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  object-fit: cover;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  background: #f2f2f2;
+}
+.shop-card.card-v2 .product-name {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.28;
+  font-weight: 600;
+  color: var(--text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.shop-card.card-v2 .product-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.56rem;
+  font-size: 12.5px;
+  line-height: 1.2;
+  color: var(--text-weak);
+}
+/* 右列：縦積み */
+.shop-card.card-v2 .ps-aside {
+  justify-self: end;
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.14rem;
+  min-width: max-content;
+}
+
+/* ピル */
+.shop-card.card-v2 .stock-inline,
+.shop-card.card-v2 .price-inline {
+  display: none;
+}
+.shop-card.card-v2 .stock-inline.show,
+.shop-card.card-v2 .price-inline.show {
+  display: inline-flex;
+}
+
+.shop-card.card-v2 .stock-inline {
+  order: 0;
+  padding: 0.14rem 0.48rem;
+  border-radius: 999px;
+  background: var(--sub);
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.05;
+}
+.shop-card.card-v2 .price-inline {
+  order: 1;
+  padding: 0.18rem 0.52rem;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 800;
+  font-size: 12.5px;
+  line-height: 1.05;
+}
+
+/* 2件目以降の仕切り */
+.shop-card.card-v2 .product-summary + .product-summary {
+  border-top: 1px dashed var(--line);
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+}
+
+/* “他 n セット” */
+.shop-card.card-v2 .more-wrap {
+  margin-top: 0.6rem;
+  display: flex;
+  justify-content: flex-end;
+}
+.shop-card.card-v2 .more-bundles {
+  appearance: none;
+  border: 1px dashed var(--primary);
+  background: var(--sub);
+  color: var(--primary);
+  padding: 0.22rem 0.64rem;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+/* ステータス小バッジ（終了間近） */
+.shop-card.card-v2 .product-meta .soon {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.12rem 0.44rem;
+  border-radius: 999px;
+  background: #fff7ec;
+  border: 1px solid #f4c47a;
+  color: var(--warn);
+  font-size: 11px;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+/* 旧thumb内の価格/残数は使わない */
+.shop-card.card-v2 .thumb .price,
+.shop-card.card-v2 .thumb .stock {
+  display: none !important;
+}
