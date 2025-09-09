@@ -1,6 +1,34 @@
 // web/js/recent.js
 import { apiJSON } from "./http.js";
 
+// --- 失敗時に“再読み込み”カードを描く共通ヘルパー ---
+function renderRetryCard(
+  row,
+  { title = "読み込みに失敗しました", note = "", onRetry }
+) {
+  row.innerHTML = `
+    <article class="shop-card">
+      <div class="shop-info">
+        <div class="product-summary">
+          <div class="product-main">
+            <div class="product-name">${title}</div>
+            <div class="product-meta">${
+              note ? `<span class="time">${note}</span>` : ""
+            }</div>
+          </div>
+          <div class="ps-aside">
+            <button class="retry-btn" type="button" style="padding:.36rem .8rem;border:1px solid var(--line);border-radius:999px;background:#fff;">再読み込み</button>
+          </div>
+        </div>
+      </div>
+    </article>`;
+  row.querySelector(".retry-btn")?.addEventListener("click", () => {
+    try {
+      onRetry?.();
+    } catch {}
+  });
+}
+
 // --- 終了間近（SOON）ヘルパー -------------------------------
 const SOON_MINUTES = 30;
 
