@@ -1,8 +1,6 @@
 // web/js/nearby.js  ← フロント用（ブラウザで実行）
 import { apiJSON } from "./http.js";
 
-// ==== Utils: このブロックを nearby.js / recent.js の先頭に1回だけ ====
-
 // 404や欠損時に使うフォールバック画像
 const NOIMG = "./img/noimg.svg"; // 例: "./photo/noimg.jpg" にしてもOK
 
@@ -45,6 +43,34 @@ const showPill = (el, v) => {
   el.classList.toggle("show", has);
   if (has) el.textContent = v;
 };
+
+// --- 失敗時に“再読み込み”カードを描く共通ヘルパー ---
+function renderRetryCard(
+  row,
+  { title = "読み込みに失敗しました", note = "", onRetry }
+) {
+  row.innerHTML = `
+    <article class="shop-card">
+      <div class="shop-info">
+        <div class="product-summary">
+          <div class="product-main">
+            <div class="product-name">${title}</div>
+            <div class="product-meta">${
+              note ? `<span class="time">${note}</span>` : ""
+            }</div>
+          </div>
+          <div class="ps-aside">
+            <button class="retry-btn" type="button" style="padding:.36rem .8rem;border:1px solid var(--line);border-radius:999px;background:#fff;">再読み込み</button>
+          </div>
+        </div>
+      </div>
+    </article>`;
+  row.querySelector(".retry-btn")?.addEventListener("click", () => {
+    try {
+      onRetry?.();
+    } catch {}
+  });
+}
 
 // "10:00–18:00" / "10:00-18:00" / "10:00〜18:00" に対応
 function minutesUntilEnd(slot) {
@@ -290,45 +316,33 @@ export async function loadNearby({
         JSON.stringify({ lat, lng, ts: Date.now() })
       );
     } catch {}
-  } catch {
-    // 1) 直近の位置が保存されていればそれで続行（近い順はだいたい成立）
+  } catch (geoErr) {
+    // 位置情報が取れない → recentを表示 + “再取得”カードを最後に追加
     try {
-      const last = JSON.parse(localStorage.getItem("lastLoc") || "null");
-      if (last && Number.isFinite(last.lat) && Number.isFinite(last.lng)) {
-        lat = last.lat;
-        lng = last.lng;
-        usedLastLoc = true;
-        console.warn("[nearby] geolocation failed; use last known location");
-      }
-    } catch {}
+      const data = await apiJSON(`/api/shops-recent?limit=${TARGET}`);
+      row.innerHTML = "";
+      (data.items || [])
+        .slice(0, TARGET)
+        .forEach((s) => row.appendChild(createCard(s)));
 
-    // 2) それも無ければ“新着おすすめ”で代替（近い順は不可）
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-      console.warn("[nearby] no location; fallback to recent items");
-      row.innerHTML = `
-      <article class="shop-card"><div class="body">
-        <div class="title-line">
-          <h4>現在地が取得できませんでした</h4>
-          <p class="note">近い順は使えないため、新着おすすめを表示します。</p>
-          <button class="retry-loc" type="button" style="margin-top:.4rem;padding:.28rem .6rem;border:1px solid var(--line);border-radius:999px;background:#fff;">位置情報を再取得</button>
-        </div>
-      </div></article>`;
-
-      try {
-        const data = await apiJSON(`/api/shops-recent?limit=${TARGET}`);
-        row.innerHTML = "";
-        (data.items || [])
-          .slice(0, TARGET)
-          .forEach((s) => row.appendChild(createCard(s)));
-      } catch (e) {
-        row.innerHTML = `<article class="shop-card"><div class="body"><div class="title-line"><h4>おすすめの取得にも失敗しました</h4></div></div></article>`;
-      }
-
-      // 再試行ボタン
-      row.querySelector(".retry-loc")?.addEventListener("click", () => {
-        loadNearby({ category, priceMax, radius, sort });
+      // renderRetryCard は innerHTML を書き換える実装のため、
+      // 一旦ダミー要素に描いて、その 1枚のカードだけ append する
+      const holder = document.createElement("div");
+      renderRetryCard(holder, {
+        title: "現在地が取得できませんでした",
+        note: "近い順は出せないため、新着を表示中です。位置情報を再取得できます。",
+        onRetry: () => loadNearby({ category, priceMax, radius, sort }),
       });
-      return; // ← ここで終了（フォールバック表示済み）
+      const retryCard = holder.firstElementChild;
+      if (retryCard) row.appendChild(retryCard);
+
+      return;
+    } catch (e) {
+      renderRetryCard(row, {
+        title: "おすすめの取得にも失敗しました",
+        onRetry: () => loadNearby({ category, priceMax, radius, sort }),
+      });
+      return;
     }
   }
 
