@@ -694,7 +694,7 @@ main,
   background: var(--bg) !important; /* 本体と同じ薄ベージュ */
   color: var(--ink);
   box-shadow: none;
-  border-bottom: 1px solid var(--line);
+  /* border-bottom: 1px solid var(--line); */
 }
 
 /* もし残っていたら :after/:before を完全に無効化 */
