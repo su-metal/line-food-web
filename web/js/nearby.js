@@ -6,15 +6,15 @@ function fmtDistance(m) {
   return m < 1000 ? `${m} m` : `${(m / 1000).toFixed(1)} km`;
 }
 
-// 例: "10:00–18:00", "10:00-18:00", "10:00〜18:00" の終了時刻までの分
+// "10:00–18:00" / "10:00-18:00" / "10:00〜18:00" に対応
 function minutesUntilEnd(slot) {
   if (!slot) return Infinity;
   const m = String(slot).match(
     /(\d{1,2}):(\d{2})\s*[-–~〜]\s*(\d{1,2}):(\d{2})/
   );
   if (!m) return Infinity;
-  const endH = Number(m[3]),
-    endMin = Number(m[4]);
+  const endH = +m[3],
+    endMin = +m[4];
   const now = new Date();
   const end = new Date(
     now.getFullYear(),
@@ -169,6 +169,21 @@ function createCard(s) {
       } else {
         priceEl.classList.remove("show");
         priceEl.hidden = true;
+      }
+    }
+    const eta = summaryEl.querySelector(".eta");
+    if (eta) {
+      const mins = minutesUntilEnd(b.slot);
+      const isSoon = mins <= 30; // 30分を閾値に
+      if (isSoon) {
+        const w = Math.round(16 + ((30 - mins) / 30) * 28); // 16〜44pxで伸縮
+        eta.style.width = `${w}px`;
+        eta.classList.add("show");
+        eta.hidden = false;
+      } else {
+        eta.classList.remove("show");
+        eta.hidden = true;
+        eta.removeAttribute("style");
       }
     }
   };

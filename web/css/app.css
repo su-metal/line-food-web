@@ -905,6 +905,41 @@ main,
   font-size: 12px;
 }
 
+/* どこにあっても hidden は必ず非表示にする */
+[hidden] {
+  display: none !important;
+}
+
+/* ETA（終了間近ゲージ）：デフォルトは出さない */
+.product-meta .eta {
+  display: none; /* ← これが効けば“横棒”は出ません */
+  width: 40px; /* 表示時にJSで上書き */
+  height: 6px;
+  border-radius: 999px;
+  border: 1px dashed var(--primary);
+  opacity: 0.9;
+}
+
+/* 終了間近のときだけ出す */
+.product-meta .eta.show {
+  display: inline-block;
+}
+
+/* ついでに余白を微調整（タイトルとメタの間を少し詰める） */
+.shop-card .shop-info {
+  padding: 0.52rem 0.72rem 0.6rem;
+}
+.shop-card .shop-info .product-summary {
+  column-gap: 0.48rem;
+  row-gap: 0.16rem;
+}
+.shop-card .shop-info .product-name {
+  margin: 0;
+}
+.shop-card .shop-info .product-meta {
+  gap: 0.5rem;
+}
+
 /* 距離：左右矢印（distance） */
 .thumb-subline .status::before {
   -webkit-mask-image: url("data:image/svg+xml;utf8,\
