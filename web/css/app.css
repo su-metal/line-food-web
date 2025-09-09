@@ -442,7 +442,7 @@ main,
 /* Main text */
 .shop-card.card-v3 .product-name {
   margin: 0;
-  font-size: 15.5px;
+  font-size: 14.5px;
   line-height: 1.28;
   font-weight: 600;
   color: var(--text);
@@ -811,4 +811,7 @@ main,
 .app-header input[type="search"]::-ms-input-placeholder {
   color: #aab2bb;
   font-size: 14px;
+}
+.cat-row{
+  display: none;
 }
