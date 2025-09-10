@@ -135,39 +135,50 @@
 </section>
 
 <main class="container">
+  <!-- ===== Home Hero (start) ===== -->
+  <section class="home-hero">
+    <div class="hero-inner">
+      <!-- ★★★ 大カード：JSで差し替え ★★★ -->
+      <a id="hero-card-main" href="#" class="hero-card">
+        <img
+          id="hero-img-main"
+          src="./img/hero1.jpg"
+          alt="本日のおすすめ"
+          loading="lazy"
+        />
+        <div class="hero-caption">
+          <h2 id="hero-title">HELLO!</h2>
+          <p id="hero-sub">本日のおすすめ</p>
+        </div>
+      </a>
 
-<!-- Home Hero (深緑セクション) -->
-<section class="home-hero">
-  <div class="hero-inner">
-    <!-- ★★★ 大カードにIDを付与してJSから差し替える ★★★ -->
-    <a id="hero-card-main" href="#" class="hero-card">
-      <img id="hero-img-main" src="./img/hero1.jpg" alt="本日のおすすめ" loading="lazy" />
-      <div class="hero-caption">
-        <h2 id="hero-title">HELLO!</h2>
-        <p id="hero-sub">本日のおすすめ</p>
+      <!-- 小カード：ID付き（JSでランダムおすすめを差し替え） -->
+      <div class="hero-grid">
+        <a id="hero-card-s1" href="#" class="hero-card small">
+          <img
+            id="hero-s1-img"
+            src="./img/hero2.jpg"
+            alt="特集"
+            loading="lazy"
+          />
+          <div class="hero-caption small" id="hero-s1-cap">YAP! ARCHIVES</div>
+        </a>
+        <a id="hero-card-s2" href="#" class="hero-card small">
+          <img
+            id="hero-s2-img"
+            src="./img/hero3.jpg"
+            alt="サステナブル"
+            loading="lazy"
+          />
+          <div class="hero-caption small" id="hero-s2-cap">OUR CHANGE</div>
+        </a>
       </div>
-    </a>
-
-    <!-- （小カードはそのままでOK。必要なら残す） -->
-    <div class="hero-grid">
-      <a href="#" class="hero-card small">
-        <img src="./img/hero2.jpg" alt="特集" loading="lazy" />
-        <div class="hero-caption small">YAP! ARCHIVES</div>
-      </a>
-      <a href="#" class="hero-card small">
-        <img src="./img/hero3.jpg" alt="サステナブル" loading="lazy" />
-        <div class="hero-caption small">OUR CHANGE</div>
-      </a>
     </div>
-  </div>
 
-  <button type="button" class="home-cta">START AN ORDER</button>
-</section>
-
-
-  <!-- でっかい白丸角CTA（タブバーの上に浮かせる） -->
-  <button type="button" class="home-cta">START AN ORDER</button>
-</section>
+    <!-- でっかい白丸角CTA（タブバーの上に浮かせる） -->
+    <button type="button" class="home-cta">START AN ORDER</button>
+  </section>
+  <!-- ===== Home Hero (end) ===== -->
 
   <!-- 近くのお店 -->
   <div class="section-head">
@@ -203,24 +214,22 @@
             </div>
           </div>
         </div>
-       <button class="heart fav-btn" ...>
-  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-    <!-- lucide準拠のバランスの良いハート -->
-    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/>
-  </svg>
-</button>
-
+        <button class="heart fav-btn" ...>
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <!-- lucide準拠のバランスの良いハート -->
+            <path
+              d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"
+            />
+          </svg>
+        </button>
       </header>
 
       <!-- 本文：代表セット1件（必要なら2件目以降はクローンして挿入） -->
       <div class="card-body"></div>
 
-        <!-- 3件以上のときに JS で hidden を外し、数字を書き換え -->
-        <div class="more-wrap" hidden>
-          <button class="more-bundles">
-            他 <span class="n">1</span> セット
-          </button>
-        </div>
+      <!-- 3件以上のときに JS で hidden を外し、数字を書き換え -->
+      <div class="more-wrap" hidden>
+        <button class="more-bundles">他 <span class="n">1</span> セット</button>
       </div>
     </article>
   </template>
@@ -466,6 +475,8 @@
 </script>
 <!-- ★★★ ヒーロー読み込み用スクリプトを末尾で読み込む ★★★ -->
 <script type="module" src="./js/hero.js"></script>
+<script type="module" src="./js/home-hero.js"></script>
+
 <script type="module">
   import { loadNearby } from "./js/nearby.js?v=20250909l";
   import { loadRecent } from "./js/recent.js?v=20250909l";
