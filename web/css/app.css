@@ -1486,3 +1486,47 @@ body {
 .cart-spacer {
   height: 92px;
 } /* ← ボタン高さ + 余白。見え方に合わせて 84〜100px で微調整 */
+
+:root {
+  --tabbar-h: 56px; /* 既存があればそちら優先。無い場合のフォールバック */
+  --home-cta-h: 72px; /* CTA 高さの初期値。後でJSが上書き */
+}
+
+/* タブバー直上に固定 */
+.home-cta {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--tabbar-h, 56px) + env(safe-area-inset-bottom));
+  z-index: 40; /* ヒーローより前面、モーダルよりは下でOK */
+  padding: 8px 12px;
+  background: var(--bg, #faf6ee); /* あなたの基調色 */
+  border-top: 1px solid
+    color-mix(in oklab, var(--ink, #101418) 12%, transparent);
+  box-shadow: 0 -6px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* ボタンの見た目（任意で調整可） */
+.home-cta-btn {
+  display: block;
+  width: min(720px, 92%);
+  margin: 0 auto;
+  padding: 14px 18px;
+  font-size: 16px;
+  font-weight: 700;
+  border-radius: 14px;
+  border: 0;
+  background: var(--ink, #101418);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+/* コンテンツがCTAの裏に隠れないように下余白を確保 */
+main,
+.container,
+.home-main {
+  padding-bottom: calc(
+    var(--home-cta-h, 72px) + var(--tabbar-h, 56px) +
+      env(safe-area-inset-bottom) + 12px
+  );
+}
