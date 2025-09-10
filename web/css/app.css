@@ -240,7 +240,7 @@ body,
 main,
 .page,
 .container {
-  padding-bottom: calc(var(--footer-h) + env(safe-area-inset-bottom) + 16px);
+  padding-bottom: calc(var(--footer-h) + env(safe-area-inset-bottom) + 54px);
 }
 
 /* =========================================================
