@@ -5,7 +5,7 @@
 /* ---------- Design tokens ---------- */
 :root {
   /* カラーパレット（深緑×ベージュ） */
-  --bg: #e9e8e4; /* ページ背景（薄いベージュ） */
+  --bg: #FAF8F4 /* ページ背景（薄いベージュ） */
   --surface: #ffffff; /* 面（カード） */
   --ink: #101418; /* 文字（濃い墨） */
   --muted: #6b726e; /* サブテキスト */
@@ -1326,4 +1326,64 @@ body {
 .home-cta:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--brand) 35%, #fff);
   outline-offset: 2px;
+}
+/* カートCTA 共通 */
+.home-cta.cart {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  border-radius: 28px;
+  padding: 0.9rem 1.2rem;
+  font-weight: 800;
+  font-size: 16px;
+  line-height: 1;
+  /* 反転配色（ボタン=brand、文字=白） */
+  background: var(--brand, #1a3a2d);
+  color: #fff;
+  border: 2px solid var(--brand, #1a3a2d);
+  box-shadow: 0 10px 28px rgba(0,0,0,.18);
+}
+
+.home-cta.cart .ico svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+
+.home-cta.cart .total {
+  font-weight: 700;
+  opacity: 0.95;
+}
+
+.home-cta.cart .badge {
+  position: absolute;
+  right: 14px;            /* 右端近くに重ねる */
+  top: -6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--brand, #1a3a2d);
+  border: 2px solid var(--brand, #1a3a2d);
+  font-size: 12px;
+  font-weight: 800;
+  display: inline-grid;
+  place-items: center;
+  line-height: 1;
+}
+
+/* 画面幅が狭いときは少し詰める */
+@media (max-width: 360px) {
+  .home-cta.cart { padding: 0.8rem 1rem; font-size: 15px; }
+  .home-cta.cart .ico svg { width: 20px; height: 20px; }
+}
+
+/* 既存の配置（フッター上に浮かせている想定）を踏襲 */
+.home-cta {
+  position: sticky; /* 既存どおりなら fixed/absolute を使用中かも。現状に合わせて */
+  bottom: calc(var(--footer-h, 64px) + 14px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 11;
 }

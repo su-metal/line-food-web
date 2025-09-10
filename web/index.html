@@ -148,7 +148,33 @@
     </div>
 
     <!-- でっかい白丸角CTA（タブバーの上に浮かせる） -->
-    <button type="button" class="home-cta">START AN ORDER</button>
+    <button type="button" class="home-cta cart" id="home-cart-cta">
+      <span class="ico" aria-hidden="true">
+        <!-- シンプルなカートSVG -->
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path
+            d="M3 5h2l2.4 10.2a2 2 0 0 0 2 1.6h7.3a2 2 0 0 0 2-1.6L21 8H6"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <circle cx="10" cy="20" r="1.6" fill="currentColor" />
+          <circle cx="18" cy="20" r="1.6" fill="currentColor" />
+        </svg>
+      </span>
+      <span class="label">カート</span>
+      <span class="total" id="home-cart-total">カートは空です</span>
+      <span class="badge" id="home-cart-count" hidden>0</span>
+    </button>
   </section>
   <!-- ===== Home Hero (end) ===== -->
 
@@ -477,6 +503,15 @@
 <!-- ★★★ ヒーロー読み込み用スクリプトを末尾で読み込む ★★★ -->
 <script type="module" src="./js/hero.js"></script>
 <script type="module" src="./js/home-hero.js"></script>
+<script type="module">
+  import { initHomeCartCTA } from './js/cart-cta.js';
+  initHomeCartCTA({
+    buttonSelector: '#home-cart-cta',
+    countSelector:  '#home-cart-count',
+    totalSelector:  '#home-cart-total',
+    cartHref:       './cart.html' // 実際のパスに合わせて変更可
+  });
+</script>
 
 <script type="module">
   import { loadNearby } from "./js/nearby.js?v=20250909l";
