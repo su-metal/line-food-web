@@ -1,29 +1,35 @@
 /* =========================================================
-   app.css  —  compact, deduped, card-v3 focused
+   app.css — compact, deduped, card-v3 focused
    ========================================================= */
 
-/* ---------- Design tokens ---------- */
+/* ------------------- Design tokens ------------------- */
 :root {
-  /* カラーパレット（深緑×ベージュ） */
-  --bg: #faf8f4; /* ページ背景（薄いベージュ） */
-  --surface: #ffffff; /* 面（カード） */
-  --ink: #101418; /* 文字（濃い墨） */
-  --muted: #6b726e; /* サブテキスト */
-  --line: #e4e2dd; /* 枠線（ベージュ寄り） */
+  /* Palette */
+  --bg: #eeeae3; /* page background (warm beige) */
+  --surface: #ffffff; /* cards */
+  --ink: #101418; /* main text */
+  --muted: #6b726e; /* secondary text */
+  --line: #e4e2dd; /* subtle borders */
 
-  --brand: #1a3a2d; /* 深緑（アクセント基調） */
-  --brand-700: #123024; /* 影用に少し濃い */
-  --brand-300: #2b5643; /* ホバーや境界の補助 */
-  --sub: #f4f2ed; /* ベージュの薄い面（セクション帯に） */
-  --heart: #e2535f; /* お気に入り */
+  --brand: #1a3a2d; /* deep green accent */
+  --brand-300: #2b5643;
+  --brand-700: #123024;
+  --heart: #e2535f;
+  --sub: #f4f2ed;
+  --warn: #c97e22;
 
-  /* レイアウト */
-  /* デスクトップで伸びすぎない：320〜420pxの間で画面幅連動 */
-  --card-col-width: clamp(320px, 38vw, 420px);
-  --footer-h: 64px;
+  /* Aliases for legacy rules */
+  --primary: var(--brand);
+  --text: var(--ink);
+  --text-weak: var(--muted);
+
+  /* Layout */
+  --card-col-width: clamp(320px, 86vw, 380px);
+  --tabbar-h: 64px;
+  --home-cta-h: 72px;
 }
 
-/* ---------- Reset / base ---------- */
+/* ------------------- Base / reset ------------------- */
 * {
   box-sizing: border-box;
 }
@@ -31,18 +37,19 @@ html,
 body {
   height: 100%;
 }
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font: 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
-    "Apple Color Emoji", "Segoe UI Emoji";
-}
 [hidden] {
   display: none !important;
 }
 
-/* ---------- Header ---------- */
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
+    "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+/* ------------------- Header ------------------- */
 .app-header {
   position: sticky;
   top: 0;
@@ -50,53 +57,78 @@ body {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.6rem 0.9rem;
-  background: var(--primary);
-  color: #fff;
+  padding: 0.7rem 1rem;
+  background: var(--bg);
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
 }
+.app-header .icon-btn {
+  background: transparent;
+  border: 0;
+  color: var(--ink);
+  padding: 0.25rem;
+}
+.app-header .icon-btn svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.8;
+}
+
 .app-header .search-wrap {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  background: #fff;
-  border-radius: 999px;
+  gap: 0.6rem;
+  min-height: 48px;
   padding: 0.5rem 0.9rem;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 999px;
 }
 .app-header .search-wrap svg {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   fill: none;
-  stroke: #8b6f6f;
+  stroke: #9aa09c;
   stroke-width: 2;
 }
-.app-header input {
+.app-header input[type="search"] {
+  width: 100%;
   border: 0;
   outline: 0;
-  width: 100%;
-  font-size: 15px;
   background: transparent;
-  color: #333;
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1.2;
+  padding: 2px 0;
 }
-.icon-btn {
-  background: transparent;
-  border: 0;
-  color: #fff;
-  padding: 0.25rem;
-  margin-left: 0.25rem;
-}
-.icon-btn svg {
-  width: 22px;
-  height: 22px;
-  fill: none;
-  stroke: #fff;
-  stroke-width: 1.8;
+.app-header input[type="search"]::placeholder {
+  color: #aab2bb;
+  font-size: 14px;
+  opacity: 1;
 }
 
-/* ---------- Sections ---------- */
+@media (min-width: 480px) {
+  .app-header {
+    padding: 1rem 1.1rem;
+  }
+  .app-header .search-wrap {
+    min-height: 52px;
+    gap: 0.7rem;
+  }
+  .app-header .search-wrap svg {
+    width: 22px;
+    height: 22px;
+  }
+}
+
+/* ------------------- Sections / headings ------------------- */
 .container {
   padding: 0.2rem 0.9rem 1.2rem;
 }
+
 .section-head {
   margin: 0.7rem 0 0.34rem;
   display: flex;
@@ -112,19 +144,24 @@ body {
 }
 .section-head .more {
   font-size: 14px;
-  color: var(--primary);
+  color: var(--brand);
   text-decoration: none;
-  background: linear-gradient(transparent 70%, #eafff9);
+  background: linear-gradient(transparent 70%, var(--sub));
 }
-.section-head .more:hover {
-  background: linear-gradient(transparent 60%, #d6fffb);
+.section-kicker {
+  margin: 0.5rem 0 0.25rem;
+  font-size: 12.5px;
+  letter-spacing: 0.12em;
+  color: color-mix(in oklab, var(--brand) 85%, #000 15%);
+  text-transform: uppercase;
+  font-weight: 800;
 }
 
-/* ---------- Horizontal card row ---------- */
+/* ------------------- Horizontal card row ------------------- */
 .card-row {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: 88%;
+  grid-auto-columns: var(--card-col-width);
   gap: 0.9rem;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -138,36 +175,23 @@ body {
   display: none;
 }
 
-/* ---------- Quick sort segment ---------- */
-.quick {
-  padding: 0.2rem 0rem 0.4rem;
+@media (min-width: 640px) {
+  :root {
+    --card-col-width: 360px;
+  }
 }
-.seg-row {
-  display: inline-flex;
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  overflow: hidden;
+@media (min-width: 900px) {
+  :root {
+    --card-col-width: 400px;
+  }
 }
-.seg-btn {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  padding: 0.42rem 0.84rem;
-  font-size: 14px;
-  color: var(--text);
-  cursor: pointer;
-}
-.seg-btn + .seg-btn {
-  border-left: 1px solid var(--line);
-}
-.seg-btn.is-active {
-  background: #ecfeff;
-  color: var(--primary);
-  font-weight: 600;
+@media (min-width: 1200px) {
+  :root {
+    --card-col-width: 440px;
+  }
 }
 
-/* ---------- Category row (icon buttons) ---------- */
+/* ------------------- Category row ------------------- */
 #category-row.cat-row {
   display: flex;
   flex-wrap: nowrap;
@@ -176,6 +200,14 @@ body {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scroll-snap-type: x proximity;
+  justify-content: center;
+  max-width: min(92vw, 1040px);
+  margin-inline: auto;
+}
+#category-row.cat-row::before,
+#category-row.cat-row::after {
+  content: "";
+  flex: 0 0 clamp(8px, 4vw, 24px);
 }
 #category-row .cat-item {
   flex: 0 0 auto;
@@ -194,27 +226,49 @@ body {
 #category-row .cat-item img {
   width: 48px;
   height: 48px;
-  display: block;
   object-fit: contain;
+  display: block;
 }
 
-/* ---------- Price filter (temporarily hidden) ---------- */
-.price {
-  display: none !important;
+/* ------------------- Quick sort segment ------------------- */
+.quick {
+  padding: 0.4rem 0 0.2rem;
+}
+.seg-row {
+  display: inline-flex;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.seg-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0.42rem 0.84rem;
+  font-size: 14px;
+  color: var(--ink);
+  cursor: pointer;
+}
+.seg-btn + .seg-btn {
+  border-left: 1px solid var(--line);
+}
+.seg-btn.is-active {
+  background: color-mix(in oklab, var(--brand) 6%, #fff);
+  color: var(--brand);
+  font-weight: 700;
 }
 
-/* ---------- Tabbar ---------- */
+/* ------------------- Tab bar ------------------- */
 .tabbar {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  inset: auto 0 0 0;
   z-index: 20;
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  background: #fff;
+  height: var(--tabbar-h);
+  background: var(--bg);
   border-top: 1px solid var(--line);
-  height: 64px;
 }
 .tabbar a {
   text-decoration: none;
@@ -228,24 +282,26 @@ body {
 .tabbar .icon svg {
   width: 22px;
   height: 22px;
-  color: var(--primary);
+  color: var(--brand);
 }
 .tabbar .label {
   font-size: 12px;
 }
 .tabbar a.active {
-  color: var(--primary);
-}
-body,
-main,
-.page,
-.container {
-  padding-bottom: calc(var(--footer-h) + env(safe-area-inset-bottom) + 84px);
+  color: var(--brand);
 }
 
-/* =========================================================
-   Heart button (shared)
-   ========================================================= */
+/* Give pages space for CTA + tabbar */
+main,
+.home-main,
+.page,
+.container {
+  padding-bottom: calc(
+    var(--home-cta-h) + var(--tabbar-h) + env(safe-area-inset-bottom) + 12px
+  );
+}
+
+/* ------------------- Heart (shared) ------------------- */
 .heart {
   color: var(--heart);
   border: 1.2px solid currentColor;
@@ -260,9 +316,9 @@ main,
   transition: background 0.15s, color 0.15s, box-shadow 0.15s;
 }
 .heart svg {
-  display: block;
   width: 18px;
   height: 18px;
+  display: block;
 }
 .heart svg path {
   fill: none;
@@ -283,37 +339,32 @@ main,
   stroke: currentColor;
 }
 
-/* =========================================================
-   Shop Card v3 (current)
-   ========================================================= */
-
-/* Frame */
+/* ------------------- Shop Card v3 ------------------- */
 .shop-card {
   background: var(--surface);
   border: 1px solid var(--line);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
   border-radius: 16px;
   overflow: hidden;
+  box-shadow: 0 6px 18px rgba(16, 24, 23, 0.08);
 }
-
-/* --- Head (store name + chips + heart) --- */
 .shop-card.card-v3 {
   position: relative;
 }
+
+/* Head */
 .shop-card.card-v3 .card-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.8rem;
-  padding: 0.56rem 0.72rem 0.44rem; /* compact */
+  padding: 0.56rem 0.72rem 0.44rem;
+  padding-right: 56px;
   border-bottom: 1px solid var(--line);
   position: relative;
   overflow: hidden;
   min-height: 68px;
-  padding-right: 56px; /* leave space for heart */
 }
-
-/* Background photo (JS: --head-bg) */
+/* Head background photo */
 .card-head.has-photo {
   background-image: var(--head-bg);
   background-size: cover;
@@ -323,7 +374,7 @@ main,
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.28);
   pointer-events: none;
 }
 .card-head.has-photo > * {
@@ -340,7 +391,7 @@ main,
   border-color: transparent;
 }
 
-/* Store meta */
+/* Meta */
 .shop-card.card-v3 .store {
   display: flex;
   align-items: center;
@@ -349,7 +400,7 @@ main,
 }
 .shop-card.card-v3 .avatar {
   display: none !important;
-} /* avatarは一旦隠す */
+}
 .shop-card.card-v3 .store-meta {
   min-width: 0;
 }
@@ -369,18 +420,18 @@ main,
   margin-top: 0.28rem;
   font-size: 12px;
   line-height: 1.1;
-  color: var(--text-weak);
+  color: var(--muted);
 }
 .shop-card.card-v3 .store-sub .chip {
   background: #fff;
   border: 1px solid var(--line);
-  color: var(--text);
+  color: var(--ink);
   padding: 0.18rem 0.48rem;
   border-radius: 999px;
   white-space: nowrap;
 }
 
-/* Heart at top-right of head */
+/* Heart in head */
 .shop-card.card-v3 .card-head .heart {
   position: absolute;
   top: 8px;
@@ -394,20 +445,25 @@ main,
   height: 18px;
 }
 
-/* --- Body (bundles) --- */
+/* Body */
 .shop-card.card-v3 .card-body {
   padding: 0.7rem 0.9rem 0.9rem;
 }
 
-/* One row = image / main / right pills */
+/* Product row layout */
 .shop-card.card-v3 .product-summary {
   display: grid !important;
   grid-template-columns: 72px 1fr auto !important;
   align-items: center !important;
   gap: 12px !important;
 }
+.shop-card.card-v3 .product-summary + .product-summary {
+  border-top: 1px dashed var(--line);
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+}
 
-/* Left image (wrap + overlay) */
+/* Thumbs */
 .shop-card.card-v3 .product-summary .thumb-wrap {
   position: relative;
   width: 72px;
@@ -422,8 +478,6 @@ main,
   object-fit: cover;
   background: #f2f2f2;
 }
-
-/* "終了間近" — overlay at bottom-left of image */
 .shop-card.card-v3 .product-summary .thumb-wrap .soon-overlay {
   position: absolute;
   left: 6px;
@@ -443,13 +497,13 @@ main,
   pointer-events: none;
 }
 
-/* Main text */
+/* Texts / meta */
 .shop-card.card-v3 .product-name {
   margin: 0;
   font-size: 14.5px;
   line-height: 1.28;
   font-weight: 600;
-  color: var(--text);
+  color: var(--ink);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
@@ -463,18 +517,16 @@ main,
   margin-top: 0.2rem;
   font-size: 12.5px;
   line-height: 1.2;
-  color: var(--text-weak);
+  color: var(--muted);
 }
-/* 時計はテキスト側(🕒 …)をJSで入れるので疑似要素は無効 */
 .shop-card.card-v3 .product-meta .time::before {
   content: none !important;
 }
-/* eta はデフォルト非表示（必要時にJSで .show を付与） */
 .shop-card.card-v3 .product-meta .eta {
   display: none;
 }
 
-/* Right pills */
+/* Pills (right) */
 .shop-card.card-v3 .ps-aside {
   justify-self: end;
   align-self: center;
@@ -491,9 +543,9 @@ main,
   display: inline-flex;
   padding: 0.14rem 0.48rem;
   border-radius: 999px;
-  background: var(--sub);
-  border: 1px solid var(--primary);
-  color: var(--primary);
+  background: #ecf3f0;
+  border: 1px solid var(--brand);
+  color: var(--brand);
   font-size: 11.5px;
   font-weight: 600;
   line-height: 1.05;
@@ -503,7 +555,7 @@ main,
   display: inline-flex;
   padding: 0.18rem 0.52rem;
   border-radius: 999px;
-  background: var(--primary);
+  background: var(--brand);
   color: #fff;
   font-weight: 800;
   font-size: 12.5px;
@@ -511,14 +563,7 @@ main,
   white-space: nowrap;
 }
 
-/* Separator between bundle rows */
-.shop-card.card-v3 .product-summary + .product-summary {
-  border-top: 1px dashed var(--line);
-  margin-top: 0.6rem;
-  padding-top: 0.6rem;
-}
-
-/* “他 n セット” */
+/* More bundles */
 .shop-card.card-v3 .more-wrap {
   margin-top: 0.6rem;
   display: flex;
@@ -526,15 +571,15 @@ main,
 }
 .shop-card.card-v3 .more-bundles {
   appearance: none;
-  border: 1px dashed var(--primary);
+  border: 1px dashed var(--brand);
   background: var(--sub);
-  color: var(--primary);
+  color: var(--brand);
   padding: 0.22rem 0.64rem;
   border-radius: 999px;
   font-size: 12px;
 }
 
-/* ---------- Small screens ---------- */
+/* Small screens fine-tune */
 @media (max-width: 360px) {
   .shop-card.card-v3 .product-summary {
     gap: 10px !important;
@@ -543,77 +588,20 @@ main,
     width: 64px;
     height: 64px;
   }
-  .shop-card.card-v3 .product-name {
-    font-size: 14.5px;
-  }
   .shop-card.card-v3 .product-meta {
     font-size: 11.5px;
     gap: 0.5rem;
   }
 }
-/* ==== Keep horizontal scroll on all breakpoints, clamp card width ==== */
-/* まずデフォルト（モバイル〜小タブレット） */
-:root {
-  /* 例: 最小320px, 画面幅の86%, 最大380px の範囲でカード幅を自動調整 */
-  --card-col-width: clamp(320px, 86vw, 380px);
-}
 
-/* 画面が広くなったら、横スクロールのまま “適度な固定幅” に近づける */
-@media (min-width: 640px) {
-  :root {
-    --card-col-width: 360px;
-  }
-}
-@media (min-width: 900px) {
-  :root {
-    --card-col-width: 400px;
-  }
-}
-@media (min-width: 1200px) {
-  :root {
-    --card-col-width: 440px;
-  }
-}
-
-/* 横スクロールを常に維持（過去にPCでグリッド化した設定を打ち消す） */
-.card-row {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: var(
-    --card-col-width
-  ); /* ← これが効けばデスクトップで暴れません */
-  gap: 0.9rem;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scroll-snap-type: x proximity;
-  padding-bottom: 0.4rem;
-}
-
-@media (min-width: 768px) {
-  .card-row {
-    /* 万一、以前のCSSで PC時にグリッド化していたら明示的に上書き */
-    grid-auto-flow: column !important;
-    grid-template-columns: none !important;
-    grid-auto-columns: var(--card-col-width) !important;
-    overflow-x: auto !important;
-    scroll-snap-type: x proximity !important;
-    -webkit-overflow-scrolling: touch;
-  }
-  .card-row .shop-card {
-    scroll-snap-align: start;
-    width: auto; /* 念のため固定幅化の残りを消す */
-  }
-}
-
-/* 画像のアスペクト比は固定（既にある指定を強めに） */
+/* Thumbs in other contexts */
 .shop-card .thumb {
-  aspect-ratio: 21 / 9;
+  aspect-ratio: 21/9;
 }
 .shop-card .thumb img {
   object-fit: cover;
 }
 
-/* リスト側のサムネも固定 */
 .product-summary .thumb-wrap {
   width: 88px;
   height: 88px;
@@ -625,562 +613,27 @@ main,
   height: 100%;
   object-fit: cover;
 }
-/* === Center the horizontal category row on screen === */
-#category-row.cat-row {
-  justify-content: center; /* 収まる場合は中央寄せ */
-  max-width: min(92vw, 920px); /* 広い画面では行自体を中央に */
-  margin-inline: auto; /* 中央配置 */
-  padding-inline: 0.12rem; /* 既存の余白を維持 */
-  overflow-x: auto; /* 横スクロールは維持 */
-  -webkit-overflow-scrolling: touch;
-}
-#category-row.cat-row::before,
-#category-row.cat-row::after {
-  content: "";
-  flex: 0 0 clamp(8px, 4vw, 24px); /* 両端の余白バランス */
-}
 
-/* 画面がより広いときは少しだけ幅を広げてもOK（お好みで） */
-@media (min-width: 1200px) {
-  #category-row.cat-row {
-    max-width: min(92vw, 1040px);
-  }
-}
-/* アクセント依存パーツを黒系に最適化（視認性担保） */
-.ps-aside .stock-inline.show {
-  background: var(--sub);
-  border: 1px solid var(--primary);
-  color: var(--primary);
-}
-.ps-aside .price-inline.show {
-  background: var(--primary);
-  color: #fff;
-}
-
-/* セグメントやチップも黒アクセントに調整 */
-.seg-btn.is-active {
-  background: var(--sub);
-  color: var(--primary);
-  font-weight: 600;
-}
-.chip-row .chip.is-active,
-.chip-row .chip[aria-pressed="true"] {
-  color: var(--primary);
-  background: var(--sub);
-  border-color: var(--primary);
-}
-
-/* タブの“アクティブ色”を黒系へ */
-.tabbar a.active {
-  color: var(--primary);
-}
-.tabbar .icon svg {
-  color: var(--primary);
-}
-
-/* === Header: Light Bar =============================== */
-.app-header {
-  background: #fff;
-  color: var(--text);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-/* .app-header::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 3px;
-  background: var(--primary); /* 黒アクセント */
-/* opacity: 0.12;
-} */
-.app-header .icon-btn svg {
-  stroke: var(--primary);
-}
-.app-header .search-wrap {
-  background: #f8fafc;
-  border: 1px solid var(--line);
-}
-/* === Header = page background / remove overlay ================== */
-.app-header {
-  background: var(--bg) !important; /* 本体と同じ薄ベージュ */
-  color: var(--ink);
-  box-shadow: none;
-}
-
-/* もし残っていたら :after/:before を完全に無効化 */
-.app-header::before,
-.app-header::after {
-  content: none !important;
-  display: none !important;
-  background: none !important;
-}
-
-/* アイコン類はベージュ上でも見やすい濃い色に */
-.app-header .icon-btn {
-  color: var(--ink);
-}
-.app-header .icon-btn svg {
-  stroke: var(--ink);
-}
-
-/* 検索ボックスは白箱＋薄い枠に寄せる（任意） */
-.app-header .search-wrap {
-  background: #fff;
-  border: 1px solid var(--line);
-}
-.app-header .search-wrap svg {
-  stroke: var(--muted);
-}
-.app-header input {
-  color: var(--ink);
-}
-/* === Search bar: bigger & make icon visible ===================== */
-.app-header {
-  background: var(--bg);
-  color: var(--brand);
-  border-bottom: 1px solid var(--line);
-  padding: 0.7rem 1rem;
-}
-
-/* 検索窓（高さ＆余白アップ、アイコン/placeholderの見え方維持） */
-.app-header .search-wrap {
-  min-height: 44px; /* 高さUP */
-  padding: 0.4rem 0.9rem;
-  border-radius: 999px;
-  background: #fff;
-  border: 1px solid var(--line);
-}
-.app-header .search-wrap svg {
-  width: 18px;
-  height: 18px;
-  stroke: #9aa09c;
-}
-.app-header input::placeholder {
-  color: #a9ada8; /* さらに薄いグレー */
-  font-size: 13px; /* 少し小さく */
-}
-.app-header .search-wrap svg path {
-  stroke: currentColor !important;
-  fill: none !important;
-  stroke-width: 2;
-}
-
-/* 入力文字とプレースホルダも見やすく */
-.app-header input[type="search"] {
-  width: 100%;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: var(--ink);
-  font-size: 16px;
-  line-height: 1.2;
-  padding: 2px 0; /* 文字の上下余白を少し */
-}
-
-/* 画面が広いときはさらに余裕を */
-@media (min-width: 480px) {
-  .app-header {
-    padding: 1rem 1.1rem;
-  }
-  .app-header .search-wrap {
-    min-height: 52px;
-    padding: 0.7rem 1.1rem;
-    gap: 0.7rem;
-  }
-  .app-header .search-wrap svg {
-    width: 22px;
-    height: 22px;
-  }
-}
-/* === Search placeholder: lighter & smaller ======================= */
-.app-header input[type="search"]::placeholder {
-  color: #aab2bb; /* 薄いグレー（今より淡く） */
-  font-size: 14px; /* プレースホルダーだけ小さく */
-  opacity: 1; /* Safari 用の見え方安定 */
-}
-
-/* 各ブラウザ用のベンダープレフィックス */
-.app-header input[type="search"]::-webkit-input-placeholder {
-  color: #aab2bb;
-  font-size: 14px;
-}
-.app-header input[type="search"]::-moz-placeholder {
-  color: #aab2bb;
-  font-size: 14px;
-  opacity: 1;
-}
-.app-header input[type="search"]:-ms-input-placeholder {
-  color: #aab2bb;
-  font-size: 14px;
-}
-.app-header input[type="search"]::-ms-input-placeholder {
-  color: #aab2bb;
-  font-size: 14px;
-}
-#category-row.cat-row {
-  display: none;
-}
-.app-header::after {
-  content: none !important;
-  display: none !important;
-}
-/* 検索ボックスを白で浮かせる */
-.app-header .search-wrap {
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  height: 48px;
-  min-height: 48px;
-  padding: 0.5rem 0.9rem;
-}
-/* ルーペ色を深緑へ */
-.app-header .search-wrap svg {
-  width: 20px;
-  height: 20px;
-  stroke: var(--primary);
-  stroke-width: 2;
-}
-/* プレースホルダーは薄グレーで控えめに */
-.app-header input {
-  font-size: 14px;
-  color: var(--text);
-}
-.app-header input::placeholder {
-  color: color-mix(in srgb, var(--text) 35%, #ffffff);
-  opacity: 0.7;
-  font-size: 13px;
-}
-
-/* カードの枠と影を新テーマに合わせる */
-.shop-card {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  box-shadow: 0 6px 18px rgba(26, 58, 45, 0.06);
-}
-
-/* ピル類の配色を深緑ベースへ */
-.ps-aside .stock-inline.show {
-  background: #ecf3f0;
-  border: 1px solid var(--primary);
-  color: var(--primary);
-}
-.ps-aside .price-inline.show {
-  background: var(--primary);
-  color: #fff;
-}
-
-/* サムネ下のチップ/距離など */
-.thumb-subline .point {
-  background: rgba(26, 58, 45, 0.08);
-  border-color: rgba(26, 58, 45, 0.12);
-}
-.section-head .more {
-  color: var(--primary);
-  background: linear-gradient(transparent 70%, var(--sub));
-}
-
-/* カテゴリー行の背景/影を新テーマに馴染ませる */
-#category-row.cat-row {
-  background: transparent;
-}
-.chip {
-  border-color: color-mix(in srgb, var(--primary) 18%, #0000);
-}
-.chip-row .chip.is-active {
-  background: var(--sub);
-}
-/* ===== Home Hero (深緑×白丸角CTA) ===== */
+/* ------------------- Home hero ------------------- */
 .home-hero {
   background: var(--brand);
-  padding: 16px 0 24px; /* 下はCTAの分を多めに */
-  border-radius: 12px; /* スクショ風に下だけ丸め */
+  margin: 0.2rem 0 0.9rem;
+  padding: 0.6rem 0 0.2rem;
+  border-radius: 12px;
   box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.08);
 }
 .home-hero .hero-inner {
   padding: 0 16px;
 }
-
-/* 大型・小型カード共通 */
 .hero-card {
   position: relative;
   display: block;
-  border-radius: 18px;
-  overflow: hidden;
-  background: #203e33; /* 画像無時の底色 */
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
-}
-.hero-card img {
-  width: 100%;
-  height: auto;
-  display: block;
-}
-.hero-card::after {
-  /* 下からの濃いグラデで文字を読みやすく */
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    to top,
-    rgba(0, 0, 0, 0.45),
-    rgba(0, 0, 0, 0) 55%
-  );
-  pointer-events: none;
-}
-
-/* 大きい一枚 */
-.hero-card:not(.small) {
-  aspect-ratio: 16/9;
-}
-
-/* 小さめ2枚並び（必要に応じ1列落ち） */
-.hero-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-top: 12px;
-}
-.hero-card.small {
-  aspect-ratio: 16/10;
-}
-
-/* 追加: 小カードのキャプション微調整 */
-.hero-card.small .hero-caption.small {
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
-  line-height: 1.25;
-}
-
-/* 見出し（太白字） */
-.hero-caption {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  padding: 16px 16px 18px;
-  color: #fff;
-  text-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
-}
-.hero-caption h2 {
-  margin: 0 0 2px;
-  font-size: 32px;
-  font-weight: 900;
-  letter-spacing: 0.02em;
-}
-.hero-caption p {
-  margin: 0;
-  opacity: 0.9;
-}
-
-/* でっかい白丸角CTA（タブバー直上に固定） */
-.home-cta {
-  position: fixed;
-  left: 16px;
-  right: 16px;
-  bottom: calc(var(--footer-h) + env(safe-area-inset-bottom) + 14px);
-  z-index: 30;
-  display: block;
-  width: auto;
-  padding: 18px 24px;
-  border-radius: 20px;
-  background: var(--brand); /* 旧：白 → 反転して塗りつぶし */
-  color: #fff; /* 旧：ブランド色 → 反転して白文字 */
-  border: 2px solid var(--brand);
-  font-weight: 800;
-  font-size: 16px;
-  border: 0;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
-}
-.home-cta:active {
-  transform: translateY(1px);
-}
-
-.home-cta:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--brand) 35%, #fff);
-  outline-offset: 2px;
-}
-
-/* デスクトップ時：横幅を抑えて中央寄せ */
-@media (min-width: 960px) {
-  .home-hero .hero-inner {
-    max-width: 960px;
-    margin: 0 auto;
-  }
-  .home-cta {
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
-    width: 720px;
-  }
-}
-
-/* ===== Home Hero : overlay & caption readability ===== */
-.home-hero .hero-card {
-  position: relative;
-  display: block;
-  border-radius: 16px;
-  overflow: hidden;
-}
-
-/* 画像は常に全面カバー */
-.home-hero .hero-card img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-/* 文字の視認性を上げる濃淡グラデ・オーバーレイ（#1a3a2dベース） */
-.home-hero .hero-card::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    to top,
-    rgba(0, 0, 0, 0.55) 0%,
-    rgba(0, 0, 0, 0.28) 45%,
-    rgba(0, 0, 0, 0.12) 70%,
-    rgba(0, 0, 0, 0) 100%
-  );
-  pointer-events: none;
-}
-
-/* キャプションは前面に。白文字＋軽い影で読みやすく */
-.home-hero .hero-caption {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  padding: 0.9rem 1rem;
-  color: #fff;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
-  z-index: 1;
-}
-
-/* 大カードの見出し/サブの整え */
-.home-hero .hero-caption h2 {
-  margin: 0 0 0.25rem;
-  font-size: 22px;
-  line-height: 1.2;
-  font-weight: 800;
-}
-.home-hero .hero-caption p {
-  margin: 0;
-  font-size: 13.5px;
-  opacity: 0.95;
-}
-
-/* smallカードの文字を小さく＆パディング控えめに */
-.home-hero .hero-card.small .hero-caption,
-.home-hero .hero-caption.small {
-  font-size: 11.5px; /* ← 小さめに */
-  padding: 0.5rem 0.6rem; /* ← 余白も小さく */
-}
-
-/* smallのキャプションを角丸ピル風にしてさらに視認性UP（任意） */
-.home-hero .hero-card.small .hero-caption,
-.home-hero .hero-caption.small {
-  background: rgba(0, 0, 0, 0.48); /* ←黒ベース */
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  color: #fff;
-  display: inline-block;
-  width: fit-content;
-  border-radius: 999px;
-  font-size: 11.5px;
-  padding: 0.5rem 0.6rem;
-}
-.home-hero {
-  margin: 0.2rem 0rem 0.9rem;
-}
-.quick {
-  padding: 0.2rem 0rem 0.4rem;
-}
-
-/* ================= CRISP-LIKE SKIN (deep green × warm beige) ================ */
-
-/* 1) 見出し・タイポ */
-.section-kicker {
-  /* セクションの英語見出しっぽい小見出し */
-  margin: 0.5rem 0 0.25rem;
-  font-size: 12.5px;
-  letter-spacing: 0.12em;
-  color: color-mix(in oklab, var(--brand) 85%, #000 15%);
-  text-transform: uppercase;
-  font-weight: 800;
-}
-.section-head h3 {
-  margin: 0;
-  font-weight: 800;
-  letter-spacing: 0.01em;
-  color: var(--ink);
-}
-
-/* 2) ボタン（丸ピル） */
-.btn {
-  -webkit-tap-highlight-color: transparent;
-  appearance: none;
-  border: 1px solid transparent;
-  background: #fff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 44px;
-  padding: 0 18px;
-  gap: 0.5rem;
-  border-radius: 999px;
-  font-weight: 800;
-  letter-spacing: 0.01em;
-  font-size: 14.5px;
-  cursor: pointer;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-}
-.btn:focus-visible {
-  outline: 0;
-  box-shadow: 0 0 0 4px color-mix(in oklab, var(--brand) 18%, transparent);
-}
-.btn--primary {
-  background: var(--brand);
-  color: #fff;
-  border-color: var(--brand);
-}
-.btn--primary:hover {
-  filter: brightness(1.05);
-}
-.btn--secondary {
-  background: #fff;
-  color: var(--brand);
-  border-color: color-mix(in oklab, var(--brand) 28%, var(--line));
-}
-.btn--ghost {
-  background: transparent;
-  color: var(--brand);
-  border-color: color-mix(in oklab, var(--brand) 20%, var(--line));
-}
-
-/* 3) ホームの “3つの丸ボタン” 行（任意で使う） */
-.action-pills {
-  display: flex;
-  gap: 0.8rem;
-  flex-wrap: wrap;
-  padding: 0.6rem 0.9rem 0.2rem;
-}
-.action-pills .btn {
-  flex: 1 1 0;
-  min-width: 0;
-}
-
-/* 4) Hero：黒オーバーレイ強め＋角丸シャドウ */
-.home-hero {
-  padding: 0.6rem 0rem 0.2rem;
-}
-.hero-card {
   border-radius: 22px;
   overflow: hidden;
+  background: #203e33;
   box-shadow: 0 10px 28px rgba(16, 24, 23, 0.18);
 }
 .hero-card::after {
-  /* 黒基調の被せ */
   content: "";
   position: absolute;
   inset: 0;
@@ -1192,382 +645,79 @@ main,
   );
   pointer-events: none;
 }
+.hero-card:not(.small) {
+  aspect-ratio: 16/9;
+}
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+.hero-card.small {
+  aspect-ratio: 16/10;
+}
 .hero-caption {
+  position: absolute;
   left: 18px;
   right: 18px;
   bottom: 18px;
+  color: #fff;
+  text-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
 }
 .hero-caption h2 {
+  margin: 0 0 2px;
   font-size: 30px;
   font-weight: 900;
+  letter-spacing: 0.02em;
 }
-.hero-card.small .hero-caption {
-  bottom: 12px;
-  left: 12px;
-  right: 12px;
-}
-.hero-card.small .hero-caption,
-.hero-card .hero-caption.small {
-  font-size: 11.5px;
-  font-weight: 800;
-  opacity: 0.95;
+.hero-caption p {
+  margin: 0;
+  opacity: 0.9;
 }
 
-/* 5) Quick（セグメント）を白ベースに */
-.quick {
-  padding: 0.4rem 0rem 0.2rem;
-}
-.seg-row {
-  border: 1px solid var(--line);
-  background: #fff;
-  box-shadow: none;
-}
-.seg-btn {
-  color: var(--ink);
-}
-.seg-btn.is-active {
-  background: color-mix(in oklab, var(--brand) 6%, #fff);
-  color: var(--brand);
-  font-weight: 700;
-}
-
-/* 6) Shopカード：ベージュ面 × 深緑ピル */
-.shop-card {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  box-shadow: 0 6px 18px rgba(16, 24, 23, 0.08);
-}
-.card-head.has-photo::after {
-  background: rgba(0, 0, 0, 0.28);
-}
-.card-v3 .card-head .store-name {
-  color: #fff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
-}
-
-.product-name {
-  color: var(--ink);
-}
-.product-meta {
-  color: var(--muted);
-}
-
-.ps-aside .stock-inline.show {
-  background: #ecfeff;
-  border: 1px solid color-mix(in oklab, var(--brand) 36%, #a6eef8);
-  color: var(--brand);
-  font-weight: 700;
-}
-.ps-aside .price-inline.show {
-  background: var(--brand);
-  color: #fff;
-  font-weight: 800;
-}
-
-/* 7) Tabbar：背景ベージュ、有効は深緑 */
-.tabbar {
-  background: var(--bg);
-  border-top: 1px solid var(--line);
-}
-.tabbar a.active .icon svg,
-.tabbar a.active .label {
-  color: var(--brand);
-}
-
-/* 8) 入力フィールド（フォーム画面系） */
-.input,
-input[type="text"],
-input[type="tel"],
-input[type="email"],
-select,
-textarea {
-  background: #fff;
-  border: 1px solid color-mix(in oklab, var(--brand) 18%, var(--line));
-  border-radius: 12px;
-  padding: 0.7rem 0.9rem;
-  color: var(--ink);
-}
-input::placeholder,
-textarea::placeholder {
-  color: color-mix(in oklab, var(--muted) 55%, #fff 45%);
-  font-size: 0.95em;
-}
-
-/* 9) カテゴリ横スクロールを中央寄せ */
-#category-row.cat-row {
-  justify-content: center;
-}
-
-/* 10) グローバル背景（より白寄せベージュ） */
-:root {
-  --bg: #eeeae3;
-} /* ほんの少し白に寄せたベージュ */
-body {
-  background: var(--bg);
-  color: var(--ink);
-}
-
-/* === home-cta 色をテキストとボタンで反転 === */
-.home-cta {
-  background: var(--brand); /* 旧：白 → 反転して塗りつぶし */
-  color: #fff; /* 旧：ブランド色 → 反転して白文字 */
-  border: 2px solid var(--brand);
-}
-
-.home-cta:hover {
-  filter: brightness(0.96);
-}
-
-.home-cta:active {
-  transform: translateY(1px);
-}
-
-.home-cta:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--brand) 35%, #fff);
-  outline-offset: 2px;
-}
-/* カートCTA 共通 */
-.home-cta.cart {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.7rem;
-  border-radius: 28px;
-  padding: 0.9rem 1.2rem;
-  font-weight: 800;
-  font-size: 16px;
-  line-height: 1;
-  /* 反転配色（ボタン=brand、文字=白） */
-  background: var(--brand, #1a3a2d);
-  color: #fff;
-  border: 2px solid var(--brand, #1a3a2d);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
-}
-
-.home-cta.cart .ico svg {
-  width: 22px;
-  height: 22px;
-  display: block;
-}
-
-.home-cta.cart .total {
-  font-weight: 700;
-  opacity: 0.95;
-}
-
-.home-cta.cart .badge {
-  position: absolute;
-  right: 14px; /* 右端近くに重ねる */
-  top: -6px;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  border-radius: 999px;
-  background: #fff;
-  color: var(--brand, #1a3a2d);
-  border: 2px solid var(--brand, #1a3a2d);
-  font-size: 12px;
-  font-weight: 800;
-  display: inline-grid;
-  place-items: center;
-  line-height: 1;
-}
-
-/* 画面幅が狭いときは少し詰める */
-@media (max-width: 360px) {
-  .home-cta.cart {
-    padding: 0.8rem 1rem;
-    font-size: 15px;
-  }
-  .home-cta.cart .ico svg {
-    width: 20px;
-    height: 20px;
+@media (min-width: 960px) {
+  .home-hero .hero-inner {
+    max-width: 960px;
+    margin: 0 auto;
   }
 }
 
-/* 既存の配置（フッター上に浮かせている想定）を踏襲 */
-.home-cta {
-  position: sticky; /* 既存どおりなら fixed/absolute を使用中かも。現状に合わせて */
-  bottom: calc(var(--footer-h, 64px) + 14px);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 11;
-}
-/* ヒーロー内にCTAを置いていたときの余白を無効化（もし残っていれば） */
-.home-hero {
-  padding-bottom: 0 !important;
-}
-
-/* カート（home-cta）をページ下部で“青枠の高さ”に吸着 */
-.home-cta.cart-cta {
-  position: sticky;
-  bottom: calc(var(--footer-h) + env(safe-area-inset-bottom) + 12px);
-  z-index: 30;
-
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 16px 18px;
-  margin: 16px 0 0; /* セクションとの間隔 */
-  border-radius: 18px;
-
-  /* 反転配色（以前の指示どおり）：背景を白、文字をダーク */
-  background: #ffffff;
-  color: #1a3a2d;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
-  border: 1px solid color-mix(in srgb, #1a3a2d 10%, #ffffff);
-}
-
-#home-cart-anchor {
-  /* 左右に同じ余白を確保（他の .container と揃える） */
-  padding-left: 0.9rem;
-  padding-right: 0.9rem;
-}
-
-/* アイコン整形（必要に応じて調整） */
-.home-cta.cart-cta .cart-ico {
-  width: 22px;
-  height: 22px;
-  stroke: currentColor;
-  fill: none;
-  stroke-width: 2;
-}
-.home-cta.cart-cta .cart-text {
-  font-weight: 700;
-  letter-spacing: 0.01em;
-}
-#cart-summary {
-  font-weight: 500;
-  opacity: 0.85;
-  margin-left: 0.5em;
-}
-
-/* もし以前: .home-cta を fixed にしていたら打ち消し */
-.home-cta {
-  position: static;
-}
-
-/* 旧スタイルの影響を打ち消し */
-.home-cta {
-  left: auto;
-  right: auto;
-  transform: none;
-  position: static;
-}
-
-/* カートを画面下・中央に固定（タブバーの直上） */
-.home-cta.cart-cta {
-  position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: calc(var(--footer-h) + env(safe-area-inset-bottom) + 12px);
-  z-index: 40;
-
-  width: min(720px, calc(100% - 32px)); /* 画面左右に16pxの余白 */
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px 18px;
-  border-radius: 18px;
-
-  background: #fff;
-  color: #1a3a2d;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
-}
-.home-cta.cart-cta .cart-ico {
-  width: 22px;
-  height: 22px;
-  stroke: currentColor;
-  fill: none;
-  stroke-width: 2;
-}
-.cart-spacer {
-  height: 92px;
-} /* ← ボタン高さ + 余白。見え方に合わせて 84〜100px で微調整 */
-
-:root {
-  --tabbar-h: 56px; /* 既存があればそちら優先。無い場合のフォールバック */
-  --home-cta-h: 72px; /* CTA 高さの初期値。後でJSが上書き */
-}
-
-/* タブバー直上に固定 */
+/* ------------------- Fixed CTA (tabbar-top) ------------------- */
+/* Container: transparent band fixed above the tabbar */
 .home-cta {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: calc(var(--tabbar-h, 56px) + env(safe-area-inset-bottom));
-  z-index: 40; /* ヒーローより前面、モーダルよりは下でOK */
+  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+  z-index: 40;
   padding: 8px 12px;
-  background: var(--bg, #faf6ee); /* あなたの基調色 */
-  border-top: 1px solid
-    color-mix(in oklab, var(--ink, #101418) 12%, transparent);
-  box-shadow: 0 -6px 12px rgba(0, 0, 0, 0.05);
-}
-
-/* ボタンの見た目（任意で調整可） */
-.home-cta-btn {
-  display: block;
-  width: min(720px, 92%);
-  margin: 0 auto;
-  padding: 14px 18px;
-  font-size: 16px;
-  font-weight: 700;
-  border-radius: 14px;
-  border: 0;
-  background: var(--ink, #101418);
-  color: #fff;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
-}
-
-/* コンテンツがCTAの裏に隠れないように下余白を確保 */
-main,
-.container,
-.home-main {
-  padding-bottom: calc(
-    var(--home-cta-h, 72px) + var(--tabbar-h, 56px) +
-      env(safe-area-inset-bottom) + 12px
-  );
-}
-/* === CTA: ボタンは --brand で単色、テキストは白。帯の背景は透明に === */
-.home-cta{
-  /* 位置などは既存のまま活かし、見た目だけ無色化 */
   background: transparent !important;
-  border-top: 0 !important;
+  border: 0 !important;
+  outline: none !important;
   box-shadow: none !important;
 }
-
-.home-cta-btn{
+/* Button: --brand solid with white text */
+.home-cta-btn {
   display: block;
   width: min(720px, 92%);
   margin: 0 auto;
   padding: 16px 18px;
-  border: 0 !important;
+  border: 0;
   border-radius: 16px;
-  background: var(--brand) !important;  /* ← 単色塗りつぶし */
-  color: #fff !important;               /* ← テキストは白 */
+  background: var(--brand);
+  color: #fff;
   font-weight: 800;
   font-size: 16px;
-  box-shadow: 0 10px 22px rgba(0,0,0,.15);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.15);
 }
-
-.home-cta-btn:hover{ filter: brightness(1.05); }
-.home-cta-btn:active{ transform: translateY(1px); }
-.home-cta-btn:focus-visible{
+.home-cta-btn:hover {
+  filter: brightness(1.05);
+}
+.home-cta-btn:active {
+  transform: translateY(1px);
+}
+.home-cta-btn:focus-visible {
   outline: 3px solid color-mix(in oklab, #fff 60%, var(--brand) 40%);
   outline-offset: 2px;
-}
-/* === CTA周りの枠線を完全に無効化（最優先で上書き） === */
-.home-cta,
-.home-cta::before,
-.home-cta::after {
-  border: 0 !important;
-  border-top: 0 !important;
-  outline: none !important;
-}
-.home-cta-btn {
-  border: 0 !important;
-  background: var(--brand) !important; /* 単色ベタ塗り */
-  color: #fff !important;              /* 白文字 */
 }
