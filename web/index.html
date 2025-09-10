@@ -29,7 +29,6 @@
     </header>
 
     <!-- カテゴリー（横スクロール） -->
-    <!-- カテゴリー（アイコン差し替え版） -->
     <div class="cat-row" id="category-row">
       <button type="button" class="cat-item" data-cat="パン">
         <img
@@ -105,16 +104,15 @@
       </div>
     </section>
 
-    <!-- ▼ クイックソート（近い｜安い） -->
-
     <main class="container">
       <!-- ===== Home Hero ===== -->
       <section class="home-hero">
         <div class="hero-inner">
           <a id="hero-card-main" href="#" class="hero-card">
+            <!-- 初期は存在する画像にして404回避。JSで差し替え -->
             <img
               id="hero-img-main"
-              src="./img/hero1.jpg"
+              src="./img/noimg.svg"
               alt="本日のおすすめ"
               loading="lazy"
             />
@@ -128,7 +126,7 @@
             <a id="hero-card-s1" href="#" class="hero-card small">
               <img
                 id="hero-s1-img"
-                src="./img/hero2.jpg"
+                src="./img/noimg.svg"
                 alt="特集"
                 loading="lazy"
               />
@@ -139,7 +137,7 @@
             <a id="hero-card-s2" href="#" class="hero-card small">
               <img
                 id="hero-s2-img"
-                src="./img/hero3.jpg"
+                src="./img/noimg.svg"
                 alt="サステナブル"
                 loading="lazy"
               />
@@ -308,106 +306,89 @@
     <!-- LIFF SDK & 既存モジュール -->
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script type="module" src="./js/app.js"></script>
+
+    <!-- ヒーロー（ランダム差し替え） -->
+    <script type="module" src="./js/hero.js"></script>
+    <script type="module" src="./js/home-hero.js"></script>
+
+    <!-- ★ ここに“1つだけ”集約（loadNearby 未定義の解消 & 各UIイベント） -->
     <script type="module">
-      // ▼ fav.js を読み込み（キャッシュ破り付き）、LIFF準備後に初期化
-      const bust = "v20250909c";
+      const bust = "v20250910a";
+
+      // 必要モジュールを読み込み
+      import { loadNearby } from "./js/nearby.js?v=20250909c";
+      import { loadRecent } from "./js/recent.js?v=20250909c";
+      import { initHomeCartCTA } from "./js/cart-cta.js?v=20250909c";
+
+      // fav.js は LIFF が ready になってから
+      let initAllFavButtons = null;
       try {
-        const m = await import(`./js/fav.js?${bust}`).catch(() => ({}));
-        if (m.initAllFavButtons)
-          await liff.ready.then(() => m.initAllFavButtons());
+        const fav = await import("./js/fav.js?" + bust).catch(() => ({}));
+        initAllFavButtons = fav.initAllFavButtons || null;
       } catch {}
 
-      // ▼（残していても無害）バナー×
-      document
-        .querySelector(".banner-close")
-        ?.addEventListener("click", () =>
-          document.querySelector(".banner")?.remove()
-        );
+      // バナー×（あれば）
+      document.querySelector(".banner-close")?.addEventListener("click", () => {
+        document.querySelector(".banner")?.remove();
+      });
 
-      // ▼ カテゴリー：イベント委譲 + ARIA 対応（is-active と aria-pressed を同期）
-      const strip = document.querySelector(".cat-strip");
-      if (strip) {
-        // 初期選択（?category= パラメータがあれば反映）
-        const init = new URLSearchParams(location.search).get("category");
+      // カテゴリー：#category-row 配下の .cat-item を単一選択
+      const catRow = document.getElementById("category-row");
+      const activateCat = (btn) => {
+        catRow?.querySelectorAll(".cat-item.is-active").forEach((b) => {
+          b.classList.remove("is-active");
+          b.setAttribute("aria-pressed", "false");
+        });
+        btn.classList.add("is-active");
+        btn.setAttribute("aria-pressed", "true");
+      };
+      catRow?.addEventListener("click", (e) => {
+        const btn = e.target.closest(".cat-item");
+        if (!btn) return;
+        activateCat(btn);
+        refreshLists();
+      });
 
-        const activate = (btn) => {
-          strip.querySelectorAll(".cat-item.is-active").forEach((b) => {
-            b.classList.remove("is-active");
-            b.setAttribute("aria-pressed", "false");
-          });
-          btn.classList.add("is-active");
-          btn.setAttribute("aria-pressed", "true");
+      // 価格帯チップ：単一選択（再クリックで解除）
+      const priceRow = document.querySelector(".chip-row");
+      priceRow?.addEventListener("click", (e) => {
+        const chip = e.target.closest(".chip");
+        if (!chip) return;
 
-          const cat = btn.dataset.cat;
-          console.log("[category]", cat);
-          // TODO: フィルタや遷移をここで
-          // location.href = `/shops.html?category=${encodeURIComponent(cat)}`;
-        };
-
-        strip.addEventListener("click", (e) => {
-          const btn = e.target.closest(".cat-item");
-          if (btn && strip.contains(btn)) activate(btn);
+        const isActive = chip.classList.contains("is-active");
+        priceRow.querySelectorAll(".chip").forEach((c) => {
+          c.classList.remove("is-active");
+          c.setAttribute("aria-pressed", "false");
         });
 
-        if (init) {
-          const t = [...strip.querySelectorAll(".cat-item")].find(
-            (b) => b.dataset.cat === init
-          );
-          if (t) activate(t);
+        if (!isActive) {
+          chip.classList.add("is-active");
+          chip.setAttribute("aria-pressed", "true");
         }
-      }
-      // ▼ 価格帯チップ：単一選択（再クリックで解除）
-      const row = document.querySelector(".chip-row");
-      if (row) {
-        row.addEventListener("click", (e) => {
-          const chip = e.target.closest(".chip");
-          if (!chip) return;
+        refreshLists();
+      });
 
-          const isActive = chip.classList.contains("is-active");
-          // いったん全解除
-          row.querySelectorAll(".chip").forEach((c) => {
-            c.classList.remove("is-active");
-            c.setAttribute("aria-pressed", "false");
-          });
-
-          let price = null;
-          if (!isActive) {
-            chip.classList.add("is-active");
-            chip.setAttribute("aria-pressed", "true");
-            price = chip.dataset.price; // "<=500" など
-          }
-          console.log("[price]", price); // TODO: ここで一覧のフィルタや遷移
-          // 例）location.href = `/shops.html?price=${encodeURIComponent(price||'')}`;
-        });
-      }
-    </script>
-    <script type="module">
-      // --- クイックソート（近い / 安い） ---
+      // クイックソート（近い / 安い / 終了間近）
       let sortMode = localStorage.getItem("sortMode") || "near";
       const seg = document.querySelector(".seg-row");
-      if (seg) {
-        // 初期選択
-        seg.querySelectorAll(".seg-btn").forEach((btn) => {
-          const on = btn.dataset.sort === sortMode;
-          btn.classList.toggle("is-active", on);
-          btn.setAttribute("aria-selected", on ? "true" : "false");
+      const setSortUI = () => {
+        seg?.querySelectorAll(".seg-btn").forEach((b) => {
+          const on = b.dataset.sort === sortMode;
+          b.classList.toggle("is-active", on);
+          b.setAttribute("aria-selected", on ? "true" : "false");
         });
-        seg.addEventListener("click", (e) => {
-          const btn = e.target.closest(".seg-btn");
-          if (!btn) return;
-          seg.querySelectorAll(".seg-btn").forEach((b) => {
-            b.classList.remove("is-active");
-            b.setAttribute("aria-selected", "false");
-          });
-          btn.classList.add("is-active");
-          btn.setAttribute("aria-selected", "true");
-          sortMode = btn.dataset.sort || "near";
-          localStorage.setItem("sortMode", sortMode);
-          // 再読込
-          loadNearby(getFilters());
-        });
-      }
+      };
+      setSortUI();
+      seg?.addEventListener("click", (e) => {
+        const btn = e.target.closest(".seg-btn");
+        if (!btn) return;
+        sortMode = btn.dataset.sort || "near";
+        localStorage.setItem("sortMode", sortMode);
+        setSortUI();
+        refreshLists();
+      });
 
+      // フィルタ取得
       const getFilters = () => {
         const cat =
           document.querySelector(".cat-item.is-active")?.dataset.cat || null;
@@ -417,26 +398,28 @@
         return { category: cat, priceMax, sort: sortMode };
       };
 
-      // 初期表示
-      loadNearby(getFilters());
-      loadRecent(getFilters());
-    </script>
-    <!-- ヒーロー & カート -->
-    <script type="module" src="./js/hero.js"></script>
-    <script type="module" src="./js/home-hero.js"></script>
-    <script type="module">
-      import { initHomeCartCTA } from "./js/cart-cta.js";
-      initHomeCartCTA({
-        buttonSelector: "#cart-bar", // ← id を実物に合わせる
-        countSelector: "#home-cart-count",
-        totalSelector: "#home-cart-total",
-        cartHref: "./cart.html",
-      });
-    </script>
+      // 一括再読込
+      async function refreshLists() {
+        const f = getFilters();
+        await Promise.all([loadNearby(f), loadRecent(f)]);
+        try {
+          await liff.ready;
+          initAllFavButtons?.();
+        } catch {}
+      }
 
-    <script type="module">
-      import { loadNearby } from "./js/nearby.js?v=20250909l";
-      import { loadRecent } from "./js/recent.js?v=20250909l";
+      // 初期ロード
+      refreshLists();
+
+      // カートCTA初期化（IDは #cart-bar に合わせる）
+      try {
+        initHomeCartCTA?.({
+          buttonSelector: "#cart-bar",
+          countSelector: "#home-cart-count",
+          totalSelector: "#home-cart-total",
+          cartHref: "./cart.html",
+        });
+      } catch {}
     </script>
   </body>
 </html>
