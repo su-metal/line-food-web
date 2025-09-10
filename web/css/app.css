@@ -1558,3 +1558,16 @@ main,
   outline: 3px solid color-mix(in oklab, #fff 60%, var(--brand) 40%);
   outline-offset: 2px;
 }
+/* === CTA周りの枠線を完全に無効化（最優先で上書き） === */
+.home-cta,
+.home-cta::before,
+.home-cta::after {
+  border: 0 !important;
+  border-top: 0 !important;
+  outline: none !important;
+}
+.home-cta-btn {
+  border: 0 !important;
+  background: var(--brand) !important; /* 単色ベタ塗り */
+  color: #fff !important;              /* 白文字 */
+}
