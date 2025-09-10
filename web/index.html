@@ -1,484 +1,177 @@
-<!DOCTYPE html>
-<meta charset="utf-8" />
-<meta
-  name="viewport"
-  content="width=device-width, initial-scale=1, viewport-fit=cover"
-/>
-<title>line-food-web</title>
-<!-- favicon -->
-<link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-<link rel="stylesheet" href="./css/app.css?v=20250909b" />
-<!-- 旧: v=20250907 を使っている行を削除 -->
-
-<!-- ヘッダ -->
+<!-- HOME:START -->
 <header class="app-header">
-  <div class="search-wrap">
-    <svg aria-hidden="true" viewBox="0 0 24 24">
-      <path
-        d="M21 21l-4.3-4.3M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"
-      />
-    </svg>
-    <input type="search" placeholder="現在地・駅・店舗名などから探す" />
+  <div class="topbar">
+    <a class="logo" href="./" aria-label="Mottaina Home">Mottaina</a>
+    <button id="btn-locate" type="button" aria-label="現在地" title="現在地">📍</button>
+    <a class="cart-link" href="./cart.html" aria-label="カート">
+      <span class="cart-icon"></span>
+      <span id="home-cart-count" class="badge">0</span>
+    </a>
   </div>
-  <button class="icon-btn" aria-label="通知">
-    <svg viewBox="0 0 24 24">
-      <path d="M10 21a2 2 0 0 0 4 0M5 8a7 7 0 1 1 14 0v5l2 3H3l2-3V8Z" />
-    </svg>
-  </button>
+
+  <div class="search-row">
+    <input id="q" type="search" inputmode="search" autocomplete="off"
+           placeholder="店名・商品・駅で検索" aria-label="検索" />
+  </div>
+
+  <nav class="filter-row">
+    <!-- カテゴリ（既存構造に合わせて再掲） -->
+    <div class="cat-row" id="category-row">
+      <button type="button" class="cat-item is-active" data-cat="">
+        <img src="./img/categories/all.png" alt="すべて" width="48" height="48" loading="lazy" />
+        <span>すべて</span>
+      </button>
+      <button type="button" class="cat-item" data-cat="パン">
+        <img src="./img/categories/bread.png" alt="パン" width="48" height="48" loading="lazy" />
+        <span>パン</span>
+      </button>
+      <button type="button" class="cat-item" data-cat="惣菜">
+        <img src="./img/categories/deli.png" alt="惣菜" width="48" height="48" loading="lazy" />
+        <span>惣菜</span>
+      </button>
+      <button type="button" class="cat-item" data-cat="スイーツ">
+        <img src="./img/categories/cake.png" alt="スイーツ" width="48" height="48" loading="lazy" />
+        <span>スイーツ</span>
+      </button>
+    </div>
+
+    <!-- 価格チップ + 並び替え -->
+    <div class="price-sort-row">
+      <div class="chip-group" role="group" aria-label="価格上限">
+        <button type="button" class="chip is-active" data-price="">すべて</button>
+        <button type="button" class="chip" data-price="<=300">〜¥300</button>
+        <button type="button" class="chip" data-price="<=500">〜¥500</button>
+        <button type="button" class="chip" data-price="<=800">〜¥800</button>
+      </div>
+      <div class="sort-group">
+        <label for="sort-mode" class="sr-only">並び替え</label>
+        <select id="sort-mode" aria-label="並び替え">
+          <option value="near">近い順</option>
+          <option value="cheap">安い順</option>
+          <option value="deadline">締切が早い順</option>
+          <option value="popular">人気順</option>
+        </select>
+      </div>
+    </div>
+  </nav>
 </header>
 
-<!-- カテゴリー（横スクロール） -->
-<!-- カテゴリー（アイコン差し替え版） -->
-<div class="cat-row" id="category-row">
-  <button type="button" class="cat-item" data-cat="パン">
-    <img
-      src="./img/categories/bread.png"
-      alt="パン"
-      width="48"
-      height="48"
-      loading="lazy"
-    />
-    <span>パン</span>
-  </button>
-
-  <button type="button" class="cat-item" data-cat="ケーキ">
-    <img
-      src="./img/categories/cake.png"
-      alt="ケーキ"
-      width="48"
-      height="48"
-      loading="lazy"
-    />
-    <span>ケーキ</span>
-  </button>
-
-  <button type="button" class="cat-item" data-cat="お惣菜">
-    <img
-      src="./img/categories/deli.png"
-      alt="お惣菜"
-      width="48"
-      height="48"
-      loading="lazy"
-    />
-    <span>お惣菜</span>
-  </button>
-
-  <button type="button" class="cat-item" data-cat="お弁当">
-    <img
-      src="./img/categories/bento.png"
-      alt="お弁当"
-      width="48"
-      height="48"
-      loading="lazy"
-    />
-    <span>お弁当</span>
-  </button>
-
-  <button type="button" class="cat-item" data-cat="その他">
-    <img
-      src="./img/categories/others.png"
-      alt="その他"
-      width="48"
-      height="48"
-      loading="lazy"
-    />
-    <span>その他</span>
-  </button>
-</div>
-
-<!-- 価格帯（横スクロールのタグ） -->
-<section class="price">
-  <div class="chip-row" role="group" aria-label="価格帯から選ぶ">
-    <button class="chip" data-price="<=300" aria-pressed="false">
-      300円以下
-    </button>
-    <button class="chip" data-price="<=500" aria-pressed="false">
-      500円以下
-    </button>
-    <button class="chip" data-price="<=1000" aria-pressed="false">
-      1000円以下
-    </button>
-    <button class="chip" data-price="<=1500" aria-pressed="false">
-      1500円以下
-    </button>
-  </div>
+<!-- ヒーロー（任意。画像が無ければ削除可） -->
+<section id="home-hero" class="hero">
+  <img src="./img/hero1.jpg" alt="" width="1280" height="500" loading="eager" />
+  <img src="./img/hero2.jpg" alt="" width="1280" height="500" loading="lazy" />
+  <img src="./img/hero3.jpg" alt="" width="1280" height="500" loading="lazy" />
 </section>
 
-<!-- ▼ クイックソート（近い｜安い） -->
-
-<main class="container">
-  <!-- ===== Home Hero (start) ===== -->
-  <section class="home-hero">
-    <div class="hero-inner">
-      <!-- ★★★ 大カード：JSで差し替え ★★★ -->
-      <a id="hero-card-main" href="#" class="hero-card">
-        <img
-          id="hero-img-main"
-          src="./img/hero1.jpg"
-          alt="本日のおすすめ"
-          loading="lazy"
-        />
-        <div class="hero-caption">
-          <h2 id="hero-title">HELLO!</h2>
-          <p id="hero-sub">本日のおすすめ</p>
-        </div>
-      </a>
-
-      <!-- 小カード：ID付き（JSでランダムおすすめを差し替え） -->
-      <div class="hero-grid">
-        <a id="hero-card-s1" href="#" class="hero-card small">
-          <img
-            id="hero-s1-img"
-            src="./img/hero2.jpg"
-            alt="特集"
-            loading="lazy"
-          />
-          <div class="hero-caption small" id="hero-s1-cap">YAP! ARCHIVES</div>
-        </a>
-        <a id="hero-card-s2" href="#" class="hero-card small">
-          <img
-            id="hero-s2-img"
-            src="./img/hero3.jpg"
-            alt="サステナブル"
-            loading="lazy"
-          />
-          <div class="hero-caption small" id="hero-s2-cap">OUR CHANGE</div>
-        </a>
-      </div>
-    </div>
-
-    <!-- でっかい白丸角CTA（タブバーの上に浮かせる） -->
-    <button type="button" class="home-cta">START AN ORDER</button>
+<main class="home-main">
+  <section class="section">
+    <h3 class="section-title">近くのおすすめ</h3>
+    <div id="nearby-row" class="card-row hscroll" aria-live="polite"></div>
   </section>
-  <!-- ===== Home Hero (end) ===== -->
 
-  <div class="quick">
-    <div class="seg-row" role="tablist" aria-label="並び替え">
-      <button
-        type="button"
-        class="seg-btn is-active"
-        data-sort="near"
-        aria-selected="true"
-      >
-        距離順
-      </button>
-      <button
-        type="button"
-        class="seg-btn"
-        data-sort="cheap"
-        aria-selected="false"
-      >
-        価格順
-      </button>
-      <button
-        type="button"
-        class="seg-btn"
-        data-sort="urgent"
-        aria-selected="false"
-      >
-        終了間近</button
-      ><!-- ★追加 -->
-    </div>
-  </div>
-
-  <!-- 近くのお店 -->
-  <div class="section-head">
-    <h3>現在地付近のお店</h3>
-    <a class="more" href="#">もっと見る</a>
-  </div>
-
-  <!-- 現在地付近のお店 -->
-  <div class="card-row" id="nearby-row"></div>
-
-  <!-- 最近追加 -->
-  <div class="section-head">
-    <h3>最近追加されたお店</h3>
-    <a class="more" href="#">もっと見る</a>
-  </div>
-
-  <div class="card-row" id="recent-row"></div>
-
-  <!-- 店舗カード テンプレート：compact（bodyをサムネ内に重ねる） -->
-  <template id="shop-card-template">
-    <!-- v3: コンパクト・ヘッダ/本文の2段構成。サムネのオーバーレイは廃止 -->
-    <article class="shop-card card-v3" data-shop-id="">
-      <!-- ヘッダ：店名＋カテゴリ/距離/住所＋お気に入り -->
-      <header class="card-head">
-        <div class="store">
-          <div class="avatar" aria-hidden="true">S</div>
-          <div class="store-meta">
-            <h4 class="store-name">店舗名</h4>
-            <div class="store-sub">
-              <span class="chip point">カテゴリ</span>
-              <span class="chip status">1.2 km</span>
-              <span class="chip place">住所など</span>
-            </div>
-          </div>
-        </div>
-        <button class="heart fav-btn" ...>
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <!-- lucide準拠のバランスの良いハート -->
-            <path
-              d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"
-            />
-          </svg>
-        </button>
-      </header>
-
-      <!-- 本文：代表セット1件（必要なら2件目以降はクローンして挿入） -->
-      <div class="card-body"></div>
-
-      <!-- 3件以上のときに JS で hidden を外し、数字を書き換え -->
-      <div class="more-wrap" hidden>
-        <button class="more-bundles">他 <span class="n">1</span> セット</button>
-      </div>
-    </article>
-  </template>
+  <section class="section">
+    <h3 class="section-title">最近見た</h3>
+    <div id="recent-row" class="card-row hscroll" aria-live="polite"></div>
+  </section>
 </main>
 
-<!-- 下部タブ -->
-<nav class="tabbar" aria-label="メイン">
-  <a class="active" href="#">
-    <span class="icon" aria-hidden="true">
-      <!-- home/store -->
-      <svg viewBox="0 0 24 24">
-        <path
-          d="M4 10v10h16V10M2 11l10-7 10 7"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.8"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        />
-      </svg>
-    </span>
-    <span class="label">ホーム</span>
-  </a>
-  <a href="#">
-    <span class="icon" aria-hidden="true">
-      <!-- search -->
-      <svg viewBox="0 0 24 24">
-        <circle
-          cx="11"
-          cy="11"
-          r="6"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.8"
-        />
-        <path
-          d="M20 20l-3.8-3.8"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.8"
-          stroke-linecap="round"
-        />
-      </svg>
-    </span>
-    <span class="label">お店を探す</span>
-  </a>
-  <a href="#">
-    <span class="icon" aria-hidden="true">
-      <!-- heart -->
-      <svg viewBox="0 0 24 24">
-        <path
-          d="M12 21s-6.7-4.2-9.2-8C1.2 10 2.1 7.2 4.6 6c1.9-1 4.3-.5 5.6 1.2C11.5 5.5 13.9 5 15.8 6c2.5 1.2 3.4 4 1.8 7-2.5 3.8-9.6 8-9.6 8Z"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.8"
-        />
-      </svg>
-    </span>
-    <span class="label">お気に入り</span>
-  </a>
-  <a href="#">
-    <span class="icon" aria-hidden="true">
-      <!-- lifebuoy -->
-      <svg viewBox="0 0 24 24">
-        <circle
-          cx="12"
-          cy="12"
-          r="9"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.8"
-        />
-        <circle
-          cx="12"
-          cy="12"
-          r="4"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.8"
-        />
-        <path
-          d="M5.6 5.6l2.2 2.2M16.2 5.6l2.2 2.2M5.6 16.2l2.2 2.2M16.2 16.2l2.2 2.2"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.8"
-          stroke-linecap="round"
-        />
-      </svg>
-    </span>
-    <span class="label">レスキュー</span>
-  </a>
-  <a href="#">
-    <span class="icon" aria-hidden="true">
-      <!-- user -->
-      <svg viewBox="0 0 24 24">
-        <circle
-          cx="12"
-          cy="8"
-          r="3.2"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.8"
-        />
-        <path
-          d="M5 19a7 7 0 0 1 14 0"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.8"
-          stroke-linecap="round"
-        />
-      </svg>
-    </span>
-    <span class="label">マイページ</span>
-  </a>
-</nav>
+<footer class="app-footer">
+  <a id="btn-discover" href="./discover.html" class="button primary">地図で見る</a>
+  <nav class="legal">
+    <a href="./help.html">ヘルプ</a>
+    <a href="./terms.html">利用規約</a>
+    <a href="./privacy.html">プライバシー</a>
+  </nav>
+</footer>
 
-<!-- （デバッグ要素：既存 app.js が参照するので非表示で残す） -->
-<button id="btnWho" hidden>/api/whoami を呼ぶ</button>
-<pre id="out" hidden></pre>
+<!-- ホームではカートバーは非表示だが、初期化の都合でDOMは置いておく -->
+<div id="cart-bar" hidden aria-hidden="true"></div>
 
-<!-- LIFF SDK & 既存モジュール -->
-<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-<script type="module" src="./js/app.js"></script>
+<!-- テンプレート（空にしない！） -->
+<template id="shop-card-template">
+  <article class="shop-card card-v3">
+    <div class="card-head"></div>
+    <div class="shop-info">
+      <h4 class="store-name"></h4>
+      <div class="chip-row">
+        <span class="chip cat point"></span>
+        <span class="chip distance status"></span>
+        <span class="chip place"></span>
+      </div>
+    </div>
+    <div class="card-body">
+      <!-- JSで .product-summary を差し込む -->
+    </div>
+    <button class="fav-btn" type="button" aria-label="お気に入り"></button>
+  </article>
+</template>
+
+<!-- スクリプトは1つに統合（旧module srcは削除） -->
 <script type="module">
-  // ▼ fav.js を読み込み（キャッシュ破り付き）、LIFF準備後に初期化
-  const bust = "v20250909c";
-  try {
-    const m = await import(`./js/fav.js?${bust}`).catch(() => ({}));
-    if (m.initAllFavButtons) await liff.ready.then(() => m.initAllFavButtons());
-  } catch {}
+  import liff from "https://static.line-scdn.net/liff/edge/2/sdk.js";
 
-  // ▼（残していても無害）バナー×
-  document
-    .querySelector(".banner-close")
-    ?.addEventListener("click", () =>
-      document.querySelector(".banner")?.remove()
-    );
+  const bust = "v20250910a";
 
-  // ▼ カテゴリー：イベント委譲 + ARIA 対応（is-active と aria-pressed を同期）
-  const strip = document.querySelector(".cat-strip");
-  if (strip) {
-    // 初期選択（?category= パラメータがあれば反映）
-    const init = new URLSearchParams(location.search).get("category");
+  // 動的import（キャッシュバスト）
+  const [{ loadNearby }, { loadRecent }] = await Promise.all([
+    import(`./js/nearby.js?b=${bust}`),
+    import(`./js/recent.js?b=${bust}`),
+  ]);
+  const { initHomeCartCTA } = await import(`./js/cart-cta.js?b=${bust}`);
+  // ヒーローを使う場合のみ有効化
+  // await import(`./js/hero.js?b=${bust}`);
+  // await import(`./js/home-hero.js?b=${bust}`);
 
-    const activate = (btn) => {
-      strip.querySelectorAll(".cat-item.is-active").forEach((b) => {
-        b.classList.remove("is-active");
-        b.setAttribute("aria-pressed", "false");
-      });
-      btn.classList.add("is-active");
-      btn.setAttribute("aria-pressed", "true");
-
-      const cat = btn.dataset.cat;
-      console.log("[category]", cat);
-      // TODO: フィルタや遷移をここで
-      // location.href = `/shops.html?category=${encodeURIComponent(cat)}`;
-    };
-
-    strip.addEventListener("click", (e) => {
-      const btn = e.target.closest(".cat-item");
-      if (btn && strip.contains(btn)) activate(btn);
-    });
-
-    if (init) {
-      const t = [...strip.querySelectorAll(".cat-item")].find(
-        (b) => b.dataset.cat === init
-      );
-      if (t) activate(t);
-    }
-  }
-  // ▼ 価格帯チップ：単一選択（再クリックで解除）
-  const row = document.querySelector(".chip-row");
-  if (row) {
-    row.addEventListener("click", (e) => {
-      const chip = e.target.closest(".chip");
-      if (!chip) return;
-
-      const isActive = chip.classList.contains("is-active");
-      // いったん全解除
-      row.querySelectorAll(".chip").forEach((c) => {
-        c.classList.remove("is-active");
-        c.setAttribute("aria-pressed", "false");
-      });
-
-      let price = null;
-      if (!isActive) {
-        chip.classList.add("is-active");
-        chip.setAttribute("aria-pressed", "true");
-        price = chip.dataset.price; // "<=500" など
-      }
-      console.log("[price]", price); // TODO: ここで一覧のフィルタや遷移
-      // 例）location.href = `/shops.html?price=${encodeURIComponent(price||'')}`;
-    });
-  }
-</script>
-<script type="module">
-  import { loadNearby } from "./js/nearby.js?v=20250907";
-  import { loadRecent } from "./js/recent.js?v=20250907";
-
-  // --- クイックソート（近い / 安い） ---
-  let sortMode = localStorage.getItem("sortMode") || "near";
-  const seg = document.querySelector(".seg-row");
-  if (seg) {
-    // 初期選択
-    seg.querySelectorAll(".seg-btn").forEach((btn) => {
-      const on = btn.dataset.sort === sortMode;
-      btn.classList.toggle("is-active", on);
-      btn.setAttribute("aria-selected", on ? "true" : "false");
-    });
-    seg.addEventListener("click", (e) => {
-      const btn = e.target.closest(".seg-btn");
-      if (!btn) return;
-      seg.querySelectorAll(".seg-btn").forEach((b) => {
-        b.classList.remove("is-active");
-        b.setAttribute("aria-selected", "false");
-      });
-      btn.classList.add("is-active");
-      btn.setAttribute("aria-selected", "true");
-      sortMode = btn.dataset.sort || "near";
-      localStorage.setItem("sortMode", sortMode);
-      // 再読込
-      loadNearby(getFilters());
-    });
-  }
-
+  // フィルタ収集（既存JSと整合）
   const getFilters = () => {
-    const cat =
-      document.querySelector(".cat-item.is-active")?.dataset.cat || null;
-    const priceData =
-      document.querySelector(".chip.is-active")?.dataset.price || null; // "<=500"
+    const cat = document.querySelector(".cat-item.is-active")?.dataset.cat || null;
+    const priceData = document.querySelector(".chip-group .chip.is-active")?.dataset.price || null;
     const priceMax = priceData ? Number(priceData.replace("<=", "")) : null;
-    return { category: cat, priceMax, sort: sortMode };
+    const sort = localStorage.getItem("sortMode") || "near";
+    return { category: cat, priceMax, sort };
   };
 
-  // 初期表示
-  loadNearby(getFilters());
-  loadRecent(getFilters());
+  // 初期描画
+  await Promise.all([loadNearby(getFilters()), loadRecent(getFilters())]);
 
-  // カテゴリ/価格の既存ハンドラの最後に↓を既に入れているはずですが、recentも追加
-  // 例：
-  // items.forEach(btn => btn.addEventListener('click', () => { ...; loadNearby(getFilters()); loadRecent(getFilters()); }));
-  // row.addEventListener('click', e => { ...; loadNearby(getFilters()); loadRecent(getFilters()); });
-</script>
-<!-- ★★★ ヒーロー読み込み用スクリプトを末尾で読み込む ★★★ -->
-<script type="module" src="./js/hero.js"></script>
-<script type="module" src="./js/home-hero.js"></script>
+  // 外から再読込
+  window.refreshLists = () => {
+    const f = getFilters();
+    return Promise.all([loadNearby(f), loadRecent(f)]);
+  };
 
-<script type="module">
-  import { loadNearby } from "./js/nearby.js?v=20250909l";
-  import { loadRecent } from "./js/recent.js?v=20250909l";
+  // 価格チップの単一選択
+  document.querySelectorAll(".chip-group .chip").forEach((el) => {
+    el.addEventListener("click", () => {
+      document.querySelectorAll(".chip-group .chip").forEach(c => c.classList.remove("is-active"));
+      el.classList.add("is-active");
+      refreshLists();
+    });
+  });
+
+  // カテゴリ（単一選択。複数にしたい場合はロジック拡張）
+  document.querySelectorAll("#category-row .cat-item").forEach((el) => {
+    el.addEventListener("click", () => {
+      document.querySelectorAll("#category-row .cat-item").forEach(c => c.classList.remove("is-active"));
+      el.classList.add("is-active");
+      refreshLists();
+    });
+  });
+
+  // 並び替え保存＋反映
+  const sortSel = document.getElementById("sort-mode");
+  sortSel.value = localStorage.getItem("sortMode") || "near";
+  sortSel.addEventListener("change", () => {
+    localStorage.setItem("sortMode", sortSel.value);
+    refreshLists();
+  });
+
+  // カートCTA（ホームはバッジ更新のみ）
+  initHomeCartCTA({
+    buttonSelector: "#cart-bar",
+    countSelector: "#home-cart-count",
+    totalSelector: "#home-cart-total",
+    cartHref: "./cart.html",
+  });
 </script>
+<!-- HOME:END -->
