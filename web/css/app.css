@@ -9,7 +9,7 @@
   --ink: #111827; /* やや濃い本文色 */
   --line: #e1e6e3;
 
-  --primary: #111827; /* 黒系アクセント（Slate 900） */
+  --primary: #daa53c; /* 黒系アクセント（Slate 900） */
   --brand: var(--primary);
   --sub: #f3f4f1; /* アクティブ/チップ用の淡いグレー */
   --tint: #e7e9ee;
