@@ -977,3 +977,38 @@ section.price {
 .chips .chip.price { background: rgba(26,58,45,.92); border-color: rgba(26,58,45,.92); }
 .chips .chip.stock { background: rgba(201,126,34,.9); border-color: rgba(201,126,34,.9); }
 .chips .chip.eta   { background: rgba(0,0,0,.65); }
+
+
+/* === Spotlight Hero：横長・省スペース版 ========================= */
+/* タイル比率を可変トークン化（デフォルト 18:9 ≒ 2:1） */
+:root { --spot-ar: 18 / 9; }             /* base: 横長 */
+@media (min-width:480px){ :root { --spot-ar: 20 / 9; } }  /* さらに横長 */
+@media (min-width:768px){ :root { --spot-ar: 21 / 9; } }  /* タブレット以上 */
+
+/* 3枚すべて同じ比率に統一（以前の指定を上書き） */
+.tile.store,
+.tile.product {
+  aspect-ratio: var(--spot-ar) !important;
+}
+
+/* 余白も少しタイトにして全体高さを削減 */
+.hero-spotlight { padding: 8px 8px 10px; margin: .4rem 0 .8rem; }
+.spotlight-rail { grid-auto-columns: 80%; gap: 10px; } /* 横幅を少し絞り、次カードのチラ見せでスワイプ促進 */
+
+/* 縦が短くなる分タイポとピルをコンパクトに */
+.tile.store h3 { font-size: 20px; }
+.tile.store .sub { font-size: 13px; }
+.tile.product h4 { font-size: 14px; }
+
+.badge-row .pill { padding: 5px 8px; font-size: 11px; }
+.chips .chip     { padding: 3px 7px; font-size: 10.5px; }
+
+/* オーバーレイは薄めで可読性確保（短い高さでも文字が沈まない） */
+.tile::after{
+  background: linear-gradient(
+    to top,
+    rgba(0,0,0,.20),
+    rgba(0,0,0,.06) 55%,
+    rgba(0,0,0,0)
+  );
+}
