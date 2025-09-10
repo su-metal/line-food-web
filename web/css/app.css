@@ -20,7 +20,7 @@
   /* レイアウト */
   /* デスクトップで伸びすぎない：320〜420pxの間で画面幅連動 */
   --card-col-width: clamp(320px, 38vw, 420px);
-  --footer-h: 64px;
+  --footer-h: 84px;
 }
 
 /* ---------- Reset / base ---------- */
