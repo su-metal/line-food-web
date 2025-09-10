@@ -148,33 +148,7 @@
     </div>
 
     <!-- でっかい白丸角CTA（タブバーの上に浮かせる） -->
-    <button type="button" class="home-cta cart" id="home-cart-cta">
-      <span class="ico" aria-hidden="true">
-        <!-- シンプルなカートSVG -->
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          aria-hidden="true"
-          focusable="false"
-        >
-          <path
-            d="M3 5h2l2.4 10.2a2 2 0 0 0 2 1.6h7.3a2 2 0 0 0 2-1.6L21 8H6"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-          <circle cx="10" cy="20" r="1.6" fill="currentColor" />
-          <circle cx="18" cy="20" r="1.6" fill="currentColor" />
-        </svg>
-      </span>
-      <span class="label">カート</span>
-      <span class="total" id="home-cart-total">カートは空です</span>
-      <span class="badge" id="home-cart-count" hidden>0</span>
-    </button>
+    
   </section>
   <!-- ===== Home Hero (end) ===== -->
 
@@ -221,6 +195,16 @@
     <h3>最近追加されたお店</h3>
     <a class="more" href="#">もっと見る</a>
   </div>
+
+  <!-- 近く/最近リスト … の直後あたりに追加 -->
+<div class="container" id="home-cart-anchor">
+  <button type="button" class="home-cta cart-cta" id="cart-bar">
+    <!-- 既存のアイコン＆テキストを流用。例： -->
+    <svg class="cart-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 6h13l-1.6 8.3a2 2 0 0 1-2 1.7H9.2a2 2 0 0 1-2-1.6L5.3 4H3"></path></svg>
+    <span class="cart-text"><strong>カート</strong> <span id="cart-summary">カートは空です</span></span>
+  </button>
+</div>
+
 
   <div class="card-row" id="recent-row"></div>
 
