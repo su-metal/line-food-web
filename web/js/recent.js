@@ -133,22 +133,14 @@ const stockOf = (b, s) =>
   b?.qty_available ?? b?.stock ?? s?.stock_remain ?? null;
 const slotOf = (b) => b?.slot_label ?? b?.slot ?? b?.time ?? "";
 
+// 既存の createCard を丸ごと置き換え
 // === 置き換え: createCard(s) 全体 ===
 function createCard(s) {
-  // <template id="shop-card-template"> から安全にクローン
   const tpl = document.getElementById("shop-card-template");
-
-  // base を見つけてから clone（null の cloneNode で落ちないようにガード）
-  let el = null;
-  if (tpl && tpl.content) {
-    const base =
-      tpl.content.querySelector(".shop-card") || tpl.content.firstElementChild;
-    if (base) el = base.cloneNode(true);
-  }
-  if (!el) {
-    el = document.createElement("article");
-    el.className = "shop-card card-v3";
-  }
+  const el = tpl
+    ? tpl.content.firstElementChild.cloneNode(true)
+    : document.createElement("article");
+  if (!tpl) el.className = "shop-card card-v3";
 
   // --- ヘッダ（店名・チップ・お気に入り） ---
   const name = safe(s.name || "");
@@ -191,7 +183,7 @@ function createCard(s) {
 
   // --- 本文（商品 最大2件） ---
   const body = el.querySelector(".card-body");
-  if (body) body.innerHTML = ""; // ダミーを必ず空に
+  if (body) body.innerHTML = ""; // ダミーを必ず空にする
 
   const bundles = Array.isArray(s.bundles) ? s.bundles.slice(0, 2) : [];
 
@@ -199,26 +191,28 @@ function createCard(s) {
     const row = document.createElement("div");
     row.className = "product-summary";
     row.innerHTML = `
-      <div class="thumb-wrap">
-        <img class="product-img" alt="">
-        <span class="soon-overlay" hidden>終了間近</span>
-      </div>
-      <div class="product-main">
-        <div class="product-name"></div>
-        <div class="product-meta">
-          <span class="time"></span>
-          <span class="eta" hidden></span>
-        </div>
-      </div>
-      <div class="ps-aside">
-        <span class="stock-inline" hidden></span>
-        <span class="price-inline" hidden></span>
-      </div>
-    `;
+  <div class="thumb-wrap">
+    <img class="product-img" alt="">
+    <span class="soon-overlay" hidden>終了間近</span>
+  </div>
+  <div class="product-main">
+    <div class="product-name"></div>
+    <div class="product-meta">
+      <span class="time"></span>
+      <span class="eta" hidden></span>
+    </div>
+  </div>
+  <div class="ps-aside">
+    <span class="stock-inline" hidden></span>
+    <span class="price-inline" hidden></span>
+  </div>`;
+
     return row;
   };
 
-  // 1行ぶんの要素にデータを反映
+  const FallbackImg = "./img/noimg.svg";
+
+  // 画像やテキストを1行に反映
   const setRow = (rowEl, b) => {
     // 画像
     const img = rowEl.querySelector(".product-img");
@@ -235,17 +229,19 @@ function createCard(s) {
       );
     }
 
-    // 受け渡し時間
+    // 時間（← これが無くてエラーになっていました）
     const slotLabel = b?.slot_label || b?.slot || b?.time || "";
     const t = rowEl.querySelector(".time");
-    if (t) t.textContent = slotLabel ? `🕒 ${slotLabel}` : "";
+    if (t) t.textContent = slotLabel || "";
     rowEl.dataset.slot = slotLabel;
 
-    // 「終了間近」オーバーレイ
+    // 「終了間近」：画像左下のオーバーレイを使う
     const overlay = rowEl.querySelector(".soon-overlay");
-    if (overlay) overlay.hidden = !(minutesUntilEnd(slotLabel) <= SOON_MINUTES);
+    if (overlay) {
+      overlay.hidden = minutesUntilEnd(slotLabel) > SOON_MINUTES;
+    }
 
-    // 価格（bundle 優先）
+    // 価格（bundle優先）
     const priceVal = [b?.price_min, b?.price]
       .map(Number)
       .find((v) => Number.isFinite(v));
@@ -261,7 +257,7 @@ function createCard(s) {
       }
     }
 
-    // 在庫（bundle 優先）
+    // 在庫（bundle優先）
     const remain = [b?.qty_available, b?.stock, s?.stock_remain]
       .map((v) => Number(v))
       .find((v) => Number.isFinite(v));
@@ -278,12 +274,10 @@ function createCard(s) {
     }
   };
 
-  // 行を追加
   if (body && bundles.length) {
     const r1 = makeRow();
     setRow(r1, bundles[0]);
     body.appendChild(r1);
-
     if (bundles[1]) {
       const r2 = makeRow();
       setRow(r2, bundles[1]);
@@ -301,7 +295,6 @@ function createCard(s) {
 
   return el;
 }
-// === 置き換えここまで ===
 
 /* ===== API loader ===== */
 export async function loadRecent({
