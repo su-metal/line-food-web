@@ -4,14 +4,17 @@
 
 /* ---------- Design tokens ---------- */
 :root {
-  --bg: #fbfaf7;
-  --card: #ffffff;
-  --ink: #111827; /* やや濃い本文色 */
-  --line: #e1e6e3;
-
-  --primary: #daa53c; /* 黒系アクセント（Slate 900） */
-  --brand: var(--primary);
-  --sub: #f3f4f1; /* アクティブ/チップ用の淡いグレー */
+  --primary: #1a3a2d; /* アクセント（深緑） */
+  --brand: #1a3a2d;
+  --bg: #e9e8e4; /* ページ背景（薄ベージュ） */
+  --surface: #ffffff; /* カード面 */
+  --ink: #16231d; /* ベース文字色（やや黒寄りの深緑） */
+  --text: var(--ink);
+  --text-weak: #4b5a54; /* サブ文字 */
+  --line: #dcdad4; /* 枠線（温かみのある薄ベージュ） */
+  --sub: #f3f2ee; /* ソフトなタグ背景など */
+  --sub-deep: #e6e4de; /* hover 等 */
+  --heart: #e2535f; /* お気に入りは既存の差し色を活かす */
   --tint: #e7e9ee;
 
   --heart: #e25460;
@@ -724,7 +727,10 @@ main,
 }
 /* === Search bar: bigger & make icon visible ===================== */
 .app-header {
-  padding: 0.9rem 1rem; /* ヘッダー上下を少し広げる */
+  background: var(--bg);
+  color: var(--primary);
+  border-bottom: 1px solid var(--line);
+  padding: 0.9rem 0.9rem; /* 少しゆとり */
   gap: 0.9rem;
 }
 
@@ -814,4 +820,73 @@ main,
 }
 #category-row.cat-row {
   display: none;
+}
+.app-header::after {
+  content: none !important;
+  display: none !important;
+}
+/* 検索ボックスを白で浮かせる */
+.app-header .search-wrap {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  height: 48px;
+  min-height: 48px;
+  padding: 0.5rem 0.9rem;
+}
+/* ルーペ色を深緑へ */
+.app-header .search-wrap svg {
+  width: 20px;
+  height: 20px;
+  stroke: var(--primary);
+  stroke-width: 2;
+}
+/* プレースホルダーは薄グレーで控えめに */
+.app-header input {
+  font-size: 14px;
+  color: var(--text);
+}
+.app-header input::placeholder {
+  color: color-mix(in srgb, var(--text) 35%, #ffffff);
+  opacity: 0.7;
+  font-size: 13px;
+}
+
+/* カードの枠と影を新テーマに合わせる */
+.shop-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: 0 6px 18px rgba(26, 58, 45, 0.06);
+}
+
+/* ピル類の配色を深緑ベースへ */
+.ps-aside .stock-inline.show {
+  background: #ecf3f0;
+  border: 1px solid var(--primary);
+  color: var(--primary);
+}
+.ps-aside .price-inline.show {
+  background: var(--primary);
+  color: #fff;
+}
+
+/* サムネ下のチップ/距離など */
+.thumb-subline .point {
+  background: rgba(26, 58, 45, 0.08);
+  border-color: rgba(26, 58, 45, 0.12);
+}
+.section-head .more {
+  color: var(--primary);
+  background: linear-gradient(transparent 70%, var(--sub));
+}
+
+/* カテゴリー行の背景/影を新テーマに馴染ませる */
+#category-row.cat-row {
+  background: transparent;
+}
+.chip {
+  border-color: color-mix(in srgb, var(--primary) 18%, #0000);
+}
+.chip-row .chip.is-active {
+  background: var(--sub);
 }
