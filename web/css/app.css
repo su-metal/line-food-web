@@ -5,7 +5,7 @@
 /* ---------- Design tokens ---------- */
 :root {
   /* カラーパレット（深緑×ベージュ） */
-  --bg: #FAF8F4 /* ページ背景（薄いベージュ） */
+  --bg: #faf8f4; /* ページ背景（薄いベージュ） */
   --surface: #ffffff; /* 面（カード） */
   --ink: #101418; /* 文字（濃い墨） */
   --muted: #6b726e; /* サブテキスト */
@@ -1341,7 +1341,7 @@ body {
   background: var(--brand, #1a3a2d);
   color: #fff;
   border: 2px solid var(--brand, #1a3a2d);
-  box-shadow: 0 10px 28px rgba(0,0,0,.18);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
 }
 
 .home-cta.cart .ico svg {
@@ -1357,7 +1357,7 @@ body {
 
 .home-cta.cart .badge {
   position: absolute;
-  right: 14px;            /* 右端近くに重ねる */
+  right: 14px; /* 右端近くに重ねる */
   top: -6px;
   min-width: 20px;
   height: 20px;
@@ -1375,8 +1375,14 @@ body {
 
 /* 画面幅が狭いときは少し詰める */
 @media (max-width: 360px) {
-  .home-cta.cart { padding: 0.8rem 1rem; font-size: 15px; }
-  .home-cta.cart .ico svg { width: 20px; height: 20px; }
+  .home-cta.cart {
+    padding: 0.8rem 1rem;
+    font-size: 15px;
+  }
+  .home-cta.cart .ico svg {
+    width: 20px;
+    height: 20px;
+  }
 }
 
 /* 既存の配置（フッター上に浮かせている想定）を踏襲 */
@@ -1388,7 +1394,9 @@ body {
   z-index: 11;
 }
 /* ヒーロー内にCTAを置いていたときの余白を無効化（もし残っていれば） */
-.home-hero { padding-bottom: 0 !important; }
+.home-hero {
+  padding-bottom: 0 !important;
+}
 
 /* カート（home-cta）をページ下部で“青枠の高さ”に吸着 */
 .home-cta.cart-cta {
@@ -1401,27 +1409,80 @@ body {
   gap: 12px;
   width: 100%;
   padding: 16px 18px;
-  margin: 16px 0 0;             /* セクションとの間隔 */
+  margin: 16px 0 0; /* セクションとの間隔 */
   border-radius: 18px;
 
   /* 反転配色（以前の指示どおり）：背景を白、文字をダーク */
   background: #ffffff;
   color: #1a3a2d;
-  box-shadow: 0 10px 28px rgba(0,0,0,.12);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
   border: 1px solid color-mix(in srgb, #1a3a2d 10%, #ffffff);
 }
 
-#home-cart-anchor {             /* 左右に同じ余白を確保（他の .container と揃える） */
+#home-cart-anchor {
+  /* 左右に同じ余白を確保（他の .container と揃える） */
   padding-left: 0.9rem;
   padding-right: 0.9rem;
 }
 
 /* アイコン整形（必要に応じて調整） */
 .home-cta.cart-cta .cart-ico {
-  width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2;
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
 }
-.home-cta.cart-cta .cart-text { font-weight: 700; letter-spacing: .01em; }
-#cart-summary { font-weight: 500; opacity: .85; margin-left: .5em; }
+.home-cta.cart-cta .cart-text {
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+#cart-summary {
+  font-weight: 500;
+  opacity: 0.85;
+  margin-left: 0.5em;
+}
 
 /* もし以前: .home-cta を fixed にしていたら打ち消し */
-.home-cta { position: static; }
+.home-cta {
+  position: static;
+}
+
+/* 旧スタイルの影響を打ち消し */
+.home-cta {
+  left: auto;
+  right: auto;
+  transform: none;
+  position: static;
+}
+
+/* カートを画面下・中央に固定（タブバーの直上） */
+.home-cta.cart-cta {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(var(--footer-h) + env(safe-area-inset-bottom) + 12px);
+  z-index: 40;
+
+  width: min(720px, calc(100% - 32px)); /* 画面左右に16pxの余白 */
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: 18px;
+
+  background: #fff;
+  color: #1a3a2d;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
+}
+.home-cta.cart-cta .cart-ico {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+}
+.cart-spacer {
+  height: 92px;
+} /* ← ボタン高さ + 余白。見え方に合わせて 84〜100px で微調整 */
