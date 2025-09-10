@@ -107,47 +107,45 @@
 <!-- ▼ クイックソート（近い｜安い） -->
 
 <main class="container">
-  <!-- ===== Home Hero (start) ===== -->
-  <section class="home-hero">
-    <div class="hero-inner">
-      <!-- ★★★ 大カード：JSで差し替え ★★★ -->
-      <a id="hero-card-main" href="#" class="hero-card">
-        <img
-          id="hero-img-main"
-          src="./img/hero1.jpg"
-          alt="本日のおすすめ"
-          loading="lazy"
-        />
-        <div class="hero-caption">
-          <h2 id="hero-title">HELLO!</h2>
-          <p id="hero-sub">本日のおすすめ</p>
-        </div>
-      </a>
+ <!-- ===== Spotlight Hero (new) ===== -->
+<section class="hero-spotlight">
+  <div class="spotlight-head">
+    <h2>いま行けるおすすめ</h2>
+    <a class="spotlight-more" href="./shops.html">もっと見る</a>
+  </div>
 
-      <!-- 小カード：ID付き（JSでランダムおすすめを差し替え） -->
-      <div class="hero-grid">
-        <a id="hero-card-s1" href="#" class="hero-card small">
-          <img
-            id="hero-s1-img"
-            src="./img/hero2.jpg"
-            alt="特集"
-            loading="lazy"
-          />
-          <div class="hero-caption small" id="hero-s1-cap">YAP! ARCHIVES</div>
-        </a>
-        <a id="hero-card-s2" href="#" class="hero-card small">
-          <img
-            id="hero-s2-img"
-            src="./img/hero3.jpg"
-            alt="サステナブル"
-            loading="lazy"
-          />
-          <div class="hero-caption small" id="hero-s2-cap">OUR CHANGE</div>
-        </a>
+  <div class="spotlight-rail" id="spotlight-rail">
+    <!-- 店舗タイル -->
+    <a id="tile-shop" class="tile store" href="#">
+      <img id="tile-shop-img" src="./img/hero1.jpg" alt="" />
+      <div class="badge-row" id="tile-shop-badges"></div>
+      <div class="tile-body">
+        <h3 id="tile-shop-name">店舗名</h3>
+        <p  id="tile-shop-sub"  class="sub">エリア・時間帯</p>
       </div>
-    </div>
-  </section>
-  <!-- ===== Home Hero (end) ===== -->
+    </a>
+
+    <!-- 商品タイル #1 -->
+    <a id="tile-p1" class="tile product" href="#">
+      <img id="tile-p1-img" src="./img/hero2.jpg" alt="" />
+      <div class="tile-body">
+        <h4 id="tile-p1-title">商品名</h4>
+        <div class="chips" id="tile-p1-chips"></div>
+      </div>
+    </a>
+
+    <!-- 商品タイル #2 -->
+    <a id="tile-p2" class="tile product" href="#">
+      <img id="tile-p2-img" src="./img/hero3.jpg" alt="" />
+      <div class="tile-body">
+        <h4 id="tile-p2-title">商品名</h4>
+        <div class="chips" id="tile-p2-chips"></div>
+      </div>
+    </a>
+  </div>
+</section>
+<!-- ===== /Spotlight Hero ===== -->
+
 
   <div class="quick">
     <div class="seg-row" role="tablist" aria-label="並び替え">
