@@ -4,23 +4,22 @@
 
 /* ---------- Design tokens ---------- */
 :root {
-  --primary: #1a3a2d; /* アクセント（深緑） */
-  --brand: #1a3a2d;
-  --bg: #1a3a2d; 
-  /* --bg: #e9e8e4;  ページ背景（薄ベージュ）  */
-  --surface: #ffffff; /* カード面 */
-  --ink: #16231d; /* ベース文字色（やや黒寄りの深緑） */
-  --text: var(--ink);
-  --text-weak: #4b5a54; /* サブ文字 */
-  --line: #dcdad4; /* 枠線（温かみのある薄ベージュ） */
-  --sub: #f3f2ee; /* ソフトなタグ背景など */
-  --sub-deep: #e6e4de; /* hover 等 */
-  --heart: #e2535f; /* お気に入りは既存の差し色を活かす */
-  --tint: #e7e9ee;
+  /* カラーパレット（深緑×ベージュ） */
+  --bg: #e9e8e4; /* ページ背景（薄いベージュ） */
+  --surface: #ffffff; /* 面（カード） */
+  --ink: #101418; /* 文字（濃い墨） */
+  --muted: #6b726e; /* サブテキスト */
+  --line: #e4e2dd; /* 枠線（ベージュ寄り） */
 
-  --heart: #e25460;
-  --warn: #9a4b0c;
+  --brand: #1a3a2d; /* 深緑（アクセント基調） */
+  --brand-700: #123024; /* 影用に少し濃い */
+  --brand-300: #2b5643; /* ホバーや境界の補助 */
+  --sub: #f4f2ed; /* ベージュの薄い面（セクション帯に） */
+  --heart: #e2535f; /* お気に入り */
 
+  /* レイアウト */
+  /* デスクトップで伸びすぎない：320〜420pxの間で画面幅連動 */
+  --card-col-width: clamp(320px, 38vw, 420px);
   --footer-h: 64px;
 }
 
@@ -109,6 +108,7 @@ body {
   font-size: 19px;
   font-weight: 800;
   letter-spacing: 0.01em;
+  color: var(--brand);
 }
 .section-head .more {
   font-size: 14px;
@@ -289,10 +289,10 @@ main,
 
 /* Frame */
 .shop-card {
-  background: var(--card);
+  background: var(--surface);
   border: 1px solid var(--line);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
   border-radius: 16px;
-  box-shadow: 0 6px 18px rgba(2, 6, 23, 0.06);
   overflow: hidden;
 }
 
@@ -577,12 +577,18 @@ main,
 
 /* 横スクロールを常に維持（過去にPCでグリッド化した設定を打ち消す） */
 .card-row {
-  /* 既存: 横スクロール用の横流し＋各カードのカラム幅 */
+  display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: var(--card-col-width);
+  grid-auto-columns: var(
+    --card-col-width
+  ); /* ← これが効けばデスクトップで暴れません */
+  gap: 0.9rem;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   scroll-snap-type: x proximity;
+  padding-bottom: 0.4rem;
 }
+
 @media (min-width: 768px) {
   .card-row {
     /* 万一、以前のCSSで PC時にグリッド化していたら明示的に上書き */
@@ -627,6 +633,11 @@ main,
   padding-inline: 0.12rem; /* 既存の余白を維持 */
   overflow-x: auto; /* 横スクロールは維持 */
   -webkit-overflow-scrolling: touch;
+}
+#category-row.cat-row::before,
+#category-row.cat-row::after {
+  content: "";
+  flex: 0 0 clamp(8px, 4vw, 24px); /* 両端の余白バランス */
 }
 
 /* 画面がより広いときは少しだけ幅を広げてもOK（お好みで） */
@@ -729,34 +740,27 @@ main,
 /* === Search bar: bigger & make icon visible ===================== */
 .app-header {
   background: var(--bg);
-  color: var(--primary);
+  color: var(--brand);
   border-bottom: 1px solid var(--line);
-  padding: 0.9rem 0.9rem; /* 少しゆとり */
-  gap: 0.9rem;
+  padding: 0.7rem 1rem;
 }
 
+/* 検索窓（高さ＆余白アップ、アイコン/placeholderの見え方維持） */
 .app-header .search-wrap {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  min-height: 48px; /* ボックス高さを底上げ */
-  padding: 0.62rem 1rem; /* 内側の上下余白を増やす */
+  min-height: 44px; /* 高さUP */
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
   background: #fff;
   border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--muted); /* ← currentColor でアイコン色になる */
 }
-
-/* SVG本体＆path両方に指定して“必ず”描画させる */
 .app-header .search-wrap svg {
-  flex: 0 0 auto;
-  display: block;
-  width: 20px;
-  height: 20px;
-  stroke: currentColor !important;
-  fill: none !important;
-  stroke-width: 2;
+  width: 18px;
+  height: 18px;
+  stroke: #9aa09c;
+}
+.app-header input::placeholder {
+  color: #a9ada8; /* さらに薄いグレー */
+  font-size: 13px; /* 少し小さく */
 }
 .app-header .search-wrap svg path {
   stroke: currentColor !important;
@@ -774,9 +778,6 @@ main,
   font-size: 16px;
   line-height: 1.2;
   padding: 2px 0; /* 文字の上下余白を少し */
-}
-.app-header input::placeholder {
-  color: var(--muted);
 }
 
 /* 画面が広いときはさらに余裕を */
@@ -890,4 +891,114 @@ main,
 }
 .chip-row .chip.is-active {
   background: var(--sub);
+}
+/* ===== Home Hero (深緑×白丸角CTA) ===== */
+.home-hero {
+  background: var(--brand);
+  padding: 16px 0 88px; /* 下はCTAの分を多めに */
+  border-radius: 0 0 22px 22px; /* スクショ風に下だけ丸め */
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.08);
+}
+.home-hero .hero-inner {
+  padding: 0 16px;
+}
+
+/* 大型・小型カード共通 */
+.hero-card {
+  position: relative;
+  display: block;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #203e33; /* 画像無時の底色 */
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
+}
+.hero-card img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.hero-card::after {
+  /* 下からの濃いグラデで文字を読みやすく */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.45),
+    rgba(0, 0, 0, 0) 55%
+  );
+  pointer-events: none;
+}
+
+/* 大きい一枚 */
+.hero-card:not(.small) {
+  aspect-ratio: 16/9;
+}
+
+/* 小さめ2枚並び（必要に応じ1列落ち） */
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+.hero-card.small {
+  aspect-ratio: 16/10;
+}
+
+/* 見出し（太白字） */
+.hero-caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 16px 16px 18px;
+  color: #fff;
+  text-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
+}
+.hero-caption h2 {
+  margin: 0 0 2px;
+  font-size: 32px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+.hero-caption p {
+  margin: 0;
+  opacity: 0.9;
+}
+
+/* でっかい白丸角CTA（タブバー直上に固定） */
+.home-cta {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: calc(var(--footer-h) + env(safe-area-inset-bottom) + 14px);
+  z-index: 30;
+  display: block;
+  width: auto;
+  padding: 18px 24px;
+  border-radius: 20px;
+  background: #fff;
+  color: var(--brand);
+  font-weight: 800;
+  font-size: 16px;
+  border: 0;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+}
+.home-cta:active {
+  transform: translateY(1px);
+}
+
+/* デスクトップ時：横幅を抑えて中央寄せ */
+@media (min-width: 960px) {
+  .home-hero .hero-inner {
+    max-width: 960px;
+    margin: 0 auto;
+  }
+  .home-cta {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: 720px;
+  }
 }
