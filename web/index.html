@@ -29,62 +29,12 @@
 
 <!-- カテゴリー（横スクロール） -->
 <!-- カテゴリー（アイコン差し替え版） -->
-<div class="cat-row" id="category-row">
-  <button type="button" class="cat-item" data-cat="パン">
-    <img
-      src="./img/categories/bread.png"
-      alt="パン"
-      width="48"
-      height="48"
-      loading="lazy"
-    />
-    <span>パン</span>
-  </button>
-
-  <button type="button" class="cat-item" data-cat="ケーキ">
-    <img
-      src="./img/categories/cake.png"
-      alt="ケーキ"
-      width="48"
-      height="48"
-      loading="lazy"
-    />
-    <span>ケーキ</span>
-  </button>
-
-  <button type="button" class="cat-item" data-cat="お惣菜">
-    <img
-      src="./img/categories/deli.png"
-      alt="お惣菜"
-      width="48"
-      height="48"
-      loading="lazy"
-    />
-    <span>お惣菜</span>
-  </button>
-
-  <button type="button" class="cat-item" data-cat="お弁当">
-    <img
-      src="./img/categories/bento.png"
-      alt="お弁当"
-      width="48"
-      height="48"
-      loading="lazy"
-    />
-    <span>お弁当</span>
-  </button>
-
-  <button type="button" class="cat-item" data-cat="その他">
-    <img
-      src="./img/categories/others.png"
-      alt="その他"
-      width="48"
-      height="48"
-      loading="lazy"
-    />
-    <span>その他</span>
-  </button>
-</div>
+<!-- 3. カテゴリ（横スクロール・中央寄せ） -->
+<section class="cats">
+  <div id="category-row" class="cat-row">
+    <!-- 既存のカテゴリ生成ロジックがあればそのまま使えます -->
+  </div>
+</section>
 
 <!-- 価格帯（横スクロールのタグ） -->
 <section class="price">
@@ -109,92 +59,57 @@
 <main class="container">
   <!-- ===== Home Hero (start) ===== -->
   <section class="home-hero">
-    <div class="hero-inner">
-      <!-- ★★★ 大カード：JSで差し替え ★★★ -->
-      <a id="hero-card-main" href="#" class="hero-card">
-        <img
-          id="hero-img-main"
-          src="./img/hero1.jpg"
-          alt="本日のおすすめ"
-          loading="lazy"
-        />
-        <div class="hero-caption">
-          <h2 id="hero-title">HELLO!</h2>
-          <p id="hero-sub">本日のおすすめ</p>
-        </div>
-      </a>
-
-      <!-- 小カード：ID付き（JSでランダムおすすめを差し替え） -->
-      <div class="hero-grid">
-        <a id="hero-card-s1" href="#" class="hero-card small">
-          <img
-            id="hero-s1-img"
-            src="./img/hero2.jpg"
-            alt="特集"
-            loading="lazy"
-          />
-          <div class="hero-caption small" id="hero-s1-cap">YAP! ARCHIVES</div>
-        </a>
-        <a id="hero-card-s2" href="#" class="hero-card small">
-          <img
-            id="hero-s2-img"
-            src="./img/hero3.jpg"
-            alt="サステナブル"
-            loading="lazy"
-          />
-          <div class="hero-caption small" id="hero-s2-cap">OUR CHANGE</div>
-        </a>
+    <a id="hero-card-main" class="hero-card" href="#">
+      <img id="hero-img-main" alt="本日のおすすめ" loading="lazy" />
+      <div class="hero-caption">
+        <h2 id="hero-title">HELLO!</h2>
+        <p id="hero-sub">本日のおすすめ</p>
       </div>
-    </div>
+    </a>
 
-    <!-- でっかい白丸角CTA（タブバーの上に浮かせる） -->
-    <button type="button" class="home-cta">START AN ORDER</button>
+    <div class="hero-grid">
+      <a class="hero-card small" id="hero-small-1" href="#">
+        <img id="hero-small-img-1" alt="" loading="lazy" />
+        <div class="hero-caption small" id="hero-small-cap-1">おすすめ</div>
+      </a>
+      <a class="hero-card small" id="hero-small-2" href="#">
+        <img id="hero-small-img-2" alt="" loading="lazy" />
+        <div class="hero-caption small" id="hero-small-cap-2">おすすめ</div>
+      </a>
+    </div>
   </section>
   <!-- ===== Home Hero (end) ===== -->
 
-  <div class="quick">
+  <!-- 2. クイック切替（距離/価格/終了間近） -->
+  <section class="quick">
     <div class="seg-row" role="tablist" aria-label="並び替え">
-      <button
-        type="button"
-        class="seg-btn is-active"
-        data-sort="near"
-        aria-selected="true"
-      >
+      <button class="seg-btn is-active" data-sort="near" role="tab">
         距離順
       </button>
-      <button
-        type="button"
-        class="seg-btn"
-        data-sort="cheap"
-        aria-selected="false"
-      >
-        価格順
-      </button>
-      <button
-        type="button"
-        class="seg-btn"
-        data-sort="urgent"
-        aria-selected="false"
-      >
-        終了間近</button
-      ><!-- ★追加 -->
+      <button class="seg-btn" data-sort="cheap" role="tab">価格順</button>
+      <button class="seg-btn" data-sort="urgent" role="tab">終了間近</button>
     </div>
-  </div>
+  </section>
 
-  <!-- 近くのお店 -->
-  <div class="section-head">
-    <h3>現在地付近のお店</h3>
-    <a class="more" href="#">もっと見る</a>
-  </div>
+  <!-- 4. 近くのお店（横スクロール） -->
+  <section class="container">
+    <div class="section-head">
+      <h3>現在地付近のお店</h3>
+      <a class="more" href="#">もっと見る</a>
+    </div>
+    <div id="nearby-row" class="card-row" aria-live="polite"></div>
+  </section>
 
   <!-- 現在地付近のお店 -->
   <div class="card-row" id="nearby-row"></div>
 
-  <!-- 最近追加 -->
-  <div class="section-head">
-    <h3>最近追加されたお店</h3>
-    <a class="more" href="#">もっと見る</a>
-  </div>
+  <section class="container">
+    <div class="section-head">
+      <h3>最近追加されたお店</h3>
+      <a class="more" href="#">もっと見る</a>
+    </div>
+    <div id="recent-row" class="card-row" aria-live="polite"></div>
+  </section>
 
   <div class="card-row" id="recent-row"></div>
 
@@ -477,6 +392,98 @@
 <!-- ★★★ ヒーロー読み込み用スクリプトを末尾で読み込む ★★★ -->
 <script type="module" src="./js/hero.js"></script>
 <script type="module" src="./js/home-hero.js"></script>
+<script type="module">
+  import { apiJSON } from "./js/http.js";
+
+  // ヒーロー：近場のショップからランダム1枚
+  async function hydrateHero() {
+    const mainImg = document.getElementById("hero-img-main");
+    const title   = document.getElementById("hero-title");
+    const sub     = document.getElementById("hero-sub");
+    const anchor  = document.getElementById("hero-card-main");
+
+    try {
+      const geo = await new Promise((res, rej) => {
+        if (!navigator.geolocation) return rej();
+        navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000 });
+      }).catch(() => null);
+
+      const qs = new URLSearchParams({ limit: "12" });
+      if (geo) {
+        qs.set("lat", geo.coords.latitude);
+        qs.set("lng", geo.coords.longitude);
+        qs.set("radius", "8000");
+      }
+      const data = await apiJSON(`/api/nearby?${qs.toString()}`).catch(() => null);
+      const items = (data?.items || []).filter(s => s.photo_url);
+
+      const pick = items.length ? items[Math.floor(Math.random()*items.length)] : null;
+      if (pick) {
+        mainImg.src = pick.photo_url;
+        mainImg.alt = pick.name || "本日のおすすめ";
+        title.textContent = pick.name || "HELLO!";
+        sub.textContent = "本日のおすすめ";
+        anchor.href = `/shop.html?id=${encodeURIComponent(pick.id)}`;
+      } else {
+        mainImg.src = "./img/hero1.jpg"; // フォールバック
+      }
+    } catch {
+      mainImg.src = "./img/hero1.jpg";
+    }
+  }
+
+  // 小カード2枚：最近追加 or 近場のバンドル画像を流用
+  async function hydrateHeroSmalls() {
+    const slots = [
+      { img: "hero-small-img-1", cap: "hero-small-cap-1" },
+      { img: "hero-small-img-2", cap: "hero-small-cap-2" },
+    ];
+    try {
+      const data = await apiJSON(`/api/shops-recent?limit=10`).catch(() => null);
+      const pool = (data?.items || [])
+        .flatMap(s => (Array.isArray(s.bundles) ? s.bundles : []))
+        .filter(b => b?.thumb_url);
+
+      for (let i = 0; i < slots.length; i++) {
+        const t = slots[i];
+        const pick = pool.length ? pool[Math.floor(Math.random()*pool.length)] : null;
+        const imgEl = document.getElementById(t.img);
+        const capEl = document.getElementById(t.cap);
+        if (pick && imgEl) {
+          imgEl.src = pick.thumb_url;
+          imgEl.alt = pick.title || "おすすめ";
+          if (capEl) capEl.textContent = pick.title || "おすすめ";
+        } else if (imgEl) {
+          imgEl.src = `./img/hero${i+2}.jpg`;
+          if (capEl) capEl.textContent = "おすすめ";
+        }
+      }
+    } catch {
+      // 画像はフォールバックに任せる
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    hydrateHero();
+    hydrateHeroSmalls();
+
+    // クイック切替 → nearby の並び替え
+    import("./js/nearby.js").then(({ loadNearby }) => {
+      const row = document.getElementById("nearby-row");
+      const tabs = document.querySelectorAll(".seg-btn[data-sort]");
+      const activate = (el) => {
+        tabs.forEach(b => b.classList.toggle("is-active", b === el));
+        loadNearby({ sort: el.dataset.sort });
+      };
+      tabs.forEach(b => b.addEventListener("click", () => activate(b)));
+      activate(tabs[0]); // 初期ロード（距離順）
+    });
+
+    // 最近追加
+    import("./js/recent.js").then(({ loadRecent }) => loadRecent());
+  });
+</script>
+
 
 <script type="module">
   import { loadNearby } from "./js/nearby.js?v=20250909l";

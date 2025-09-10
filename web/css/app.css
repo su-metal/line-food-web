@@ -1301,3 +1301,250 @@ body {
   background: var(--bg);
   color: var(--ink);
 }
+
+/* ========== CRISP-like Home IA & Spacing ========== */
+:root {
+  --brand: #1a3a2d; /* 深いグリーン（アクセント） */
+  --bg: #eeeae3; /* 白寄りベージュ（面） */
+  --surface: #ffffff;
+  --ink: #102018;
+  --muted: #667085;
+  --line: #e5e2dc;
+  --radius-lg: 22px;
+  --radius-md: 16px;
+
+  /* 横スクロールカード幅：小さすぎず大きすぎない */
+  --card-col-width: clamp(82%, 420px, 92vw);
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* セクションの縦リズム */
+.home-hero {
+  padding: 0.9rem 0.9rem 0;
+}
+.quick {
+  padding: 0.4rem 0.9rem 0;
+}
+.cats {
+  padding: 0.6rem 0.9rem 0.2rem;
+}
+.container {
+  padding: 0.2rem 0.9rem 1.1rem;
+}
+
+/* 見出し */
+.section-head {
+  margin: 0.6rem 0 0.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.section-head h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+.section-head .more {
+  color: var(--brand);
+  text-decoration: none;
+}
+
+/* ------------- Hero ------------- */
+.hero-card {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: #ddd;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+}
+.hero-card img {
+  width: 100%;
+  height: clamp(180px, 34vw, 260px);
+  object-fit: cover;
+  display: block;
+}
+.hero-card::after {
+  /* 黒ベースのオーバーレイ */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.45),
+    rgba(0, 0, 0, 0.2) 45%,
+    rgba(0, 0, 0, 0.58)
+  );
+  pointer-events: none;
+}
+.hero-caption {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 18px;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+.hero-caption h2 {
+  margin: 0 0 0.2rem;
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+}
+.hero-caption p {
+  margin: 0;
+  opacity: 0.95;
+}
+
+/* 小カード2枚 */
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7rem;
+  margin: 0.7rem 0 0;
+}
+.hero-card.small img {
+  height: clamp(100px, 26vw, 140px);
+}
+.hero-card.small .hero-caption {
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+}
+.hero-card.small .hero-caption.small {
+  font-size: 11.5px;
+  font-weight: 800;
+}
+
+/* ------------- Quick（セグメント）------------- */
+.seg-row {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+}
+.seg-btn {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  padding: 0.48rem 0.9rem;
+  font-size: 14px;
+  color: var(--ink);
+  cursor: pointer;
+}
+.seg-btn + .seg-btn {
+  border-left: 1px solid var(--line);
+}
+.seg-btn.is-active {
+  background: color-mix(in srgb, var(--brand) 6%, #fff);
+  color: var(--brand);
+  font-weight: 700;
+}
+
+/* ------------- Category row（中央寄せ）------------- */
+#category-row.cat-row {
+  display: flex;
+  justify-content: center;
+  gap: 0.35rem;
+  overflow-x: auto;
+  padding: 0.1rem 0.12rem 0.6rem;
+}
+#category-row .cat-item {
+  min-width: clamp(70px, 18vw, 96px);
+}
+
+/* ------------- 横スクロール（カードコンテナ）------------- */
+.card-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: var(--card-col-width);
+  gap: 0.9rem;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  padding-bottom: 0.4rem;
+}
+.card-row .shop-card {
+  scroll-snap-align: start;
+}
+
+/* ------------- カード（.card-v3互換）------------- */
+.shop-card {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+/* ヘッダ写真があるカードに黒スクリーン＆白文字 */
+.card-head.has-photo {
+  position: relative;
+  overflow: hidden;
+}
+.card-head.has-photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.28);
+  pointer-events: none;
+}
+.card-head.has-photo .store-name {
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+/* 商品行の密度と右ピル */
+.product-summary {
+  grid-template-columns: 56px 1fr auto;
+  column-gap: 0.56rem;
+}
+.ps-aside {
+  gap: 0.12rem;
+}
+.ps-aside .stock-inline.show {
+  display: inline-flex;
+  background: #ecfeff;
+  border: 1px solid #a5f3fc;
+  color: var(--brand);
+  border-radius: 999px;
+  padding: 0.12rem 0.44rem;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.ps-aside .price-inline.show {
+  display: inline-flex;
+  background: var(--brand);
+  color: #fff;
+  border-radius: 999px;
+  padding: 0.16rem 0.52rem;
+  font-weight: 800;
+  font-size: 12.5px;
+}
+
+/* “終了間近”は時間の次行に回り込み */
+.product-meta {
+  flex-wrap: wrap;
+}
+.product-meta .soon {
+  flex-basis: 100%;
+  margin: 0.12rem 0 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.12rem 0.44rem;
+  border-radius: 999px;
+  background: #fff7ec;
+  border: 1px solid #f4c47a;
+  color: #b35b00;
+  font-size: 11px;
+}
+
+/* ------------- 余白の暴れ防止（ヒーロー直下の謎スペース対策）------------- */
+.home-hero + .quick {
+  margin-top: 0.2rem;
+}
