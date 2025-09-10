@@ -727,18 +727,40 @@ section.price {
   display: none !important;
 }
 /* ==== Home hero overlay: soften (more transparent) ==== */
-:root{
+:root {
   /* 調整しやすいよう係数を変数化（必要に応じて数値だけ触ればOK） */
-  --hero-ov-top: .22;   /* 画面上側の濃さ（既存 .42 → .22） */
-  --hero-ov-mid: .08;   /* 中間の濃さ（既存 .18 → .08） */
-  --hero-ov-bottom: .24;/* 下端の濃さ（既存 .55 → .24） */
+  --hero-ov-top: 0.22; /* 画面上側の濃さ（既存 .42 → .22） */
+  --hero-ov-mid: 0.08; /* 中間の濃さ（既存 .18 → .08） */
+  --hero-ov-bottom: 0.24; /* 下端の濃さ（既存 .55 → .24） */
 }
 /* home-hero 内だけ既存の .hero-card::after を上書き */
-.home-hero .hero-card::after{
+.home-hero .hero-card::after {
   background: linear-gradient(
     to bottom,
-    rgba(0,0,0,var(--hero-ov-top)),
-    rgba(0,0,0,var(--hero-ov-mid)) 50%,
-    rgba(0,0,0,var(--hero-ov-bottom))
+    rgba(0, 0, 0, var(--hero-ov-top)),
+    rgba(0, 0, 0, var(--hero-ov-mid)) 50%,
+    rgba(0, 0, 0, var(--hero-ov-bottom))
   );
+}
+
+/* === Home Hero images: fit container === */
+.home-hero .hero-card {
+  position: relative;
+  display: block;
+}
+
+.home-hero .hero-card img {
+  display: block;
+  width: 100%;
+  height: 100%; /* ← カードの高さに合わせる */
+  object-fit: cover; /* ← はみ出しを中央クロップ */
+  object-position: center;
+}
+
+/* 望ましい表示比（必要ならここを調整） */
+.home-hero .hero-card:not(.small) {
+  aspect-ratio: 16 / 9;
+}
+.home-hero .hero-card.small {
+  aspect-ratio: 16 / 10;
 }
