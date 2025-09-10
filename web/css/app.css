@@ -848,3 +848,50 @@ section.price {
 .home-hero .hero-card:not(.small) {
   aspect-ratio: 21 / 9 !important;
 }
+/* ==== Smart-hero: meta pills & product tags ==== */
+
+/* 上段メタ（左上） */
+.home-hero .hero-meta{
+  position:absolute; left:18px; top:14px;
+  display:flex; flex-wrap:wrap; gap:8px; z-index:2;
+}
+.home-hero .pill{
+  display:inline-flex; align-items:center; gap:.4em;
+  padding:6px 10px; font-size:12px; font-weight:800; letter-spacing:.02em;
+  color:#fff; background:rgba(0,0,0,.38);
+  border:1px solid rgba(255,255,255,.22);
+  border-radius:999px;
+  text-shadow:0 1px 2px rgba(0,0,0,.55);
+  backdrop-filter:saturate(130%) blur(2px); -webkit-backdrop-filter:saturate(130%) blur(2px);
+}
+.home-hero .pill.dark{ background:rgba(0,0,0,.55); }
+.home-hero .pill.warn{ background:rgba(201,126,34,.68); border-color:rgba(255,255,255,.28); }
+
+/* 共有アイコン */
+.home-hero .i, .hero-tags .i{
+  width:16px; height:16px; display:block;
+}
+
+/* 下段商品カードの右下タグ群 */
+.hero-tags{
+  position:absolute; right:10px; bottom:8px;
+  display:flex; gap:6px; z-index:2;
+}
+.hero-tags .tag{
+  display:inline-flex; align-items:center; gap:.35em;
+  padding:4px 8px; font-size:11px; font-weight:800; letter-spacing:.02em;
+  border-radius:999px; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.55);
+  border:1px solid rgba(255,255,255,.22); background:rgba(0,0,0,.5);
+  backdrop-filter:saturate(130%) blur(2px); -webkit-backdrop-filter:saturate(130%) blur(2px);
+}
+.hero-tags .tag.price{ background:rgba(26,58,45,.9); border-color:rgba(26,58,45,.9); }
+.hero-tags .tag.stock{ background:rgba(201,126,34,.9); border-color:rgba(201,126,34,.9); }
+.hero-tags .tag.eta  { background:rgba(0,0,0,.6);  }
+
+/* 上段を 21:9（より横長） */
+.home-hero .hero-card:not(.small){ aspect-ratio:21/9 !important; }
+
+/* オーバーレイはやや薄め（可読性は text-shadow とピルで担保） */
+.home-hero .hero-card::after{
+  background:linear-gradient(to top, rgba(0,0,0,.22), rgba(0,0,0,.06) 55%, rgba(0,0,0,0));
+}
