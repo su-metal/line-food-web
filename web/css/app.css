@@ -140,7 +140,7 @@ body {
 
 /* ---------- Quick sort segment ---------- */
 .quick {
-  padding: 0.2rem 0.9rem 0.4rem;
+  padding: 0.2rem 0rem 0.4rem;
 }
 .seg-row {
   display: inline-flex;
@@ -1088,7 +1088,7 @@ main,
   margin: 0.2rem 0rem 0.9rem;
 }
 .quick {
-  padding: 0.2rem 0.9rem 0.4rem;
+  padding: 0.2rem 0rem 0.4rem;
 }
 
 
@@ -1135,7 +1135,7 @@ main,
 .action-pills .btn{ flex:1 1 0; min-width: 0; }
 
 /* 4) Hero：黒オーバーレイ強め＋角丸シャドウ */
-.home-hero{ padding: .6rem .9rem .2rem; }
+.home-hero{ padding: .6rem 0rem .2rem; }
 .hero-card{
   border-radius: 22px; overflow: hidden; box-shadow: 0 10px 28px rgba(16,24,23,.18);
 }
@@ -1151,7 +1151,7 @@ main,
 .hero-card .hero-caption.small{ font-size: 11.5px; font-weight: 800; opacity:.95; }
 
 /* 5) Quick（セグメント）を白ベースに */
-.quick{ padding: .4rem .9rem .2rem; }
+.quick{ padding: .4rem 0rem .2rem; }
 .seg-row{ border:1px solid var(--line); background:#fff; box-shadow:none; }
 .seg-btn{ color: var(--ink); }
 .seg-btn.is-active{ background: color-mix(in oklab, var(--brand) 6%, #fff); color: var(--brand); font-weight: 700; }
