@@ -37,7 +37,6 @@ body {
   color: var(--text);
   font: 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
     "Apple Color Emoji", "Segoe UI Emoji";
-  padding-bottom: calc(var(--footer-h) + env(safe-area-inset-bottom) + 8px);
 }
 [hidden] {
   display: none !important;
@@ -237,14 +236,11 @@ body {
 .tabbar a.active {
   color: var(--primary);
 }
-
+body,
 main,
 .page,
 .container {
-  padding-bottom: 0;
-}
-.container > :last-child {
-  margin-bottom: 0 !important;
+  padding-bottom: calc(var(--footer-h) + env(safe-area-inset-bottom) + 16px);
 }
 
 /* =========================================================
