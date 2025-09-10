@@ -764,3 +764,36 @@ section.price {
 .home-hero .hero-card.small {
   aspect-ratio: 16 / 10;
 }
+/* ==== Home-hero: 上段を 21:9、下段の可読性&サイズ調整 ==== */
+
+/* 上段（大カード）の縦を短く → 21:9 */
+.home-hero .hero-card:not(.small){
+  aspect-ratio: 21 / 9 !important;
+}
+
+/* 下段（小カード）キャプションを小さく＆読みやすく */
+.home-hero .hero-card.small .hero-caption,
+.home-hero .hero-caption.small{
+  /* サイズ調整 */
+  font-size: 10.5px !important;   /* ← 以前より一段小さく */
+  font-weight: 800;
+  letter-spacing: .02em;
+  padding: 6px 8px !important;
+
+  /* 白文字の可読性アップ（半透明ピル＋軽いぼかし＋強めの影） */
+  color: #fff !important;
+  background: rgba(0,0,0,.58) !important;            /* 透明度 ↑（読みやすく） */
+  border: 1px solid rgba(255,255,255,.22) !important;
+  border-radius: 999px;
+  backdrop-filter: saturate(130%) blur(2.5px);
+  -webkit-backdrop-filter: saturate(130%) blur(2.5px);
+  text-shadow:
+    0 1px 2px rgba(0,0,0,.65),
+    0 0 1px rgba(0,0,0,.55);
+}
+
+/* 小カード内の画像は枠いっぱいにフィット（保険） */
+.home-hero .hero-card.small img{
+  width: 100%; height: 100%; object-fit: cover; object-position: center;
+}
+
