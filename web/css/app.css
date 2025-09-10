@@ -1307,3 +1307,23 @@ body {
   background: var(--bg);
   color: var(--ink);
 }
+
+/* === home-cta 色をテキストとボタンで反転 === */
+.home-cta {
+  background: var(--brand); /* 旧：白 → 反転して塗りつぶし */
+  color: #fff; /* 旧：ブランド色 → 反転して白文字 */
+  border: 2px solid var(--brand);
+}
+
+.home-cta:hover {
+  filter: brightness(0.96);
+}
+
+.home-cta:active {
+  transform: translateY(1px);
+}
+
+.home-cta:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--brand) 35%, #fff);
+  outline-offset: 2px;
+}
