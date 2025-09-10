@@ -896,7 +896,7 @@ main,
 .home-hero {
   background: var(--brand);
   padding: 16px 0 24px; /* 下はCTAの分を多めに */
-  border-radius:0px; /* スクショ風に下だけ丸め */
+  border-radius: 8px; /* スクショ風に下だけ丸め */
   box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.08);
 }
 .home-hero .hero-inner {
