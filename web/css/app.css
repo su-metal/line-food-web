@@ -735,7 +735,7 @@ main,
   gap: 0.6rem;
   min-height: 48px; /* ボックス高さを底上げ */
   padding: 0.62rem 1rem; /* 内側の上下余白を増やす */
-  background: #fff;
+  background: #bda498;
   border: 1px solid var(--line);
   border-radius: 999px;
   color: var(--muted); /* ← currentColor でアイコン色になる */
