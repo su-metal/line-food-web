@@ -895,7 +895,7 @@ main,
 /* ===== Home Hero (深緑×白丸角CTA) ===== */
 .home-hero {
   background: var(--brand);
-  padding: 16px 0 88px; /* 下はCTAの分を多めに */
+  padding: 16px 0 16px; /* 下はCTAの分を多めに */
   border-radius: 0 0 22px 22px; /* スクショ風に下だけ丸め */
   box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.08);
 }
