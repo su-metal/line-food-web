@@ -1008,3 +1008,76 @@ main,
     width: 720px;
   }
 }
+
+/* ===== Home Hero : overlay & caption readability ===== */
+.home-hero .hero-card {
+  position: relative;
+  display: block;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+/* 画像は常に全面カバー */
+.home-hero .hero-card img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 文字の視認性を上げる濃淡グラデ・オーバーレイ（#1a3a2dベース） */
+.home-hero .hero-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(26, 58, 45, 0.55) 0%,
+    rgba(26, 58, 45, 0.28) 45%,
+    rgba(0, 0, 0, 0.12) 70%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  pointer-events: none;
+}
+
+/* キャプションは前面に。白文字＋軽い影で読みやすく */
+.home-hero .hero-caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0.9rem 1rem;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  z-index: 1;
+}
+
+/* 大カードの見出し/サブの整え */
+.home-hero .hero-caption h2 {
+  margin: 0 0 0.25rem;
+  font-size: 22px;
+  line-height: 1.2;
+  font-weight: 800;
+}
+.home-hero .hero-caption p {
+  margin: 0;
+  font-size: 13.5px;
+  opacity: 0.95;
+}
+
+/* smallカードの文字を小さく＆パディング控えめに */
+.home-hero .hero-card.small .hero-caption,
+.home-hero .hero-caption.small {
+  font-size: 11.5px; /* ← 小さめに */
+  padding: 0.5rem 0.6rem; /* ← 余白も小さく */
+}
+
+/* smallのキャプションを角丸ピル風にしてさらに視認性UP（任意） */
+.home-hero .hero-card.small .hero-caption,
+.home-hero .hero-caption.small {
+  background: color-mix(in srgb, rgba(0, 0, 0, 0) 50%, rgba(26, 58, 45, 0.55));
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  display: inline-block;
+  width: fit-content;
+  border-radius: 999px;
+}
