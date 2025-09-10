@@ -1530,3 +1530,31 @@ main,
       env(safe-area-inset-bottom) + 12px
   );
 }
+/* === CTA: ボタンは --brand で単色、テキストは白。帯の背景は透明に === */
+.home-cta{
+  /* 位置などは既存のまま活かし、見た目だけ無色化 */
+  background: transparent !important;
+  border-top: 0 !important;
+  box-shadow: none !important;
+}
+
+.home-cta-btn{
+  display: block;
+  width: min(720px, 92%);
+  margin: 0 auto;
+  padding: 16px 18px;
+  border: 0 !important;
+  border-radius: 16px;
+  background: var(--brand) !important;  /* ← 単色塗りつぶし */
+  color: #fff !important;               /* ← テキストは白 */
+  font-weight: 800;
+  font-size: 16px;
+  box-shadow: 0 10px 22px rgba(0,0,0,.15);
+}
+
+.home-cta-btn:hover{ filter: brightness(1.05); }
+.home-cta-btn:active{ transform: translateY(1px); }
+.home-cta-btn:focus-visible{
+  outline: 3px solid color-mix(in oklab, #fff 60%, var(--brand) 40%);
+  outline-offset: 2px;
+}
