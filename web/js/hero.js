@@ -8,36 +8,24 @@ const NOIMG = "./img/noimg.svg";
  * @param {Array<any>} items
  * @returns {Array<{src:string, alt:string, href:string}>}
  */
+// 旧: extractImageCandidates(items)
+// 新: ショップ写真だけを候補にする
 function extractImageCandidates(items = []) {
+  const seen = new Set();
   const cands = [];
   for (const s of items) {
-    const shopName = s?.name ?? "";
-    // 店の写真
-    if (s?.photo_url) {
-      cands.push({
-        src: s.photo_url,
-        alt: shopName ? `${shopName} の写真` : "お店の写真",
-        href: s?.id ? `/shop.html?id=${encodeURIComponent(s.id)}` : "#",
-      });
-    }
-    // バンドルの写真
-    if (Array.isArray(s?.bundles)) {
-      for (const b of s.bundles) {
-        if (b?.thumb_url) {
-          const title = b?.title ?? b?.name ?? b?.bundle_title ?? "おすすめ";
-          cands.push({
-            src: b.thumb_url,
-            alt: `${title} の画像`,
-            href:
-              b?.id
-                ? `/bundle.html?id=${encodeURIComponent(b.id)}`
-                : s?.id
-                ? `/shop.html?id=${encodeURIComponent(s.id)}`
-                : "#",
-          });
-        }
-      }
-    }
+    const src = s?.photo_url;
+    if (!src || seen.has(src)) continue; // 空や重複を除外
+    seen.add(src);
+    const name = s?.name ?? "お店";
+    cands.push({
+      src,
+      alt: `${name} の写真`,
+      href: s?.id ? `/shop.html?id=${encodeURIComponent(s.id)}` : "#",
+      _weight: Number.isFinite(s?.distance_m)
+        ? Math.max(1, 20000 - s.distance_m)
+        : 1, // 近い店を少しだけ優先（任意）
+    });
   }
   return cands;
 }
@@ -50,6 +38,7 @@ async function loadHeroRandom() {
   const cardEl = document.getElementById("hero-card-main");
   const titleEl = document.getElementById("hero-title");
   const subEl = document.getElementById("hero-sub");
+  
   if (!imgEl || !cardEl) return;
 
   // 1) 位置情報（任意）
@@ -70,11 +59,12 @@ async function loadHeroRandom() {
   }
 
   // 2) API から候補を取得
-  const qs = new URLSearchParams({ limit: "12" });
+  const qs = new URLSearchParams({ limit: "20" });
   if (Number.isFinite(lat) && Number.isFinite(lng)) {
     qs.set("lat", String(lat));
     qs.set("lng", String(lng));
   }
+  
 
   let items = [];
   try {
