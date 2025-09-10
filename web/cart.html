@@ -1,0 +1,26 @@
+<!-- web/cart.html -->
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>カート</title>
+<link rel="stylesheet" href="./css/app.css" />
+<main class="container">
+  <h1>カート</h1>
+  <p id="cart-summary">読み込み中…</p>
+  <a href="./index.html">← ホームへ戻る</a>
+</main>
+<script type="module">
+  const keys = ['cart','lf_cart','basket'];
+  let items = [];
+  for (const k of keys) {
+    try { const v = JSON.parse(localStorage.getItem(k)||'[]'); if (Array.isArray(v)) { items = v; break; } } catch {}
+  }
+  let count=0, sum=0;
+  for (const it of items) {
+    const q = Number(it.qty ?? it.quantity ?? 1) || 0;
+    const p = Number(it.price ?? it.unit_price ?? it.amount ?? 0) || 0;
+    count += q; sum += q*p;
+  }
+  const el = document.getElementById('cart-summary');
+  el.textContent = count > 0 ? `合計 ${count} 点 / ¥${Math.round(sum).toLocaleString('ja-JP')}` : 'カートは空です';
+</script>
