@@ -136,19 +136,19 @@
 
 <main class="container">
 
-  <!-- Home Hero (深緑セクション) -->
+<!-- Home Hero (深緑セクション) -->
 <section class="home-hero">
   <div class="hero-inner">
-    <!-- 大型バナー（画像は差し替えOK） -->
-    <a href="#" class="hero-card">
-      <img src="./img/hero1.jpg" alt="キャンペーン" loading="lazy" />
+    <!-- ★★★ 大カードにIDを付与してJSから差し替える ★★★ -->
+    <a id="hero-card-main" href="#" class="hero-card">
+      <img id="hero-img-main" src="./img/hero1.jpg" alt="本日のおすすめ" loading="lazy" />
       <div class="hero-caption">
-        <h2>HELLO!</h2>
-        <p>本日のおすすめ</p>
+        <h2 id="hero-title">HELLO!</h2>
+        <p id="hero-sub">本日のおすすめ</p>
       </div>
     </a>
 
-    <!-- サブバナー（必要なら複数） -->
+    <!-- （小カードはそのままでOK。必要なら残す） -->
     <div class="hero-grid">
       <a href="#" class="hero-card small">
         <img src="./img/hero2.jpg" alt="特集" loading="lazy" />
@@ -160,6 +160,10 @@
       </a>
     </div>
   </div>
+
+  <button type="button" class="home-cta">START AN ORDER</button>
+</section>
+
 
   <!-- でっかい白丸角CTA（タブバーの上に浮かせる） -->
   <button type="button" class="home-cta">START AN ORDER</button>
@@ -460,6 +464,8 @@
   // items.forEach(btn => btn.addEventListener('click', () => { ...; loadNearby(getFilters()); loadRecent(getFilters()); }));
   // row.addEventListener('click', e => { ...; loadNearby(getFilters()); loadRecent(getFilters()); });
 </script>
+<!-- ★★★ ヒーロー読み込み用スクリプトを末尾で読み込む ★★★ -->
+<script type="module" src="./js/hero.js"></script>
 <script type="module">
   import { loadNearby } from "./js/nearby.js?v=20250909l";
   import { loadRecent } from "./js/recent.js?v=20250909l";
