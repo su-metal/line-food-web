@@ -984,8 +984,9 @@ main,
   width: auto;
   padding: 18px 24px;
   border-radius: 20px;
-  background: #fff;
-  color: var(--brand);
+  background: var(--brand); /* 旧：白 → 反転して塗りつぶし */
+  color: #fff; /* 旧：ブランド色 → 反転して白文字 */
+  border: 2px solid var(--brand);
   font-weight: 800;
   font-size: 16px;
   border: 0;
@@ -993,6 +994,11 @@ main,
 }
 .home-cta:active {
   transform: translateY(1px);
+}
+
+.home-cta:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--brand) 35%, #fff);
+  outline-offset: 2px;
 }
 
 /* デスクトップ時：横幅を抑えて中央寄せ */
@@ -1091,110 +1097,213 @@ main,
   padding: 0.2rem 0rem 0.4rem;
 }
 
-
 /* ================= CRISP-LIKE SKIN (deep green × warm beige) ================ */
 
 /* 1) 見出し・タイポ */
-.section-kicker{                 /* セクションの英語見出しっぽい小見出し */
-  margin: .5rem 0 .25rem;
+.section-kicker {
+  /* セクションの英語見出しっぽい小見出し */
+  margin: 0.5rem 0 0.25rem;
   font-size: 12.5px;
-  letter-spacing: .12em;
+  letter-spacing: 0.12em;
   color: color-mix(in oklab, var(--brand) 85%, #000 15%);
   text-transform: uppercase;
   font-weight: 800;
 }
-.section-head h3{
+.section-head h3 {
   margin: 0;
   font-weight: 800;
-  letter-spacing: .01em;
+  letter-spacing: 0.01em;
   color: var(--ink);
 }
 
 /* 2) ボタン（丸ピル） */
-.btn{
+.btn {
   -webkit-tap-highlight-color: transparent;
-  appearance: none; border: 1px solid transparent; background: #fff;
-  display: inline-flex; align-items: center; justify-content: center;
-  height: 44px; padding: 0 18px; gap: .5rem;
-  border-radius: 999px; font-weight: 800; letter-spacing: .01em;
-  font-size: 14.5px; cursor: pointer;
-  box-shadow: 0 1px 2px rgba(0,0,0,.05);
+  appearance: none;
+  border: 1px solid transparent;
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0 18px;
+  gap: 0.5rem;
+  border-radius: 999px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  font-size: 14.5px;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
-.btn:focus-visible{ outline: 0; box-shadow: 0 0 0 4px color-mix(in oklab, var(--brand) 18%, transparent); }
-.btn--primary{ background: var(--brand); color:#fff; border-color: var(--brand); }
-.btn--primary:hover{ filter: brightness(1.05); }
-.btn--secondary{ background:#fff; color:var(--brand);
-  border-color: color-mix(in oklab, var(--brand) 28%, var(--line)); }
-.btn--ghost{ background: transparent;
-  color: var(--brand); border-color: color-mix(in oklab, var(--brand) 20%, var(--line)); }
+.btn:focus-visible {
+  outline: 0;
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--brand) 18%, transparent);
+}
+.btn--primary {
+  background: var(--brand);
+  color: #fff;
+  border-color: var(--brand);
+}
+.btn--primary:hover {
+  filter: brightness(1.05);
+}
+.btn--secondary {
+  background: #fff;
+  color: var(--brand);
+  border-color: color-mix(in oklab, var(--brand) 28%, var(--line));
+}
+.btn--ghost {
+  background: transparent;
+  color: var(--brand);
+  border-color: color-mix(in oklab, var(--brand) 20%, var(--line));
+}
 
 /* 3) ホームの “3つの丸ボタン” 行（任意で使う） */
-.action-pills{
-  display:flex; gap:.8rem; flex-wrap:wrap; padding:.6rem .9rem .2rem;
+.action-pills {
+  display: flex;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  padding: 0.6rem 0.9rem 0.2rem;
 }
-.action-pills .btn{ flex:1 1 0; min-width: 0; }
+.action-pills .btn {
+  flex: 1 1 0;
+  min-width: 0;
+}
 
 /* 4) Hero：黒オーバーレイ強め＋角丸シャドウ */
-.home-hero{ padding: .6rem 0rem .2rem; }
-.hero-card{
-  border-radius: 22px; overflow: hidden; box-shadow: 0 10px 28px rgba(16,24,23,.18);
+.home-hero {
+  padding: 0.6rem 0rem 0.2rem;
 }
-.hero-card::after{/* 黒基調の被せ */
-  content:""; position:absolute; inset:0;
-  background: linear-gradient(to bottom, rgba(0,0,0,.42), rgba(0,0,0,.18) 45%, rgba(0,0,0,.55));
-  pointer-events:none;
+.hero-card {
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 10px 28px rgba(16, 24, 23, 0.18);
 }
-.hero-caption{ left:18px; right:18px; bottom:18px; }
-.hero-caption h2{ font-size: 30px; font-weight: 900; }
-.hero-card.small .hero-caption{ bottom:12px; left:12px; right:12px; }
+.hero-card::after {
+  /* 黒基調の被せ */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.42),
+    rgba(0, 0, 0, 0.18) 45%,
+    rgba(0, 0, 0, 0.55)
+  );
+  pointer-events: none;
+}
+.hero-caption {
+  left: 18px;
+  right: 18px;
+  bottom: 18px;
+}
+.hero-caption h2 {
+  font-size: 30px;
+  font-weight: 900;
+}
+.hero-card.small .hero-caption {
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+}
 .hero-card.small .hero-caption,
-.hero-card .hero-caption.small{ font-size: 11.5px; font-weight: 800; opacity:.95; }
+.hero-card .hero-caption.small {
+  font-size: 11.5px;
+  font-weight: 800;
+  opacity: 0.95;
+}
 
 /* 5) Quick（セグメント）を白ベースに */
-.quick{ padding: .4rem 0rem .2rem; }
-.seg-row{ border:1px solid var(--line); background:#fff; box-shadow:none; }
-.seg-btn{ color: var(--ink); }
-.seg-btn.is-active{ background: color-mix(in oklab, var(--brand) 6%, #fff); color: var(--brand); font-weight: 700; }
+.quick {
+  padding: 0.4rem 0rem 0.2rem;
+}
+.seg-row {
+  border: 1px solid var(--line);
+  background: #fff;
+  box-shadow: none;
+}
+.seg-btn {
+  color: var(--ink);
+}
+.seg-btn.is-active {
+  background: color-mix(in oklab, var(--brand) 6%, #fff);
+  color: var(--brand);
+  font-weight: 700;
+}
 
 /* 6) Shopカード：ベージュ面 × 深緑ピル */
-.shop-card{
+.shop-card {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 18px;
-  box-shadow: 0 6px 18px rgba(16,24,23,.08);
+  box-shadow: 0 6px 18px rgba(16, 24, 23, 0.08);
 }
-.card-head.has-photo::after{ background: rgba(0,0,0,.28); }
-.card-v3 .card-head .store-name{ color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.35); }
+.card-head.has-photo::after {
+  background: rgba(0, 0, 0, 0.28);
+}
+.card-v3 .card-head .store-name {
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
 
-.product-name{ color: var(--ink); }
-.product-meta{ color: var(--muted); }
+.product-name {
+  color: var(--ink);
+}
+.product-meta {
+  color: var(--muted);
+}
 
-.ps-aside .stock-inline.show{
+.ps-aside .stock-inline.show {
   background: #ecfeff;
   border: 1px solid color-mix(in oklab, var(--brand) 36%, #a6eef8);
-  color: var(--brand); font-weight: 700;
+  color: var(--brand);
+  font-weight: 700;
 }
-.ps-aside .price-inline.show{
-  background: var(--brand); color:#fff; font-weight: 800;
+.ps-aside .price-inline.show {
+  background: var(--brand);
+  color: #fff;
+  font-weight: 800;
 }
 
 /* 7) Tabbar：背景ベージュ、有効は深緑 */
-.tabbar{ background: var(--bg); border-top:1px solid var(--line); }
-.tabbar a.active .icon svg, .tabbar a.active .label{ color: var(--brand); }
+.tabbar {
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+}
+.tabbar a.active .icon svg,
+.tabbar a.active .label {
+  color: var(--brand);
+}
 
 /* 8) 入力フィールド（フォーム画面系） */
-.input, input[type="text"], input[type="tel"], input[type="email"], select, textarea{
-  background:#fff; border:1px solid color-mix(in oklab, var(--brand) 18%, var(--line));
-  border-radius: 12px; padding:.7rem .9rem; color: var(--ink);
+.input,
+input[type="text"],
+input[type="tel"],
+input[type="email"],
+select,
+textarea {
+  background: #fff;
+  border: 1px solid color-mix(in oklab, var(--brand) 18%, var(--line));
+  border-radius: 12px;
+  padding: 0.7rem 0.9rem;
+  color: var(--ink);
 }
-input::placeholder, textarea::placeholder{
-  color: color-mix(in oklab, var(--muted) 55%, #fff 45%); font-size: .95em;
+input::placeholder,
+textarea::placeholder {
+  color: color-mix(in oklab, var(--muted) 55%, #fff 45%);
+  font-size: 0.95em;
 }
 
 /* 9) カテゴリ横スクロールを中央寄せ */
-#category-row.cat-row{ justify-content: center; }
+#category-row.cat-row {
+  justify-content: center;
+}
 
 /* 10) グローバル背景（より白寄せベージュ） */
-:root{ --bg: #eeeae3; }   /* ほんの少し白に寄せたベージュ */
-body{ background: var(--bg); color: var(--ink); }
-
+:root {
+  --bg: #eeeae3;
+} /* ほんの少し白に寄せたベージュ */
+body {
+  background: var(--bg);
+  color: var(--ink);
+}
