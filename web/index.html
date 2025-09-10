@@ -109,35 +109,77 @@
 <main class="container">
   <!-- ===== Home Hero (start) ===== -->
   <section class="home-hero">
-  <a id="hero-card-main" class="hero-card" href="#">
-    <img id="hero-img-main" alt="本日のおすすめ" loading="lazy" />
-    <div class="hero-caption">
-      <h2 id="hero-title">HELLO!</h2>
-      <p id="hero-sub">本日のおすすめ</p>
-    </div>
-  </a>
+    <div class="hero-inner">
+      <!-- ★★★ 大カード：JSで差し替え ★★★ -->
+      <a id="hero-card-main" href="#" class="hero-card">
+        <img
+          id="hero-img-main"
+          src="./img/hero1.jpg"
+          alt="本日のおすすめ"
+          loading="lazy"
+        />
+        <div class="hero-caption">
+          <h2 id="hero-title">HELLO!</h2>
+          <p id="hero-sub">本日のおすすめ</p>
+        </div>
+      </a>
 
-  <div class="hero-grid">
-    <a class="hero-card small" id="hero-small-1" href="#">
-      <img id="hero-small-img-1" alt="" loading="lazy" />
-      <div class="hero-caption small" id="hero-small-cap-1">おすすめ</div>
-    </a>
-    <a class="hero-card small" id="hero-small-2" href="#">
-      <img id="hero-small-img-2" alt="" loading="lazy" />
-      <div class="hero-caption small" id="hero-small-cap-2">おすすめ</div>
-    </a>
-  </div>
-</section>
+      <!-- 小カード：ID付き（JSでランダムおすすめを差し替え） -->
+      <div class="hero-grid">
+        <a id="hero-card-s1" href="#" class="hero-card small">
+          <img
+            id="hero-s1-img"
+            src="./img/hero2.jpg"
+            alt="特集"
+            loading="lazy"
+          />
+          <div class="hero-caption small" id="hero-s1-cap">YAP! ARCHIVES</div>
+        </a>
+        <a id="hero-card-s2" href="#" class="hero-card small">
+          <img
+            id="hero-s2-img"
+            src="./img/hero3.jpg"
+            alt="サステナブル"
+            loading="lazy"
+          />
+          <div class="hero-caption small" id="hero-s2-cap">OUR CHANGE</div>
+        </a>
+      </div>
+    </div>
+
+    <!-- でっかい白丸角CTA（タブバーの上に浮かせる） -->
+    <button type="button" class="home-cta">START AN ORDER</button>
+  </section>
   <!-- ===== Home Hero (end) ===== -->
 
-  <!-- 2. クイック切替（距離/価格/終了間近） -->
-<section class="quick">
-  <div class="seg-row" role="tablist" aria-label="並び替え">
-    <button class="seg-btn is-active" data-sort="near" role="tab">距離順</button>
-    <button class="seg-btn" data-sort="cheap" role="tab">価格順</button>
-    <button class="seg-btn" data-sort="urgent" role="tab">終了間近</button>
+  <div class="quick">
+    <div class="seg-row" role="tablist" aria-label="並び替え">
+      <button
+        type="button"
+        class="seg-btn is-active"
+        data-sort="near"
+        aria-selected="true"
+      >
+        距離順
+      </button>
+      <button
+        type="button"
+        class="seg-btn"
+        data-sort="cheap"
+        aria-selected="false"
+      >
+        価格順
+      </button>
+      <button
+        type="button"
+        class="seg-btn"
+        data-sort="urgent"
+        aria-selected="false"
+      >
+        終了間近</button
+      ><!-- ★追加 -->
+    </div>
   </div>
-</section>
 
   <!-- 近くのお店 -->
   <div class="section-head">
