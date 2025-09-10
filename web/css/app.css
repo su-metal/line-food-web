@@ -896,7 +896,7 @@ main,
 .home-hero {
   background: var(--brand);
   padding: 16px 0 24px; /* 下はCTAの分を多めに */
-  border-radius: 0 0 22px 22px; /* スクショ風に下だけ丸め */
+  border-radius: 22px; /* スクショ風に下だけ丸め */
   box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.08);
 }
 .home-hero .hero-inner {
@@ -1032,8 +1032,8 @@ main,
   inset: 0;
   background: linear-gradient(
     to top,
-    rgba(26, 58, 45, 0.55) 0%,
-    rgba(26, 58, 45, 0.28) 45%,
+    rgba(0, 0, 0, 0.55) 0%,
+    rgba(0, 0, 0, 0.28) 45%,
     rgba(0, 0, 0, 0.12) 70%,
     rgba(0, 0, 0, 0) 100%
   );
@@ -1075,9 +1075,12 @@ main,
 /* smallのキャプションを角丸ピル風にしてさらに視認性UP（任意） */
 .home-hero .hero-card.small .hero-caption,
 .home-hero .hero-caption.small {
-  background: color-mix(in srgb, rgba(0, 0, 0, 0) 50%, rgba(26, 58, 45, 0.55));
+  background: rgba(0, 0, 0, 0.48); /* ←黒ベース */
   border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
   display: inline-block;
   width: fit-content;
   border-radius: 999px;
+  font-size: 11.5px;
+  padding: 0.5rem 0.6rem;
 }
