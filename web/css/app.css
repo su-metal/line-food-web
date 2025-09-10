@@ -9,7 +9,7 @@
   --ink: #111827; /* やや濃い本文色 */
   --line: #e1e6e3;
 
-  --primary: #bda498; /* 黒系アクセント（Slate 900） */
+  --primary: #daa53c; /* 黒系アクセント（Slate 900） */
   --brand: var(--primary);
   --sub: #f3f4f1; /* アクティブ/チップ用の淡いグレー */
   --tint: #e7e9ee;
@@ -713,7 +713,7 @@ main,
 
 /* 検索ボックスは白箱＋薄い枠に寄せる（任意） */
 .app-header .search-wrap {
-  background: #bda498;
+  background: #fff;
   border: 1px solid var(--line);
 }
 .app-header .search-wrap svg {
@@ -735,7 +735,7 @@ main,
   gap: 0.6rem;
   min-height: 48px; /* ボックス高さを底上げ */
   padding: 0.62rem 1rem; /* 内側の上下余白を増やす */
-  background: #bda498;
+  background: #fff;
   border: 1px solid var(--line);
   border-radius: 999px;
   color: var(--muted); /* ← currentColor でアイコン色になる */
