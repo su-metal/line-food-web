@@ -107,45 +107,44 @@
 <!-- ▼ クイックソート（近い｜安い） -->
 
 <main class="container">
- <!-- ===== Spotlight Hero (new) ===== -->
-<section class="hero-spotlight">
-  <div class="spotlight-head">
-    <h2>いま行けるおすすめ</h2>
-    <a class="spotlight-more" href="./shops.html">もっと見る</a>
-  </div>
+  <!-- ===== Spotlight Hero (new) ===== -->
+  <section class="hero-spotlight">
+    <div class="spotlight-head">
+      <h2>いま行けるおすすめ</h2>
+      <a class="spotlight-more" href="./shops.html">もっと見る</a>
+    </div>
 
-  <div class="spotlight-rail" id="spotlight-rail">
-    <!-- 店舗タイル -->
-    <a id="tile-shop" class="tile store" href="#">
-      <img id="tile-shop-img" src="./img/hero1.jpg" alt="" />
-      <div class="badge-row" id="tile-shop-badges"></div>
-      <div class="tile-body">
-        <h3 id="tile-shop-name">店舗名</h3>
-        <p  id="tile-shop-sub"  class="sub">エリア・時間帯</p>
-      </div>
-    </a>
+    <div class="spotlight-rail" id="spotlight-rail">
+      <!-- 店舗タイル -->
+      <a id="tile-shop" class="tile store" href="#">
+        <img id="tile-shop-img" src="./img/hero1.jpg" alt="" />
+        <div class="badge-row" id="tile-shop-badges"></div>
+        <div class="tile-body">
+          <h3 id="tile-shop-name">店舗名</h3>
+          <p id="tile-shop-sub" class="sub">エリア・時間帯</p>
+        </div>
+      </a>
 
-    <!-- 商品タイル #1 -->
-    <a id="tile-p1" class="tile product" href="#">
-      <img id="tile-p1-img" src="./img/hero2.jpg" alt="" />
-      <div class="tile-body">
-        <h4 id="tile-p1-title">商品名</h4>
-        <div class="chips" id="tile-p1-chips"></div>
-      </div>
-    </a>
+      <!-- 商品タイル #1 -->
+      <a id="tile-p1" class="tile product" href="#">
+        <img id="tile-p1-img" src="./img/hero2.jpg" alt="" />
+        <div class="tile-body">
+          <h4 id="tile-p1-title">商品名</h4>
+          <div class="chips" id="tile-p1-chips"></div>
+        </div>
+      </a>
 
-    <!-- 商品タイル #2 -->
-    <a id="tile-p2" class="tile product" href="#">
-      <img id="tile-p2-img" src="./img/hero3.jpg" alt="" />
-      <div class="tile-body">
-        <h4 id="tile-p2-title">商品名</h4>
-        <div class="chips" id="tile-p2-chips"></div>
-      </div>
-    </a>
-  </div>
-</section>
-<!-- ===== /Spotlight Hero ===== -->
-
+      <!-- 商品タイル #2 -->
+      <a id="tile-p2" class="tile product" href="#">
+        <img id="tile-p2-img" src="./img/hero3.jpg" alt="" />
+        <div class="tile-body">
+          <h4 id="tile-p2-title">商品名</h4>
+          <div class="chips" id="tile-p2-chips"></div>
+        </div>
+      </a>
+    </div>
+  </section>
+  <!-- ===== /Spotlight Hero ===== -->
 
   <div class="quick">
     <div class="seg-row" role="tablist" aria-label="並び替え">
@@ -488,8 +487,48 @@
   // row.addEventListener('click', e => { ...; loadNearby(getFilters()); loadRecent(getFilters()); });
 </script>
 <!-- ★★★ ヒーロー読み込み用スクリプトを末尾で読み込む ★★★ -->
+
 <script type="module" src="./js/hero.js"></script>
 <script type="module" src="./js/home-hero.js"></script>
+<script type="module">
+  (() => {
+    // 二重初期化ガード
+    if (window.__homeCtaRevealInit) return;
+    window.__homeCtaRevealInit = true;
+
+    const el = document.querySelector(".home-cta");
+    if (!el) return;
+
+    // 初期は非表示（CSSで opacity:0）、スクロールで is-visible を付与
+    const setVisible = (v) => el.classList.toggle("is-visible", v);
+
+    // 監視用の目印（ヒーローの直後）
+    const anchor =
+      document.querySelector(".hero-spotlight") ||
+      document.querySelector(".home-hero") ||
+      document.querySelector("main") ||
+      document.body;
+
+    const sentinel = document.createElement("div");
+    sentinel.id = "cta-reveal-sentinel";
+    sentinel.style.cssText = "position:relative;width:1px;height:1px;";
+    anchor.after(sentinel);
+
+    if ("IntersectionObserver" in window) {
+      // 目印が画面内→非表示 / 目印が上に抜けた→表示
+      const io = new IntersectionObserver(
+        ([entry]) => setVisible(!entry.isIntersecting),
+        { root: null, threshold: 0, rootMargin: "0px 0px -60% 0px" }
+      );
+      io.observe(sentinel);
+    } else {
+      // フォールバック
+      const onScroll = () => setVisible(window.scrollY > 80);
+      window.addEventListener("scroll", onScroll, { passive: true });
+      onScroll();
+    }
+  })();
+</script>
 
 <script type="module">
   import { loadNearby } from "./js/nearby.js?v=20250909l";
