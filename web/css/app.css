@@ -2598,3 +2598,16 @@ body {
 .spotlight-info .eyebrow {
   display: none !important;
 }
+/* === Spotlight：セクション背景を敷く ======================= */
+.hero-spotlight {
+  background: #e9e8e4; /* ご指定の色 */
+  border-radius: 16px; /* 角をやわらかく */
+  padding: 14px 16px 18px; /* 内側に余白を作る */
+}
+
+/* セクション内カードはそのまま浮かせる（必要なら） */
+.hero-spotlight .spotlight-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+}
