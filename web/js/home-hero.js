@@ -59,9 +59,7 @@ function pickPlace(s) {
     s?.ward ||
     s?.city ||
     s?.address_short ||
-    (typeof s?.address === "string"
-      ? s.address.split(/[ ,、　]/)?.[0]
-      : "") ||
+    (typeof s?.address === "string" ? s.address.split(/[ ,、　]/)?.[0] : "") ||
     ""
   );
 }
@@ -101,8 +99,8 @@ function renderSpotlightMeta(shop = {}, distanceKm = null) {
   }
 
   const r = host.shadowRoot;
-  const cat   = pickCat(shop);
-  const dist  = fmtKm(distanceKm ?? shop?.distance_km ?? shop?.distance);
+  const cat = pickCat(shop);
+  const dist = fmtKm(distanceKm ?? shop?.distance_km ?? shop?.distance);
   const place = pickPlace(shop);
 
   r.getElementById("cat").textContent = cat || "カテゴリ";
@@ -113,18 +111,21 @@ function renderSpotlightMeta(shop = {}, distanceKm = null) {
 /* ---------- DOM反映（1店舗分） ---------- */
 function hydrateSpotlight(shop) {
   const $ = (id) => document.getElementById(id);
-  const linkEl  = $("sp-link");
-  const imgEl   = $("sp-img");
+  const linkEl = $("sp-link");
+  const imgEl = $("sp-img");
   const titleEl = $("sp-title");
   const priceEl = $("sp-price");
-  const ribbonEl= $("sp-ribbon");
+  const ribbonEl = $("sp-ribbon");
   const countEl = $("sp-count");
 
   const link = shop?.id ? `/shop.html?id=${encodeURIComponent(shop.id)}` : "#";
-  const img  = shop?.photo_url || shop?.cover_url || NOIMG;
+  const img = shop?.photo_url || shop?.cover_url || NOIMG;
 
-  if (linkEl)  linkEl.href = link;
-  if (imgEl)  { imgEl.src = img; imgEl.alt = shop?.name || "おすすめ"; }
+  if (linkEl) linkEl.href = link;
+  if (imgEl) {
+    imgEl.src = img;
+    imgEl.alt = shop?.name || "おすすめ";
+  }
   if (titleEl) titleEl.textContent = shop?.name || "おすすめ店舗";
 
   const price = minPrice(shop);
@@ -170,6 +171,15 @@ export async function loadSpotlight() {
 
   if (!shop) return; // 何も取れなければ無視
   hydrateSpotlight(shop);
+}
+
+function hydrateSpotlight(shop) {
+  const $ = (id) => document.getElementById(id);
+  // ...既存の反映処理...
+
+  // 左上バッジを固定表示
+  const flagEl = $("sp-flag");
+  if (flagEl) flagEl.textContent = "本日のおすすめ";
 }
 
 /* ---------- 起動 ---------- */
