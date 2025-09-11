@@ -2667,5 +2667,5 @@ body {
 .sp-price-card small{ opacity:.9; }
 
 .hero-spotlight{
-  background: var(--brand);
+  background: var(--brand) !important;
 }
