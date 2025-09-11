@@ -2665,14 +2665,3 @@ body {
 }
 .sp-price-card .yen{ font-weight:700; }
 .sp-price-card small{ opacity:.9; }
-
-.hero-spotlight{
-  background: var(--brand) !important;
-}
-
-.spotlight-card{
-  background: var(--brand) !important;
-}
-.spotlight-card .spotlight-info .title{
-  color: #fff  !important;
-}
