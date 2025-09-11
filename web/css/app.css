@@ -1430,3 +1430,97 @@ section.price {
     transform-origin: right bottom;
   }
 }
+/* ===================  Home: clean, TABETE-like density  =================== */
+/* 1) タイポ＆スペースのスケール（全体のリズムを統一） */
+:root{
+  --fs-title: clamp(20px, 2.4vw, 22px);
+  --fs-h: clamp(18px, 2.1vw, 20px);
+  --fs-body: 15px;
+  --fs-sub: 13px;
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px;
+  --radius: 16px;
+  --shadow-soft: 0 6px 16px rgba(0,0,0,.06);
+}
+
+/* 2) ヘッダ（検索バーの高さ・余白を統一） */
+.app-header{ padding: var(--sp-4) var(--sp-4) var(--sp-3); }
+.app-header .search-wrap{ height: 48px; gap: var(--sp-3); }
+.app-header input{ font-size: var(--fs-body); }
+
+/* 3) セクション見出し＆「もっと見る」 */
+.section-head{ margin: var(--sp-6) 0 var(--sp-3); }
+.section-head h3{
+  margin: 0; font-size: var(--fs-title); font-weight: 800; letter-spacing: .01em; color: var(--ink);
+}
+.section-head .more{
+  font-size: var(--fs-body); font-weight: 700; color: var(--brand);
+  background: none; text-decoration: none;
+}
+
+/* 4) カードレール（横スクロールの視野幅を最適化） */
+.card-row{
+  grid-auto-columns: 84%; gap: var(--sp-4); padding-bottom: var(--sp-3);
+}
+@media (min-width: 640px){ .card-row{ grid-auto-columns: 360px; } }
+
+/* 5) Shop Card v3：情報の主従が分かるタイポと余白 */
+.shop-card{ border-radius: var(--radius); box-shadow: var(--shadow-soft); }
+.shop-card.card-v3 .card-head{
+  padding: .6rem .8rem; min-height: 64px; border-bottom: 1px solid var(--line);
+}
+.shop-card.card-v3 .store-name{ font-size: 16px; font-weight: 800; }
+.shop-card.card-v3 .store-sub{ margin-top: .28rem; gap: .4rem; font-size: var(--fs-sub); }
+.shop-card.card-v3 .store-sub .chip{
+  padding: .18rem .48rem; border-radius: 999px; border: 1px solid var(--line); background:#fff;
+}
+.shop-card.card-v3 .card-body{ padding: .7rem .9rem .9rem; }
+.shop-card.card-v3 .product-name{ font-size: 15.5px; line-height: 1.28; }
+.shop-card.card-v3 .product-meta{ font-size: 12.5px; color: var(--muted); gap: .56rem; }
+.shop-card.card-v3 .ps-aside .stock-inline.show{
+  background: #ecf3f0; border:1px solid var(--brand); color: var(--brand); font-weight:700;
+}
+.shop-card.card-v3 .ps-aside .price-inline.show{
+  background: var(--brand); color:#fff; font-weight:800;
+}
+
+/* 距離・時間を“行”で読みやすく（小さめ＆間隔タイト） */
+.shop-card.card-v3 .product-meta .time,
+.shop-card.card-v3 .product-meta .eta,
+.shop-card.card-v3 .store-sub .status{ opacity:.9; }
+
+/* 6) Spotlight（先頭の紹介スライダー）をよりフラット＆横長に */
+.hero-spotlight{ margin: var(--sp-4) 0 var(--sp-4); }
+.spotlight-wrap{ --dots-shelf: 24px; padding-bottom: var(--dots-shelf); }
+.spotlight-rail{ scroll-snap-type:x proximity; gap: var(--sp-4); }
+.spotlight-rail .tile{
+  border-radius: 18px; overflow: hidden; position: relative;
+  display:block; width: 86vw; max-width: 640px; scroll-snap-align: start;
+  aspect-ratio: 21 / 9; /* ← 横長で占有を抑える */
+  box-shadow: var(--shadow-soft);
+}
+.spotlight-rail .tile.store.lead{ width: 86vw; }
+.spotlight-rail .tile.product.side{ width: 70vw; max-width: 520px; }
+
+/* タイルの本文：主従の差を明確に（商品は控えめ） */
+.tile .tile-body{ position:absolute; left:12px; right:12px; bottom:12px; }
+.tile.store.lead h3{ margin:0 0 4px; font-size: clamp(18px,2.4vw,20px); font-weight:900; color:#fff;
+  text-shadow: 0 2px 8px rgba(0,0,0,.45);
+}
+.tile.store.lead .sub{ margin:0; font-size:13px; color:#fff; opacity:.95;
+  text-shadow: 0 1px 4px rgba(0,0,0,.45);
+}
+.tile.product.side h4{ margin:0; font-size: 14px; font-weight:800; color:#fff; 
+  text-shadow: 0 1px 4px rgba(0,0,0,.45);
+}
+
+/* ドットは右下の“棚”に退避（キャプションと重ならない） */
+.spotlight-dots{
+  left:auto !important; right:10px; bottom:6px; background: rgba(0,0,0,.22);
+  border:1px solid rgba(255,255,255,.18); z-index:2;
+}
+
+/* 7) 余白の最終調整：下部CTAが被らないように */
+main.container{ padding-bottom: calc(var(--tabbar-h,56px) + var(--home-cta-h,72px) + env(safe-area-inset-bottom) + 12px); }
+
+/* 8) 文字濃度を全体で少し控えめ（TABETEの軽さに寄せる） */
+body{ color: color-mix(in srgb, var(--ink) 92%, #0000); }
