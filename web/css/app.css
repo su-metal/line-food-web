@@ -1833,3 +1833,58 @@ body {
 .spotlight-head {
   margin-bottom: 6px;
 }
+/* ===== Fix: spotlight を軽く・正しく表示 ===== */
+
+/* 1) 見出しの白文字を撤回して濃いテキストに */
+.hero-spotlight .spotlight-head,
+.hero-spotlight .spotlight-head *{
+  color: var(--ink) !important;
+  text-shadow: none !important;
+}
+
+/* 2) 右端に出ていた濃いグラデ（旧エッジマスク）を無効化 */
+.spotlight-wrap::before,
+.spotlight-wrap::after{
+  content: none !important;
+  display: none !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+
+/* 3) ドットの位置を“画像の外・右下”に安定配置（重なり解消） */
+.spotlight-dots{
+  position: static !important;        /* 絶対配置を解除 */
+  display: flex !important;
+  justify-content: flex-end;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding: 4px
+           calc(var(--rail-gutter) + env(safe-area-inset-right))
+           0
+           calc(var(--rail-gutter) + env(safe-area-inset-left));
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255,255,255,.85);
+  box-shadow: 0 2px 6px rgba(0,0,0,.06);
+}
+.spotlight-dots > li{
+  width: 6px; height: 6px; border-radius: 999px;
+  background: color-mix(in oklab, var(--ink) 22%, transparent);
+  opacity: .6;
+}
+.spotlight-dots > li.is-active{
+  width: 14px; border-radius: 8px;
+  background: var(--brand); opacity: 1;
+}
+
+/* 4) タイル画像は横長21:9、上書き漏れを抑制 */
+.hero-spotlight .tile img{
+  aspect-ratio: 21 / 9 !important;
+  object-fit: cover;
+}
+
+/* 5) 余白をさらに軽く（TABETEっぽい間合い） */
+.hero-spotlight{
+  --rail-gutter: clamp(18px, 5vw, 22px);
+  padding-block: 8px 12px;             /* ちょい詰め */
+}
