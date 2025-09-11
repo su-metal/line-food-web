@@ -2541,3 +2541,27 @@ body {
 .spotlight-dots li.is-active {
   background: var(--brand);
 }
+/* === Spotlight meta row === */
+.hero-spotlight .spotlight-info .meta{
+  display:flex; align-items:center; gap:8px;
+  margin-top:6px; flex-wrap:wrap;
+}
+
+.hero-spotlight .chip{
+  display:inline-flex; align-items:center; gap:.35em;
+  height:26px; padding:0 10px;
+  border-radius:999px; border:1px solid color-mix(in srgb, var(--brand) 18%, #0000);
+  background:#fff; color:var(--ink); font-size:12.5px; font-weight:700;
+}
+
+.hero-spotlight .chip--brand{
+  border-color: var(--brand);
+  background: var(--brand);
+  color:#fff;
+}
+
+.hero-spotlight .meta-place{
+  color: var(--muted);
+  font-size:12.5px; font-weight:600;
+}
+

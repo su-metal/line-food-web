@@ -34,6 +34,21 @@ function metaLine(shop) {
 
   return [d && `📍 ${d}`, t && `🕒 ${t}`].filter(Boolean).join(" ・ ");
 }
+// 画像の下の「カテゴリ／距離／場所」を更新するユーティリティ
+function updateSpotlightMeta(shop = {}, distanceKm = null){
+  const $ = (id) => document.getElementById(id);
+  const fmtKm = (v) => (typeof v === "number" ? `${v.toFixed(v < 1 ? 1 : 1)} km` : "");
+
+  const cat   = shop.category_name || shop.category || "ベーカリー";
+  const dist  = fmtKm(distanceKm ?? shop.distance_km);
+  const place = shop.area || shop.city || shop.station || shop.address_short || "";
+
+  const elCat = $("sp-cat"), elDist = $("sp-dist"), elPlace = $("sp-place");
+  if (elCat)   elCat.textContent   = cat;
+  if (elDist)  elDist.textContent  = dist || "—";
+  if (elPlace) elPlace.textContent = place || "";
+}
+
 
 export async function loadSpotlight() {
   const el = document.getElementById("spotlight");
@@ -122,3 +137,14 @@ if (placeEl) placeEl.textContent = pickPlace(shop);
 document.addEventListener("DOMContentLoaded", () => {
   loadSpotlight().catch(console.warn);
 });
+
+// ページが開いたらダミー値で表示（まずは見た目確認用）
+document.addEventListener("DOMContentLoaded", () => {
+  updateSpotlightMeta({
+    category_name: "ベーカリー",
+    area: "新御堂橋エリア",
+    station: "豊橋駅",
+    distance_km: 1.2
+  });
+});
+
