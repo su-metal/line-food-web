@@ -109,13 +109,15 @@
 <main class="container">
   <!-- ===== Spotlight Hero (new) ===== -->
   <section class="hero-spotlight">
-    <div class="spotlight-head">
-      <h2>いま行けるおすすめ</h2>
-      <a class="spotlight-more" href="./shops.html">もっと見る</a>
-    </div>
- <div class="spotlight-wrap"></div>
+  <div class="spotlight-head">
+    <h2>いま行けるおすすめ</h2>
+    <a class="spotlight-more" href="./shops.html">もっと見る</a>
+  </div>
+
+  <!-- ✅ wrap の中に rail / cue / dots を入れる -->
+  <div class="spotlight-wrap">
     <div class="spotlight-rail" id="spotlight-rail">
-      <!-- 店舗タイル -->
+      <!-- 店舗タイル（主役） -->
       <a id="tile-shop" class="tile store lead" href="#">
         <img id="tile-shop-img" src="./img/hero1.jpg" alt="" />
         <div class="badge-row" id="tile-shop-badges"></div>
@@ -143,18 +145,20 @@
         </div>
       </a>
     </div>
-      <!-- スワイプ・キュー（初回だけ表示） -->
+
+    <!-- スワイプ・キュー（初回だけ表示） -->
     <div class="scroll-cue" id="scroll-cue" aria-hidden="true">
       <span class="cue-text">スワイプ</span>
       <svg class="cue-chev" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
       </svg>
     </div>
 
     <!-- ページドット -->
     <ol class="spotlight-dots" id="spotlight-dots" role="tablist" aria-label="おすすめのスライド"></ol>
   </div>
-  </section>
+</section>
+
   <!-- ===== /Spotlight Hero ===== -->
 
   <div class="quick">
