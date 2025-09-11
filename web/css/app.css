@@ -851,139 +851,288 @@ section.price {
 /* ==== Smart-hero: meta pills & product tags ==== */
 
 /* 上段メタ（左上） */
-.home-hero .hero-meta{
-  position:absolute; left:18px; top:14px;
-  display:flex; flex-wrap:wrap; gap:8px; z-index:2;
+.home-hero .hero-meta {
+  position: absolute;
+  left: 18px;
+  top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  z-index: 2;
 }
-.home-hero .pill{
-  display:inline-flex; align-items:center; gap:.4em;
-  padding:6px 10px; font-size:12px; font-weight:800; letter-spacing:.02em;
-  color:#fff; background:rgba(0,0,0,.38);
-  border:1px solid rgba(255,255,255,.22);
-  border-radius:999px;
-  text-shadow:0 1px 2px rgba(0,0,0,.55);
-  backdrop-filter:saturate(130%) blur(2px); -webkit-backdrop-filter:saturate(130%) blur(2px);
+.home-hero .pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+  backdrop-filter: saturate(130%) blur(2px);
+  -webkit-backdrop-filter: saturate(130%) blur(2px);
 }
-.home-hero .pill.dark{ background:rgba(0,0,0,.55); }
-.home-hero .pill.warn{ background:rgba(201,126,34,.68); border-color:rgba(255,255,255,.28); }
+.home-hero .pill.dark {
+  background: rgba(0, 0, 0, 0.55);
+}
+.home-hero .pill.warn {
+  background: rgba(201, 126, 34, 0.68);
+  border-color: rgba(255, 255, 255, 0.28);
+}
 
 /* 共有アイコン */
-.home-hero .i, .hero-tags .i{
-  width:16px; height:16px; display:block;
+.home-hero .i,
+.hero-tags .i {
+  width: 16px;
+  height: 16px;
+  display: block;
 }
 
 /* 下段商品カードの右下タグ群 */
-.hero-tags{
-  position:absolute; right:10px; bottom:8px;
-  display:flex; gap:6px; z-index:2;
+.hero-tags {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  display: flex;
+  gap: 6px;
+  z-index: 2;
 }
-.hero-tags .tag{
-  display:inline-flex; align-items:center; gap:.35em;
-  padding:4px 8px; font-size:11px; font-weight:800; letter-spacing:.02em;
-  border-radius:999px; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.55);
-  border:1px solid rgba(255,255,255,.22); background:rgba(0,0,0,.5);
-  backdrop-filter:saturate(130%) blur(2px); -webkit-backdrop-filter:saturate(130%) blur(2px);
+.hero-tags .tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  border-radius: 999px;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: saturate(130%) blur(2px);
+  -webkit-backdrop-filter: saturate(130%) blur(2px);
 }
-.hero-tags .tag.price{ background:rgba(26,58,45,.9); border-color:rgba(26,58,45,.9); }
-.hero-tags .tag.stock{ background:rgba(201,126,34,.9); border-color:rgba(201,126,34,.9); }
-.hero-tags .tag.eta  { background:rgba(0,0,0,.6);  }
+.hero-tags .tag.price {
+  background: rgba(26, 58, 45, 0.9);
+  border-color: rgba(26, 58, 45, 0.9);
+}
+.hero-tags .tag.stock {
+  background: rgba(201, 126, 34, 0.9);
+  border-color: rgba(201, 126, 34, 0.9);
+}
+.hero-tags .tag.eta {
+  background: rgba(0, 0, 0, 0.6);
+}
 
 /* 上段を 21:9（より横長） */
-.home-hero .hero-card:not(.small){ aspect-ratio:21/9 !important; }
+.home-hero .hero-card:not(.small) {
+  aspect-ratio: 21/9 !important;
+}
 
 /* オーバーレイはやや薄め（可読性は text-shadow とピルで担保） */
-.home-hero .hero-card::after{
-  background:linear-gradient(to top, rgba(0,0,0,.22), rgba(0,0,0,.06) 55%, rgba(0,0,0,0));
+.home-hero .hero-card::after {
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.22),
+    rgba(0, 0, 0, 0.06) 55%,
+    rgba(0, 0, 0, 0)
+  );
 }
 /* === Spotlight Hero =================================================== */
-.hero-spotlight{
+.hero-spotlight {
   background: var(--brand);
   border-radius: 18px;
   padding: 10px 10px 14px;
-  margin: .6rem 0 1rem;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+  margin: 0.6rem 0 1rem;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
-.spotlight-head{
-  display:flex; align-items:center; justify-content:space-between;
+.spotlight-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 6px 6px 8px;
 }
-.spotlight-head h2{
-  margin:0; font-size:18px; font-weight:900; letter-spacing:.01em; color:#fff;
+.spotlight-head h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+  color: #fff;
 }
-.spotlight-more{ color:#fff; opacity:.9; font-size:13px; text-decoration:none; }
+.spotlight-more {
+  color: #fff;
+  opacity: 0.9;
+  font-size: 13px;
+  text-decoration: none;
+}
 
 /* 横スワイプの3タイル（店舗1＋商品2） */
-.spotlight-rail{
-  display:grid; grid-auto-flow:column; grid-auto-columns: 88%;
-  gap:12px; overflow-x:auto; -webkit-overflow-scrolling:touch;
-  scroll-snap-type: x mandatory; padding: 2px 4px;
+.spotlight-rail {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 88%;
+  gap: 12px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  padding: 2px 4px;
 }
-.spotlight-rail::-webkit-scrollbar{ display:none; }
+.spotlight-rail::-webkit-scrollbar {
+  display: none;
+}
 
-.tile{
-  position:relative; display:block; overflow:hidden; border-radius:18px;
-  background:#fff; scroll-snap-align:start;
-  box-shadow: 0 10px 24px rgba(0,0,0,.12);
+.tile {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: 18px;
+  background: #fff;
+  scroll-snap-align: start;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
 }
-.tile img{ width:100%; height:100%; object-fit:cover; display:block; }
-.tile::after{
-  content:""; position:absolute; inset:0;
-  background: linear-gradient(to top, rgba(0,0,0,.25), rgba(0,0,0,.06) 55%, rgba(0,0,0,0));
-  pointer-events:none;
+.tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.tile::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.25),
+    rgba(0, 0, 0, 0.06) 55%,
+    rgba(0, 0, 0, 0)
+  );
+  pointer-events: none;
 }
 
 /* アスペクト比（店舗は横長 21:9、商品は 4:3） */
-.tile.store   { aspect-ratio: 21 / 9; }
-.tile.product { aspect-ratio: 4 / 3;  }
+.tile.store {
+  aspect-ratio: 21 / 9;
+}
+.tile.product {
+  aspect-ratio: 4 / 3;
+}
 
 /* 店舗左上のメタピル（距離/時間/ETA/在庫） */
-.badge-row{
-  position:absolute; left:10px; top:10px;
-  display:flex; flex-wrap:wrap; gap:8px; z-index:2;
+.badge-row {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  z-index: 2;
 }
-.pill{
-  display:inline-flex; align-items:center; gap:.4em;
-  padding:6px 10px; font-size:12px; font-weight:800; letter-spacing:.02em;
-  color:#fff; background: rgba(0,0,0,.42);
-  border:1px solid rgba(255,255,255,.22); border-radius:999px;
-  text-shadow:0 1px 2px rgba(0,0,0,.55);
-  backdrop-filter:saturate(130%) blur(2px); -webkit-backdrop-filter:saturate(130%) blur(2px);
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+  backdrop-filter: saturate(130%) blur(2px);
+  -webkit-backdrop-filter: saturate(130%) blur(2px);
 }
-.pill.warn{ background: rgba(201,126,34,.72); border-color: rgba(255,255,255,.28); }
-.i{ width:16px; height:16px; display:block; }
+.pill.warn {
+  background: rgba(201, 126, 34, 0.72);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+.i {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
 
 /* タイル下部の本文 */
-.tile-body{
-  position:absolute; left:12px; right:12px; bottom:10px; z-index:2; color:#fff;
-  text-shadow: 0 2px 6px rgba(0,0,0,.35);
+.tile-body {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 10px;
+  z-index: 2;
+  color: #fff;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
 }
-.tile.store  h3{ margin:.1rem 0 2px; font-size:24px; font-weight:900; }
-.tile.store  .sub{ margin:0; opacity:.95; }
+.tile.store h3 {
+  margin: 0.1rem 0 2px;
+  font-size: 24px;
+  font-weight: 900;
+}
+.tile.store .sub {
+  margin: 0;
+  opacity: 0.95;
+}
 
-.tile.product h4{ margin:0 0 6px; font-size:15px; font-weight:800; }
+.tile.product h4 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 800;
+}
 
 /* 商品タイル右下のチップ（価格/ETA/残数） */
-.chips{
-  display:flex; gap:6px; flex-wrap:wrap;
+.chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
 }
-.chips .chip{
-  display:inline-flex; align-items:center; gap:.35em;
-  padding:4px 8px; font-size:11px; font-weight:800; letter-spacing:.02em;
-  color:#fff; border-radius:999px; border:1px solid rgba(255,255,255,.22);
-  background: rgba(0,0,0,.55);
-  text-shadow: 0 1px 2px rgba(0,0,0,.55);
-  backdrop-filter:saturate(130%) blur(2px); -webkit-backdrop-filter:saturate(130%) blur(2px);
+.chips .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #fff;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(0, 0, 0, 0.55);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+  backdrop-filter: saturate(130%) blur(2px);
+  -webkit-backdrop-filter: saturate(130%) blur(2px);
 }
-.chips .chip.price { background: rgba(26,58,45,.92); border-color: rgba(26,58,45,.92); }
-.chips .chip.stock { background: rgba(201,126,34,.9); border-color: rgba(201,126,34,.9); }
-.chips .chip.eta   { background: rgba(0,0,0,.65); }
-
+.chips .chip.price {
+  background: rgba(26, 58, 45, 0.92);
+  border-color: rgba(26, 58, 45, 0.92);
+}
+.chips .chip.stock {
+  background: rgba(201, 126, 34, 0.9);
+  border-color: rgba(201, 126, 34, 0.9);
+}
+.chips .chip.eta {
+  background: rgba(0, 0, 0, 0.65);
+}
 
 /* === Spotlight Hero：横長・省スペース版 ========================= */
 /* タイル比率を可変トークン化（デフォルト 18:9 ≒ 2:1） */
-:root { --spot-ar: 18 / 9; }             /* base: 横長 */
-@media (min-width:480px){ :root { --spot-ar: 20 / 9; } }  /* さらに横長 */
-@media (min-width:768px){ :root { --spot-ar: 21 / 9; } }  /* タブレット以上 */
+:root {
+  --spot-ar: 18 / 9;
+} /* base: 横長 */
+@media (min-width: 480px) {
+  :root {
+    --spot-ar: 20 / 9;
+  }
+} /* さらに横長 */
+@media (min-width: 768px) {
+  :root {
+    --spot-ar: 21 / 9;
+  }
+} /* タブレット以上 */
 
 /* 3枚すべて同じ比率に統一（以前の指定を上書き） */
 .tile.store,
@@ -992,39 +1141,153 @@ section.price {
 }
 
 /* 余白も少しタイトにして全体高さを削減 */
-.hero-spotlight { padding: 8px 8px 10px; margin: .4rem 0 .8rem; }
-.spotlight-rail { grid-auto-columns: 80%; gap: 10px; } /* 横幅を少し絞り、次カードのチラ見せでスワイプ促進 */
+.hero-spotlight {
+  padding: 8px 8px 10px;
+  margin: 0.4rem 0 0.8rem;
+}
+.spotlight-rail {
+  grid-auto-columns: 80%;
+  gap: 10px;
+} /* 横幅を少し絞り、次カードのチラ見せでスワイプ促進 */
 
 /* 縦が短くなる分タイポとピルをコンパクトに */
-.tile.store h3 { font-size: 20px; }
-.tile.store .sub { font-size: 13px; }
-.tile.product h4 { font-size: 14px; }
+.tile.store h3 {
+  font-size: 20px;
+}
+.tile.store .sub {
+  font-size: 13px;
+}
+.tile.product h4 {
+  font-size: 14px;
+}
 
-.badge-row .pill { padding: 5px 8px; font-size: 11px; }
-.chips .chip     { padding: 3px 7px; font-size: 10.5px; }
+.badge-row .pill {
+  padding: 5px 8px;
+  font-size: 11px;
+}
+.chips .chip {
+  padding: 3px 7px;
+  font-size: 10.5px;
+}
 
 /* オーバーレイは薄めで可読性確保（短い高さでも文字が沈まない） */
-.tile::after{
+.tile::after {
   background: linear-gradient(
     to top,
-    rgba(0,0,0,.20),
-    rgba(0,0,0,.06) 55%,
-    rgba(0,0,0,0)
+    rgba(0, 0, 0, 0.2),
+    rgba(0, 0, 0, 0.06) 55%,
+    rgba(0, 0, 0, 0)
   );
 }
 /* === CTA: 初期は非表示／スクロールでふわっと表示 ==================== */
-.home-cta{
+.home-cta {
   opacity: 0;
   transform: translateY(8px);
   pointer-events: none;
-  transition: opacity .24s ease, transform .24s ease;
+  transition: opacity 0.24s ease, transform 0.24s ease;
   will-change: opacity, transform;
 }
-.home-cta.is-visible{
+.home-cta.is-visible {
   opacity: 1;
   transform: translateY(0);
   pointer-events: auto;
 }
-@media (prefers-reduced-motion: reduce){
-  .home-cta{ transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  .home-cta {
+    transition: none;
+  }
+}
+/* === Spotlight Hero：主従を幅で表現（高さは統一） ===================== */
+:root {
+  --spot-h: clamp(130px, 24vw, 168px);
+} /* 全カードの高さ */
+
+.spotlight-rail {
+  display: flex !important;
+  gap: 12px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 2px 4px;
+  scroll-snap-type: x proximity;
+}
+.spotlight-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.tile {
+  flex: 0 0 auto;
+  height: var(--spot-h);
+  width: min(78vw, 420px); /* 基準幅（従） */
+  aspect-ratio: auto !important; /* 以前のAR指定を無効化 */
+  border-radius: 16px;
+  position: relative;
+  scroll-snap-align: start;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+}
+.tile.lead {
+  width: min(92vw, 540px);
+} /* 主役＝ワイド */
+.tile.side {
+  width: min(64vw, 360px);
+} /* 従   ＝スリム */
+
+.tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.tile::after {
+  /* 高さが低い分、オーバーレイは控えめ */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.18),
+    rgba(0, 0, 0, 0.05) 55%,
+    rgba(0, 0, 0, 0)
+  );
+  pointer-events: none;
+}
+
+/* タイポ＆メタも主従で差をつける */
+.tile.store h3 {
+  font-size: clamp(18px, 3.6vw, 22px);
+}
+.tile.store .sub {
+  font-size: 12.5px;
+  opacity: 0.95;
+}
+
+.tile.product h4 {
+  font-size: 14px;
+}
+.tile.side .chips .chip {
+  font-size: 10px;
+  padding: 3px 6px;
+}
+
+/* ピル・チップの密度を少し上げる（高さ節約） */
+.badge-row {
+  top: 8px;
+  left: 8px;
+  gap: 6px;
+}
+.pill {
+  font-size: 11px;
+  padding: 5px 8px;
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --spot-h: clamp(140px, 18vw, 190px);
+  }
+  .tile.lead {
+    width: 560px;
+  }
+  .tile.side {
+    width: 380px;
+  }
 }
