@@ -2669,3 +2669,7 @@ body {
 .hero-spotlight{
   background: var(--brand) !important;
 }
+
+spotlight-card{
+  background: var(--brand) !important;
+}
