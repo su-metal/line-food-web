@@ -1291,3 +1291,118 @@ section.price {
     width: 380px;
   }
 }
+/* === Spotlight affordance: edge fades, cue, dots ================== */
+.spotlight-wrap {
+  position: relative;
+}
+
+/* 右エッジ（続きがあるサイン） */
+.spotlight-wrap::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 28px;
+  background: linear-gradient(to left, var(--brand) 35%, rgba(26, 58, 45, 0));
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+/* 左エッジ（戻り方向） */
+.spotlight-wrap::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 28px;
+  background: linear-gradient(to right, var(--brand) 35%, rgba(26, 58, 45, 0));
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+/* JSで付与：スクロール位置に応じて表示 */
+.spotlight-wrap.has-right::after {
+  opacity: 1;
+}
+.spotlight-wrap.has-left::before {
+  opacity: 1;
+}
+
+/* スワイプ・キュー（初回のみ） */
+.scroll-cue {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  backdrop-filter: saturate(130%) blur(2px);
+  -webkit-backdrop-filter: saturate(130%) blur(2px);
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 0.25s, transform 0.25s;
+  pointer-events: none;
+}
+.scroll-cue.is-hidden {
+  opacity: 0;
+  transform: translateX(4px);
+}
+
+.cue-chev {
+  width: 16px;
+  height: 16px;
+}
+@keyframes cue-nudge {
+  0%,
+  60% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(6px);
+  }
+}
+.cue-chev {
+  animation: cue-nudge 1.2s ease-in-out infinite;
+}
+
+/* ページドット */
+.spotlight-dots {
+  position: absolute;
+  left: 10px;
+  bottom: 8px;
+  z-index: 3;
+  display: flex;
+  gap: 6px;
+  margin: 0;
+  padding: 4px 6px;
+  list-style: none;
+  background: rgba(0, 0, 0, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+}
+.spotlight-dots li {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.55);
+  opacity: 0.7;
+  transition: all 0.2s;
+}
+.spotlight-dots li.is-active {
+  width: 14px;
+  height: 6px;
+  background: #fff;
+  opacity: 1;
+}
