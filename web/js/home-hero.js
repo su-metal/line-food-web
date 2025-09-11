@@ -243,3 +243,7 @@ async function initSpotlight(){
 }
 
 document.addEventListener("DOMContentLoaded", initSpotlight);
+// 例：home-hero.js どこかで
+document.getElementById('tile-shop-price').textContent = '1,280';
+document.querySelector('#tile-shop-ribbon .n').textContent = '2';
+
