@@ -2611,3 +2611,32 @@ body {
   border-radius: 16px;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
 }
+/* === Spotlight / Hero の背景を統一（やわらかいベージュ） === */
+:root {
+  --hero-bg: #E9E8E4;
+}
+
+/* セクション背景 */
+.hero-spotlight {
+  background: var(--hero-bg) !important;
+}
+
+/* カード本体も同色に。枠・影を消して“二重枠”を回避 */
+.spotlight-card {
+  background: var(--hero-bg) !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* 万一の装飾線を完全に無効化 */
+.spotlight-card::before,
+.spotlight-card::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* 画像を載せる面はそのまま（角丸だけ活かす） */
+.spotlight-media {
+  border-radius: 18px;
+  overflow: hidden;
+}
