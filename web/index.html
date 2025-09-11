@@ -108,125 +108,52 @@
 
 <main class="container">
   <!-- ===== Spotlight Hero (new) ===== -->
-  <section class="hero-spotlight">
-    <div class="spotlight-head">
-      <h2>いま行けるおすすめ</h2>
-      <a class="spotlight-more" href="./shops.html">もっと見る</a>
-    </div>
+ <!-- ===== Spotlight (Agoda-like) ===== -->
+<section class="hero-spotlight">
+  <div class="spotlight-head">
+    <h2>いま行けるおすすめ</h2>
+    <a class="spotlight-more" href="./shops.html">もっと見る</a>
+  </div>
 
-    <!-- ✅ wrap の中に rail / cue / dots を入れる -->
-    <div class="spotlight-wrap">
-      <div class="spotlight-rail" id="spotlight-rail">
-        <!-- 店舗タイル（主役） -->
-        <a id="tile-shop" class="tile booking lead" href="#">
-          <div class="tile-media">
-            <img id="tile-shop-img" src="./img/hero1.jpg" alt="" />
-            <span class="media-count" id="tile-shop-count">1/5</span>
-            <button class="icon circle share" aria-label="共有">
-              <svg viewBox="0 0 24 24">
-                <path
-                  d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v14"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-            </button>
-            <button class="icon circle fav" aria-label="お気に入り">
-              <svg viewBox="0 0 24 24">
-                <path
-                  d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-            </button>
+  <article class="spotlight-card" id="spotlight">
+    <a class="spotlight-media" id="sp-link" href="#">
+      <img id="sp-img" src="./img/hero1.jpg" alt="" />
+      <span class="sp-count" id="sp-count">1/5</span>
 
-            <!-- 価格リボン -->
-            <div class="price-ribbon" id="tile-shop-ribbon">
-              <em class="ribbon-head"
-                >当日残り <span class="n">2</span> セットのみ</em
-              >
-              <div class="price">
-                <span class="yen">¥</span><b id="tile-shop-price">1,280</b>
-              </div>
-              <div class="price-sub">税込</div>
-            </div>
-          </div>
-
-          <div class="tile-info">
-            <div class="badge">イチ押し</div>
-            <h3 id="tile-shop-name">店舗名</h3>
-            <div class="meta">
-              <span id="tile-shop-dist">1.2 km</span><span class="dot"></span>
-              <span id="tile-shop-time">17:00–19:00</span
-              ><span class="dot"></span>
-              <span id="tile-shop-area">〇〇駅</span>
-            </div>
-          </div>
-        </a>
-
-        <!-- 商品タイル #1 -->
-        <a id="tile-p1" class="tile booking" href="#">
-          <div class="tile-media">
-            <img id="tile-p1-img" src="./img/hero2.jpg" alt="" />
-            <div class="price-ribbon sm" id="tile-p1-ribbon">
-              <div class="price">
-                <span class="yen">¥</span><b id="tile-p1-price">500</b>
-              </div>
-            </div>
-          </div>
-          <div class="tile-info">
-            <h4 id="tile-p1-title">商品名</h4>
-            <div class="meta"><span id="tile-p1-shop">ショップ名</span></div>
-          </div>
-        </a>
-
-        <!-- 商品タイル #2 -->
-        <a id="tile-p2" class="tile booking" href="#">
-          <div class="tile-media">
-            <img id="tile-p2-img" src="./img/hero3.jpg" alt="" />
-            <div class="price-ribbon sm" id="tile-p2-ribbon">
-              <div class="price">
-                <span class="yen">¥</span><b id="tile-p2-price">900</b>
-              </div>
-            </div>
-          </div>
-          <div class="tile-info">
-            <h4 id="tile-p2-title">商品名</h4>
-            <div class="meta"><span id="tile-p2-shop">ショップ名</span></div>
-          </div>
-        </a>
+      <div class="sp-acts">
+        <!-- 共有 -->
+        <button class="sp-act" aria-label="共有">
+          <svg viewBox="0 0 24 24"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <!-- お気に入り -->
+        <button class="sp-act" aria-label="お気に入り">
+          <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
       </div>
 
-      <!-- スワイプ・キュー（初回だけ表示） -->
-      <div class="scroll-cue" id="scroll-cue" aria-hidden="true">
-        <span class="cue-text">スワイプ</span>
-        <svg class="cue-chev" viewBox="0 0 24 24" aria-hidden="true">
-          <path
-            d="M9 6l6 6-6 6"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-          />
-        </svg>
+      <!-- 右下：赤リボン＋価格カード -->
+      <div class="sp-price">
+        <span class="sp-ribbon" id="sp-ribbon">当日残り2セットのみ</span>
+        <div class="sp-price-card">
+          <span class="yen">¥</span><span id="sp-price">1,280</span>
+          <small id="sp-price-sub">税込</small>
+        </div>
       </div>
 
-      <!-- ページドット -->
-      <ol
-        class="spotlight-dots"
-        id="spotlight-dots"
-        role="tablist"
-        aria-label="おすすめのスライド"
-      ></ol>
+      <!-- 下側の黒グラデ（可読性） -->
+      <div class="sp-grad"></div>
+    </a>
+
+    <div class="spotlight-info">
+      <div class="eyebrow">イチ押し</div>
+      <h3 class="title" id="sp-title">ベーカリー とよはし</h3>
+      <div class="meta" id="sp-meta">
+        <!-- 例：🚶 豊橋駅から徒歩5分 ・ 🕒 7:30–9:30 -->
+      </div>
     </div>
-  </section>
+  </article>
+</section>
+<!-- ===== /Spotlight ===== -->
 
   <!-- ===== /Spotlight Hero ===== -->
 

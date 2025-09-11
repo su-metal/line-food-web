@@ -2306,3 +2306,176 @@ body {
 .hero-spotlight .spotlight-head {
   margin: 0 0 8px;
 }
+/* ========== Spotlight (Agoda-like) ========== */
+.hero-spotlight {
+  padding: 10px 16px 0;
+}
+.hero-spotlight .spotlight-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 10px;
+}
+.hero-spotlight .spotlight-head h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+}
+.hero-spotlight .spotlight-more {
+  font-size: 14px;
+  color: var(--brand);
+  text-decoration: none;
+}
+
+.spotlight-card {
+  /* 余分な内枠は無し。カード背景も透明で軽く */
+  background: transparent;
+  box-shadow: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+/* 画像＝角丸・オーバーレイ・アクション類はすべてこの“メディア”上に重ねる */
+.spotlight-card .spotlight-media {
+  position: relative;
+  display: block;
+  border-radius: 20px;
+  overflow: hidden;
+}
+.spotlight-card .spotlight-media img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16/9;
+  object-fit: cover;
+}
+
+/* 下側グラデで白文字を見やすく */
+.spotlight-card .sp-grad {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 42%;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0));
+  pointer-events: none;
+}
+
+/* 左下の “1/5” バッジ */
+.spotlight-card .sp-count {
+  position: absolute;
+  left: 14px;
+  bottom: 12px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1;
+  padding: 8px 10px;
+  border-radius: 14px;
+}
+
+/* 右上の丸ボタン群 */
+.spotlight-card .sp-acts {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  display: flex;
+  gap: 10px;
+}
+.spotlight-card .sp-act {
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 999px;
+  background: #fff;
+  color: #1b1b1b;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+}
+.spotlight-card .sp-act svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* 右下：赤リボン + 価格カード（連結っぽく） */
+.spotlight-card .sp-price {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.spotlight-card .sp-ribbon {
+  background: #d9534f;
+  color: #fff;
+  font-weight: 800;
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: 10px 10px 4px 4px; /* 上を丸く、下は軽く */
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
+}
+.spotlight-card .sp-price-card {
+  margin-top: 6px;
+  background: #fff;
+  color: #111;
+  border-radius: 14px;
+  padding: 10px 14px;
+  font-weight: 900;
+  font-size: 22px;
+  line-height: 1;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+}
+.spotlight-card .sp-price-card .yen {
+  margin-right: 2px;
+  font-size: 0.72em;
+  font-weight: 700;
+  opacity: 0.9;
+}
+.spotlight-card .sp-price-card small {
+  display: block;
+  font-weight: 700;
+  font-size: 12px;
+  opacity: 0.8;
+  margin-top: 4px;
+}
+
+/* 画像の下：店名とサブ情報 */
+.spotlight-card .spotlight-info {
+  padding: 8px 4px 2px;
+}
+.spotlight-card .spotlight-info .eyebrow {
+  font-size: 12px;
+  color: color-mix(in srgb, var(--ink) 60%, #fff);
+  margin-bottom: 2px;
+}
+.spotlight-card .spotlight-info .title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.spotlight-card .spotlight-info .meta {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--muted);
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* 旧スタイルの“内側の白いフレーム”を必ず無効化 */
+.spotlight-wrap,
+.spotlight-rail,
+.spotlight-rail::before,
+.spotlight-rail::after {
+  display: none !important;
+  content: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
