@@ -108,52 +108,82 @@
 
 <main class="container">
   <!-- ===== Spotlight Hero (new) ===== -->
- <!-- ===== Spotlight (Agoda-like) ===== -->
-<section class="hero-spotlight">
-  <div class="spotlight-head">
-    <h2>いま行けるおすすめ</h2>
-    <a class="spotlight-more" href="./shops.html">もっと見る</a>
-  </div>
+  <!-- ===== Spotlight (Agoda-like) ===== -->
+  <section class="hero-spotlight">
+    <div class="spotlight-head">
+      <h2>いま行けるおすすめ</h2>
+      <a class="spotlight-more" href="./shops.html">もっと見る</a>
+    </div>
 
-  <article class="spotlight-card" id="spotlight">
-    <a class="spotlight-media" id="sp-link" href="#">
-      <img id="sp-img" src="./img/hero1.jpg" alt="" />
-      <span class="sp-count" id="sp-count">1/5</span>
+    <article class="spotlight-card" id="spotlight">
+      <a class="spotlight-media" id="sp-link" href="#">
+        <img id="sp-img" src="./img/hero1.jpg" alt="" />
+        <!-- 画像ブロックの直後に配置 -->
+        <div class="ag-body">
+          <p class="ag-kicker">イチ押し</p>
+          <h3 id="ag-title" class="ag-title">店舗名</h3>
 
-      <div class="sp-acts">
-        <!-- 共有 -->
-        <button class="sp-act" aria-label="共有">
-          <svg viewBox="0 0 24 24"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <!-- お気に入り -->
-        <button class="sp-act" aria-label="お気に入り">
-          <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-      </div>
+          <!-- 追加: 詳細メタ -->
+          <div class="ag-meta">
+            <span id="ag-cat" class="chip chip--brand">カテゴリ</span>
+            <span id="ag-dist" class="chip">1.2 km</span>
+            <span id="ag-place" class="meta-place">エリア/最寄り</span>
+          </div>
+        </div>
+        <span class="sp-count" id="sp-count">1/5</span>
 
-      <!-- 右下：赤リボン＋価格カード -->
-      <div class="sp-price">
-        <span class="sp-ribbon" id="sp-ribbon">当日残り2セットのみ</span>
-        <div class="sp-price-card">
-          <span class="yen">¥</span><span id="sp-price">1,280</span>
-          <small id="sp-price-sub">税込</small>
+        <div class="sp-acts">
+          <!-- 共有 -->
+          <button class="sp-act" aria-label="共有">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v14"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+          <!-- お気に入り -->
+          <button class="sp-act" aria-label="お気に入り">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
+
+        <!-- 右下：赤リボン＋価格カード -->
+        <div class="sp-price">
+          <span class="sp-ribbon" id="sp-ribbon">当日残り2セットのみ</span>
+          <div class="sp-price-card">
+            <span class="yen">¥</span><span id="sp-price">1,280</span>
+            <small id="sp-price-sub">税込</small>
+          </div>
+        </div>
+
+        <!-- 下側の黒グラデ（可読性） -->
+        <div class="sp-grad"></div>
+      </a>
+
+      <div class="spotlight-info">
+        <div class="eyebrow">イチ押し</div>
+        <h3 class="title" id="sp-title">ベーカリー とよはし</h3>
+        <div class="meta" id="sp-meta">
+          <!-- 例：🚶 豊橋駅から徒歩5分 ・ 🕒 7:30–9:30 -->
         </div>
       </div>
-
-      <!-- 下側の黒グラデ（可読性） -->
-      <div class="sp-grad"></div>
-    </a>
-
-    <div class="spotlight-info">
-      <div class="eyebrow">イチ押し</div>
-      <h3 class="title" id="sp-title">ベーカリー とよはし</h3>
-      <div class="meta" id="sp-meta">
-        <!-- 例：🚶 豊橋駅から徒歩5分 ・ 🕒 7:30–9:30 -->
-      </div>
-    </div>
-  </article>
-</section>
-<!-- ===== /Spotlight ===== -->
+    </article>
+  </section>
+  <!-- ===== /Spotlight ===== -->
 
   <!-- ===== /Spotlight Hero ===== -->
 

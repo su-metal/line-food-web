@@ -2479,3 +2479,65 @@ body {
   border: 0 !important;
   box-shadow: none !important;
 }
+/* ===== Agoda風カード: 下部本文 ===== */
+.ag-body {
+  padding: 10px 6px 0;
+}
+.ag-kicker {
+  margin: 0 0 2px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: color-mix(in oklab, var(--ink) 55%, #0000);
+}
+.ag-title {
+  margin: 0 0 6px;
+  font-size: 16px;
+  line-height: 1.25;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+/* メタ行（カテゴリ/距離/場所） */
+.ag-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+/* 汎用チップ */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 4px 8px;
+  font-size: 12px;
+  line-height: 1;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+
+/* ブランド色のチップ（カテゴリ） */
+.chip--brand {
+  background: color-mix(in oklab, var(--brand) 10%, #fff);
+  border-color: color-mix(in oklab, var(--brand) 28%, #fff);
+  color: var(--brand);
+  font-weight: 700;
+}
+
+/* 場所はテキスト寄りに（長文でも折り返し） */
+.meta-place {
+  font-size: 12px;
+  color: var(--muted);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ドット/ページインジケータなど既存のブランド合わせ（任意） */
+.spotlight-dots li.is-active {
+  background: var(--brand);
+}
