@@ -1699,3 +1699,137 @@ body {
     --rail-gutter: 16px;
   }
 }
+/* ========== Spotlight を軽量スキンに ========== */
+/* セクションのベース：薄い面＋細い枠＋小さめの角丸／影 */
+.hero-spotlight {
+  --rail-gutter: clamp(16px, 5vw, 20px);
+  background: color-mix(in oklab, var(--bg) 85%, #fff 15%);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+  padding-block: 10px 12px;
+}
+
+/* 見出しを“濃い帯の上”ではなく、普通のテキストとして軽く */
+.hero-spotlight .spotlight-head {
+  padding-inline: calc(var(--rail-gutter) + env(safe-area-inset-left))
+    calc(var(--rail-gutter) + env(safe-area-inset-right));
+  color: var(--ink);
+}
+.spotlight-head h2 {
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  opacity: 0.95;
+}
+.spotlight-more {
+  color: var(--brand);
+  opacity: 0.9;
+}
+
+/* レールも同じインナー余白で揃える */
+.spotlight-rail {
+  padding-inline: calc(var(--rail-gutter) + env(safe-area-inset-left))
+    calc(var(--rail-gutter) + env(safe-area-inset-right));
+  gap: 12px;
+}
+
+/* タイル：白面＋細枠＋淡影。角丸は内側を少しだけ小さく */
+.tile {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(16, 24, 23, 0.05);
+}
+.tile img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 21/9; /* 横長で軽く */
+  object-fit: cover;
+  display: block;
+}
+.tile .tile-body {
+  position: static; /* 画像の上に“被せない” */
+  padding: 10px 12px;
+  color: var(--ink);
+  text-shadow: none;
+}
+.tile.store.lead .tile-body h3 {
+  font-size: 17px;
+  font-weight: 800;
+}
+.tile.product .tile-body h4 {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* 画像上に出るバッジは白ベースのチップで軽く */
+.badge-row {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  display: flex;
+  gap: 6px;
+}
+.badge-row .chip {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+/* オーバーレイは弱め（読みやすさ確保のためのごく薄いグラデ） */
+.tile.store.lead::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.12),
+    rgba(0, 0, 0, 0) 55%
+  );
+  pointer-events: none;
+}
+
+/* ページドット：画像の“外”に出し、軽いピルに */
+.spotlight-dots {
+  position: static; /* 絶対配置を解除して重なり回避 */
+  display: inline-flex;
+  gap: 6px;
+  margin: 8px calc(var(--rail-gutter) + env(safe-area-inset-right)) 0 auto;
+  padding: 3px 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+.spotlight-dots > li {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--ink) 22%, transparent);
+  opacity: 0.55;
+}
+.spotlight-dots > li.is-active {
+  width: 14px;
+  border-radius: 8px;
+  background: var(--brand);
+  opacity: 1;
+}
+
+/* スワイプ・キューも薄く（必要に応じて自動で消える既存JSを利用） */
+#scroll-cue {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+
+/* 余白の微整形（TABETE寄りの軽さ） */
+.hero-spotlight {
+  margin: 12px 0 10px;
+}
+.spotlight-head {
+  margin-bottom: 6px;
+}
