@@ -1406,3 +1406,27 @@ section.price {
   background: #fff;
   opacity: 1;
 }
+/* === Spotlight dots: 画像と重ならない棚を用意して右下へ ========== */
+.spotlight-wrap {
+  position: relative;
+  --dots-shelf: 28px; /* ドット分の高さを確保 */
+  padding-bottom: var(--dots-shelf);
+}
+
+/* 以前の left/bottom を上書きして右下の棚へ */
+.spotlight-dots {
+  left: auto !important;
+  right: 10px;
+  bottom: 6px;
+  z-index: 2; /* 過度に前面に出さない */
+  background: rgba(0, 0, 0, 0.22); /* 少しだけ軽く */
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+/* 小画面はさらに干渉しにくいように少し小さく */
+@media (max-width: 360px) {
+  .spotlight-dots {
+    transform: scale(0.92);
+    transform-origin: right bottom;
+  }
+}
