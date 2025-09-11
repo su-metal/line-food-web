@@ -138,13 +138,9 @@ document.addEventListener("DOMContentLoaded", () => {
   loadSpotlight().catch(console.warn);
 });
 
-// ページが開いたらダミー値で表示（まずは見た目確認用）
-document.addEventListener("DOMContentLoaded", () => {
-  updateSpotlightMeta({
-    category_name: "ベーカリー",
-    area: "新御堂橋エリア",
-    station: "豊橋駅",
-    distance_km: 1.2
-  });
-});
+// 既存：タイトルや画像をセット
+document.getElementById("sp-title").textContent = shop.name;
+document.getElementById("sp-img").src = shop.photo_url;
+// 追加：メタ更新
+updateSpotlightMeta(shop, shop.distance_km);
 
