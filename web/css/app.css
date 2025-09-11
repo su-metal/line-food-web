@@ -1524,3 +1524,36 @@ main.container{ padding-bottom: calc(var(--tabbar-h,56px) + var(--home-cta-h,72p
 
 /* 8) 文字濃度を全体で少し控えめ（TABETEの軽さに寄せる） */
 body{ color: color-mix(in srgb, var(--ink) 92%, #0000); }
+/* ===== Section headings: make them smaller & lighter ===== */
+:root{
+  --fs-section: clamp(16px, 1.9vw, 18px);     /* 見出し */
+  --fs-section-sub: clamp(12.5px, 1.6vw, 14px); /* 「もっと見る」など */
+}
+
+/* 「いま行けるおすすめ」「現在地付近のお店」「最近追加されたお店」 */
+.spotlight-head h2,
+.section-head h3{
+  font-size: var(--fs-section) !important;
+  line-height: 1.25;
+  letter-spacing: .01em;
+  font-weight: 800;
+}
+
+/* 右側の「もっと見る」やスポットライトのリンクも小さめに */
+.section-head .more,
+.spotlight-more{
+  font-size: var(--fs-section-sub) !important;
+  font-weight: 700;
+}
+
+/* 余白も少しだけ詰める */
+.section-head{ margin: 18px 0 8px; }
+.hero-spotlight{ margin: 10px 0 12px; }
+
+/* 極小画面はさらに一段階ダウン */
+@media (max-width: 360px){
+  :root{
+    --fs-section: 15px;
+    --fs-section-sub: 12px;
+  }
+}
