@@ -35,20 +35,23 @@ function metaLine(shop) {
   return [d && `📍 ${d}`, t && `🕒 ${t}`].filter(Boolean).join(" ・ ");
 }
 // 画像の下の「カテゴリ／距離／場所」を更新するユーティリティ
-function updateSpotlightMeta(shop = {}, distanceKm = null){
+function updateSpotlightMeta(shop = {}, distanceKm = null) {
   const $ = (id) => document.getElementById(id);
-  const fmtKm = (v) => (typeof v === "number" ? `${v.toFixed(v < 1 ? 1 : 1)} km` : "");
+  const fmtKm = (v) =>
+    typeof v === "number" ? `${v.toFixed(v < 1 ? 1 : 1)} km` : "";
 
-  const cat   = shop.category_name || shop.category || "ベーカリー";
-  const dist  = fmtKm(distanceKm ?? shop.distance_km);
-  const place = shop.area || shop.city || shop.station || shop.address_short || "";
+  const cat = shop.category_name || shop.category || "ベーカリー";
+  const dist = fmtKm(distanceKm ?? shop.distance_km);
+  const place =
+    shop.area || shop.city || shop.station || shop.address_short || "";
 
-  const elCat = $("sp-cat"), elDist = $("sp-dist"), elPlace = $("sp-place");
-  if (elCat)   elCat.textContent   = cat;
-  if (elDist)  elDist.textContent  = dist || "—";
+  const elCat = $("sp-cat"),
+    elDist = $("sp-dist"),
+    elPlace = $("sp-place");
+  if (elCat) elCat.textContent = cat;
+  if (elDist) elDist.textContent = dist || "—";
   if (elPlace) elPlace.textContent = place || "";
 }
-
 
 export async function loadSpotlight() {
   const el = document.getElementById("spotlight");
@@ -120,6 +123,66 @@ function pickPlace(s) {
     "エリア情報なし"
   );
 }
+/* ===== Spotlight meta: Shadow DOMで不意の上書きを防止 ===== */
+function renderSpotlightMeta(shop = {}, distanceKm = null) {
+  const host = document.getElementById("sp-meta");
+  if (!host) return;
+
+  // 1回だけ Shadow DOM を作る
+  if (!host.shadowRoot) {
+    const root = host.attachShadow({ mode: "open" });
+    root.innerHTML = `
+      <style>
+        :host { display:block; }
+        .meta{ display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
+        .chip{
+          display:inline-flex; align-items:center; gap:.35em;
+          height:26px; padding:0 10px; border-radius:999px;
+          border:1px solid color-mix(in srgb, var(--brand) 18%, transparent);
+          background:#fff; color:var(--ink); font-size:12.5px; font-weight:700;
+        }
+        .chip.brand{ background:var(--brand); border-color:var(--brand); color:#fff; }
+        .place{ color:var(--muted); font-size:12.5px; font-weight:600; }
+      </style>
+      <div class="meta">
+        <span id="cat"   class="chip brand">カテゴリ</span>
+        <span id="dist"  class="chip">-- km</span>
+        <span id="place" class="place">エリア / 最寄り</span>
+      </div>
+    `;
+  }
+
+  const r = host.shadowRoot;
+  const fmtKm = (v) =>
+    typeof v === "number" ? `${v.toFixed(v < 1 ? 1 : 1)} km` : "";
+
+  r.getElementById("cat").textContent =
+    shop.category_name || shop.category || "ベーカリー";
+  r.getElementById("dist").textContent =
+    fmtKm(distanceKm ?? shop.distance_km) || "—";
+  r.getElementById("place").textContent =
+    shop.area || shop.city || shop.station || shop.address_short || "";
+}
+
+// まずはダミーで表示（見た目確認用）
+document.addEventListener("DOMContentLoaded", () => {
+  renderSpotlightMeta(
+    {
+      category_name: "ベーカリー",
+      area: "新御堂橋エリア",
+      station: "豊橋駅",
+      distance_km: 1.2,
+    },
+    1.2
+  );
+});
+
+/* 本番データをセットする既存処理の直後に、以下1行を足してください。
+   例：
+   document.getElementById("sp-title").textContent = shop.name;
+   document.getElementById("sp-img").src = shop.photo_url;
+   renderSpotlightMeta(shop, shop.distance_km); // ←これを追加
+*/
 
 // …（カード構築処理の中で）画像や店名を入れている箇所の直後に追加:
 const catEl = document.getElementById("ag-cat");
@@ -143,4 +206,3 @@ document.getElementById("sp-title").textContent = shop.name;
 document.getElementById("sp-img").src = shop.photo_url;
 // 追加：メタ更新
 updateSpotlightMeta(shop, shop.distance_km);
-
