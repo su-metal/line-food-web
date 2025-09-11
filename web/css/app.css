@@ -1837,14 +1837,14 @@ body {
 
 /* 1) 見出しの白文字を撤回して濃いテキストに */
 .hero-spotlight .spotlight-head,
-.hero-spotlight .spotlight-head *{
+.hero-spotlight .spotlight-head * {
   color: var(--ink) !important;
   text-shadow: none !important;
 }
 
 /* 2) 右端に出ていた濃いグラデ（旧エッジマスク）を無効化 */
 .spotlight-wrap::before,
-.spotlight-wrap::after{
+.spotlight-wrap::after {
   content: none !important;
   display: none !important;
   background: none !important;
@@ -1852,39 +1852,232 @@ body {
 }
 
 /* 3) ドットの位置を“画像の外・右下”に安定配置（重なり解消） */
-.spotlight-dots{
-  position: static !important;        /* 絶対配置を解除 */
+.spotlight-dots {
+  position: static !important; /* 絶対配置を解除 */
   display: flex !important;
   justify-content: flex-end;
   gap: 6px;
   margin: 10px 0 0;
-  padding: 4px
-           calc(var(--rail-gutter) + env(safe-area-inset-right))
-           0
-           calc(var(--rail-gutter) + env(safe-area-inset-left));
+  padding: 4px calc(var(--rail-gutter) + env(safe-area-inset-right)) 0
+    calc(var(--rail-gutter) + env(safe-area-inset-left));
   border: 1px solid var(--line);
   border-radius: 999px;
-  background: rgba(255,255,255,.85);
-  box-shadow: 0 2px 6px rgba(0,0,0,.06);
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
 }
-.spotlight-dots > li{
-  width: 6px; height: 6px; border-radius: 999px;
+.spotlight-dots > li {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
   background: color-mix(in oklab, var(--ink) 22%, transparent);
-  opacity: .6;
+  opacity: 0.6;
 }
-.spotlight-dots > li.is-active{
-  width: 14px; border-radius: 8px;
-  background: var(--brand); opacity: 1;
+.spotlight-dots > li.is-active {
+  width: 14px;
+  border-radius: 8px;
+  background: var(--brand);
+  opacity: 1;
 }
 
 /* 4) タイル画像は横長21:9、上書き漏れを抑制 */
-.hero-spotlight .tile img{
+.hero-spotlight .tile img {
   aspect-ratio: 21 / 9 !important;
   object-fit: cover;
 }
 
 /* 5) 余白をさらに軽く（TABETEっぽい間合い） */
-.hero-spotlight{
+.hero-spotlight {
   --rail-gutter: clamp(18px, 5vw, 22px);
-  padding-block: 8px 12px;             /* ちょい詰め */
+  padding-block: 8px 12px; /* ちょい詰め */
+}
+/* ========== LIGHT MINIMAL THEME (v2) ========== */
+/* 1) 基本トークンの微調整（軽く・白多め） */
+:root {
+  --ink: #141915;
+  --muted: #6f776f;
+  --bg: #f4f1ea; /* ごく薄ベージュ */
+  --surface: #ffffff; /* 面は白 */
+  --line: #e9e4dc; /* 1pxのやさしい枠線 */
+  --brand: #1a3a2d; /* 既存の深緑（アクセント専用） */
+
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-2: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+/* 2) 見出しのサイズを小さめに（TABETE寄り） */
+.hero-spotlight .spotlight-head h2 {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+}
+.section-head h3 {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+}
+.section-head {
+  margin: 12px 0 6px;
+}
+
+/* 3) Spotlight を“白面のカード + 21:9画像 + 薄影”へ */
+.hero-spotlight {
+  --gutter: clamp(18px, 4.8vw, 24px);
+  margin: 8px 0 10px;
+  padding: 10px var(--gutter) 14px;
+  background: transparent; /* 重い色面を撤廃 */
+  border: 0;
+  box-shadow: none;
+}
+.spotlight-wrap {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+  padding: 12px; /* 白い“棚” */
+}
+
+/* レールは軽めの余白＋スナップ */
+.spotlight-rail {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: clamp(280px, 82vw, 560px);
+  gap: 12px;
+  overflow-x: auto;
+  padding: 0 2px 2px; /* スクロールバーの当たりを減らす */
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+.spotlight-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.tile {
+  scroll-snap-align: start;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2);
+  overflow: hidden;
+  transition: transform 0.12s ease;
+}
+.tile:hover {
+  transform: translateY(-1px);
+}
+
+/* 画像は浅め 21:9、オーバーレイは極薄 */
+.tile img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 21/9;
+  object-fit: cover;
+  display: block;
+}
+.tile .tile-body {
+  padding: 10px 12px 12px;
+}
+.tile.store .tile-body h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.tile .sub {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+/* 距離/時間/還元のメタ行（横一列、控えめ） */
+.tile .meta {
+  margin-top: 6px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+.meta .dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.55;
+}
+
+/* 価格・残数などのピル（ブランドは線だけ） */
+.chips .pill,
+.badge-row .pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--brand) 35%, var(--line));
+  background: #fff;
+  color: color-mix(in oklab, var(--brand) 80%, #000 20%);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ページドット：外側・右寄せ。半透明白面+1px線で軽く */
+.spotlight-dots {
+  position: static !important;
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin: 10px 2px 0;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  box-shadow: var(--shadow-1);
+}
+.spotlight-dots > li {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--ink) 22%, transparent);
+  opacity: 0.7;
+}
+.spotlight-dots > li.is-active {
+  width: 14px;
+  border-radius: 8px;
+  background: var(--brand);
+  opacity: 1;
+}
+
+/* 4) セクションのカード行も軽量設定に寄せる */
+.card-row {
+  gap: 12px;
+}
+.shop-card {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-1);
+}
+
+/* 5) CTA（既存）は配色だけブランド単色に統一済。影を弱く */
+.home-cta {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+.home-cta-btn {
+  background: var(--brand) !important;
+  color: #fff !important;
+  border: 0 !important;
+  border-radius: 16px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+}
+
+/* 6) 余白のバランス（左が狭い問題も解消） */
+.hero-spotlight .spotlight-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--gutter) 6px;
 }
