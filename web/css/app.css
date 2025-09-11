@@ -2279,3 +2279,30 @@ body {
     transform: scale(1.02);
   }
 }
+/* Spotlight：空の wrap が枠に見えてしまう件の対処 */
+.hero-spotlight .spotlight-wrap {
+  display: contents !important; /* 自身のボックスを消して子だけを残す */
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+/* 念のため rail 側も「枠」にならないように */
+.hero-spotlight .spotlight-rail {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+/* セクションの余白と影を軽めに */
+.hero-spotlight {
+  background: transparent;
+  box-shadow: none;
+  padding: 8px 16px 0;
+}
+
+/* 見出しの上下をタイトに */
+.hero-spotlight .spotlight-head {
+  margin: 0 0 8px;
+}
