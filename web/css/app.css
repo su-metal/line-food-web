@@ -2081,3 +2081,201 @@ body {
   justify-content: space-between;
   padding: 0 var(--gutter) 6px;
 }
+/* ==== Booking-like spotlight card ==== */
+
+/* レールは横長カードを等間隔に（主役は少し広め） */
+.spotlight-rail {
+  display: grid;
+  grid-auto-flow: column;
+  gap: 14px;
+  grid-auto-columns: clamp(300px, 84vw, 560px);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding: 0 2px 2px;
+  -webkit-overflow-scrolling: touch;
+}
+.spotlight-rail .tile {
+  scroll-snap-align: start;
+}
+
+/* ベースカード */
+.tile.booking {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.tile.booking:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.1);
+}
+
+/* 画像ブロック：21:9 で浅め・角丸 */
+.tile.booking .tile-media {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  margin: 10px 10px 0;
+}
+.tile.booking .tile-media img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 21/9;
+  object-fit: cover;
+}
+
+/* 右上の丸アイコン */
+.tile.booking .icon.circle {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  color: #232;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
+}
+.tile.booking .icon.circle.share {
+  right: 52px;
+}
+.tile.booking .icon.circle svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* 左下の枚数バッジ */
+.tile.booking .media-count {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+
+/* 価格リボン（右下） */
+.price-ribbon {
+  position: absolute;
+  right: 10px;
+  bottom: -10px;
+  background: #fff;
+  color: var(--ink);
+  border-radius: 12px;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.18);
+  border: 1px solid var(--line);
+  padding: 8px 12px 10px;
+  min-width: 142px;
+}
+.price-ribbon .ribbon-head {
+  position: absolute;
+  top: -12px;
+  left: 6px;
+  right: 6px;
+  background: #e3574f;
+  color: #fff;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 8px;
+  box-shadow: 0 6px 14px rgba(227, 87, 79, 0.35);
+}
+.price-ribbon .price {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.price-ribbon .yen {
+  font-weight: 700;
+  opacity: 0.85;
+}
+.price-ribbon b {
+  font-size: 22px;
+  letter-spacing: 0.01em;
+}
+.price-ribbon .price-sub {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* 小さめ（商品タイル用） */
+.price-ribbon.sm {
+  bottom: -8px;
+  min-width: auto;
+  padding: 6px 10px 8px;
+}
+.price-ribbon.sm .ribbon-head {
+  display: none;
+}
+.price-ribbon.sm b {
+  font-size: 18px;
+}
+
+/* テキスト部 */
+.tile.booking .tile-info {
+  padding: 12px 14px 14px;
+}
+.tile.booking.lead .tile-info {
+  padding-bottom: 18px;
+}
+.tile.booking .badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--brand);
+  background: color-mix(in oklab, var(--brand) 8%, #fff);
+  border: 1px solid color-mix(in oklab, var(--brand) 22%, var(--line));
+  padding: 3px 8px;
+  border-radius: 999px;
+  margin-bottom: 6px;
+}
+.tile.booking .tile-info h3 {
+  margin: 0 0 2px;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.tile.booking .tile-info h4 {
+  margin: 0 0 2px;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.tile.booking .meta {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.tile.booking .meta .dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.6;
+}
+
+/* 主役カードをわずかに大きめ（主従の差） */
+.spotlight-rail .tile.booking.lead {
+  grid-auto-columns: auto;
+  transform-origin: left center;
+}
+@media (min-width: 480px) {
+  .spotlight-rail {
+    grid-auto-columns: clamp(300px, 78vw, 520px);
+  }
+  .spotlight-rail .tile.booking.lead {
+    transform: scale(1.02);
+  }
+}
