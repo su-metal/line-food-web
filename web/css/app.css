@@ -2613,7 +2613,7 @@ body {
 }
 /* === Spotlight / Hero の背景を統一（やわらかいベージュ） === */
 :root {
-  --hero-bg: #E9E8E4;
+  --hero-bg: #e9e8e4;
 }
 
 /* セクション背景 */
@@ -2639,4 +2639,33 @@ body {
 .spotlight-media {
   border-radius: 18px;
   overflow: hidden;
+}
+/* ===== Spotlight tweaks ===== */
+
+/* 左上バッジの色を #d9534f に統一 */
+.sp-badge {
+  background: #d9534f !important;
+  color: #fff !important;
+  border-color: #d9534f !important;
+}
+
+/* 右下のリボンは非表示 */
+.sp-ribbon {
+  display: none !important;
+}
+
+/* 価格カードは1行で表示（改行しない） */
+.sp-price-card {
+  display: inline-flex; /* 横並び */
+  align-items: baseline; /* 通貨記号と数字のベースライン揃え */
+  gap: 6px; /* 記号・金額・税込の間隔 */
+  white-space: nowrap; /* 折り返し禁止 */
+  line-height: 1; /* 行の高さを詰める */
+  /* 既存のpadding/角丸/影があればそのまま活かしてOK */
+}
+.sp-price-card .yen {
+  font-weight: 700;
+}
+.sp-price-card small {
+  opacity: 0.9;
 }
