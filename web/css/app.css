@@ -2684,7 +2684,7 @@ h3{
 }
 
 .app-header{
-  background: var(--white) !important;
+  background: var(--brand) !important;
 }
 /* Spotlight meta chips */
 .spotlight-info .meta{
