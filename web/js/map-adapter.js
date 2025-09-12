@@ -1,79 +1,156 @@
 // web/js/map-adapter.js
-// ES Module。HTMLから直接読み込まず、shops-map.js から import してください。
-// 例）import { createMapAdapter } from './map-adapter.js';
+// Leaflet専用の薄いアダプタ（ESM）。Google等へ差し替えやすいAPIを統一。
+// すでに HTML 側でこのファイルを <script type="module"> 直読みしないこと
+// （shops-map.js から import するだけにすること）
 
-/* ---------- Leaflet CSS（保険で自動注入） ---------- */
-function ensureLeafletCss() {
-  if (document.querySelector('link[data-leaflet-css]')) return;
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-  link.setAttribute('data-leaflet-css', '');
-  document.head.appendChild(link);
+const LCSS =
+  "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+const LJS =
+  "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+
+/** LeafletのCSS/JSを未ロードなら動的ロード */
+function ensureLeafletLoaded() {
+  return new Promise((resolve, reject) => {
+    if (window.L && window.L.map) return resolve(window.L);
+
+    // CSS
+    const hasCss = [...document.styleSheets].some((s) =>
+      (s.href || "").includes("/leaflet.css")
+    );
+    if (!hasCss) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = LCSS;
+      document.head.appendChild(link);
+    }
+
+    // JS
+    const s = document.createElement("script");
+    s.src = LJS;
+    s.async = true;
+    s.onload = () => (window.L && window.L.map ? resolve(window.L) : reject(new Error("Leaflet load failed")));
+    s.onerror = () => reject(new Error("Leaflet script error"));
+    document.head.appendChild(s);
+  });
 }
 
-/* ================= Leaflet adapter ================= */
-class LeafletAdapter {
+/** 座標を色々なキー名から安全に取り出す */
+function pickLatLng(item) {
+  const num = (v) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  };
+  const lat =
+    num(item?.lat) ??
+    num(item?.latitude) ??
+    num(item?.location?.lat) ??
+    num(item?.coords?.lat) ??
+    null;
+  const lng =
+    num(item?.lng) ??
+    num(item?.lon) ??
+    num(item?.longitude) ??
+    num(item?.location?.lng) ??
+    num(item?.location?.lon) ??
+    num(item?.coords?.lng) ??
+    null;
+  return [lat, lng];
+}
+
+export class LeafletAdapter {
   constructor() {
     this.map = null;
-    this.markers = new Map();
+    this.layer = null;
+    this.markers = [];
+    this._onClick = null;
   }
 
-  async init(container, center, zoom, options = {}) {
-    ensureLeafletCss();
+  /** @param {string|HTMLElement} elOrId */
+  async init(elOrId, { center = [35.681236, 139.767125], zoom = 14 } = {}) {
+    const el =
+      typeof elOrId === "string"
+        ? document.getElementById(elOrId)
+        : elOrId;
+    if (!el) throw new Error("map container not found");
 
-    // Leaflet の地図生成
-    this.map = L.map(container, {
-      center: [center.lat, center.lng],
-      zoom,
-      zoomControl: false,
-      attributionControl: false,
-    });
+    const L = await ensureLeafletLoaded();
 
-    // タイル（デフォルトは OpenStreetMap）
-    L.tileLayer(
-      options.tileUrl || 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      {
-        maxZoom: 19,
-        attribution:
-          options.attribution || '&copy; OpenStreetMap contributors',
-      }
-    ).addTo(this.map);
+    this.map = L.map(el, { zoomControl: false }).setView(center, zoom);
 
-    // レイアウト確定後にサイズ再計算（白画面防止）
-    setTimeout(() => this.map.invalidateSize(), 0);
+    // OSM タイル
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19,
+    }).addTo(this.map);
+
+    this.layer = L.layerGroup().addTo(this.map);
+    return this;
   }
 
-  addMarker({ lat, lng }, { id, title, onClick, icon } = {}) {
-    const m = L.marker([lat, lng], icon ? { icon } : undefined).addTo(this.map);
-    if (title) m.bindTooltip(title);
-    if (onClick) m.on('click', () => onClick(id));
-    const key = id ?? m._leaflet_id;
-    this.markers.set(key, m);
-    return key;
-  }
-
-  flyTo({ lat, lng }, zoom) {
-    this.map.flyTo([lat, lng], zoom ?? this.map.getZoom(), { duration: 0.6 });
-  }
-
-  setCenter({ lat, lng }, zoom) {
+  setCenter(lat, lng, zoom) {
+    if (!this.map) return;
     this.map.setView([lat, lng], zoom ?? this.map.getZoom());
   }
 
-  fitBounds(bounds) {
-    this.map.fitBounds(bounds);
+  /** 1つのピンを追加 */
+  addMarker(item, { icon } = {}) {
+    if (!this.map || !window.L) return null;
+    const [lat, lng] = pickLatLng(item);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+    const m = window.L
+      .marker([lat, lng], icon ? { icon } : undefined)
+      .addTo(this.layer);
+    m.__payload = item;
+
+    // 既にハンドラが設定されていればバインド
+    if (this._onClick) m.on("click", () => this._onClick(item, m));
+
+    this.markers.push(m);
+    return m;
+  }
+
+  /** 複数ピンを一括追加（← shops-map.js が呼んでいる想定のAPI） */
+  addMarkers(items = [], opts) {
+    const created = [];
+    for (const it of items) {
+      const m = this.addMarker(it, opts);
+      if (m) created.push(m);
+    }
+    return created;
+  }
+
+  /** クリックハンドラを後付け（既存ピンにも付け直す） */
+  onMarkerClick(handler) {
+    this._onClick = typeof handler === "function" ? handler : null;
+    for (const m of this.markers) {
+      m.off("click");
+      if (this._onClick) m.on("click", () => this._onClick(m.__payload, m));
+    }
+  }
+
+  /** 追加済みピンで地図をフィット */
+  fitToMarkers({ padding = 40 } = {}) {
+    if (!this.map || !this.markers.length || !window.L) return;
+    const group = window.L.featureGroup(this.markers);
+    this.map.fitBounds(group.getBounds(), {
+      padding: [padding, padding],
+      maxZoom: 17,
+    });
+  }
+
+  /** 全ピン削除 */
+  clearMarkers() {
+    if (this.layer) this.layer.clearLayers();
+    this.markers.length = 0;
   }
 }
 
-/* ================= Google adapter（後で実装予定） ================= */
-class GoogleAdapter {
-  async init() {
-    throw new Error('Google Maps はこのビルドでは無効です（Leaflet を使用）');
+/** 将来 Google などに差し替える入口 */
+export function createMapAdapter(kind = "leaflet") {
+  if (kind !== "leaflet") {
+    throw new Error("Only 'leaflet' is supported for now");
   }
-}
-
-/* ---------- factory ---------- */
-export function createMapAdapter(engine = 'leaflet') {
-  return engine === 'google' ? new GoogleAdapter() : new LeafletAdapter();
+  return new LeafletAdapter();
 }

@@ -1,113 +1,217 @@
-[1mdiff --git a/web/js/http.js b/web/js/http.js[m
-[1mindex a582e79..54f9dbe 100644[m
-[1m--- a/web/js/http.js[m
-[1m+++ b/web/js/http.js[m
-[36m@@ -1,48 +1,72 @@[m
- // web/js/http.js[m
-[31m-import { CONFIG } from './config.js';[m
-[31m-const DEBUG = location.search.includes('debug=1');[m
-[32m+[m[32m// LIFF がなくても動く安全版。LIFF があれば ID トークンを付与します。[m
- [m
-[31m-function isExpired(idToken, skewSec = 30) {[m
-[32m+[m[32mconst API_BASE = ""; // 同一オリジン。別ドメインにしたいならここを設定[m
+[1mdiff --git a/web/js/map-adapter.js b/web/js/map-adapter.js[m
+[1mindex 53a49dc..1018315 100644[m
+[1m--- a/web/js/map-adapter.js[m
+[1m+++ b/web/js/map-adapter.js[m
+[36m@@ -1,79 +1,156 @@[m
+ // web/js/map-adapter.js[m
+[31m-// ES Module。HTMLから直接読み込まず、shops-map.js から import してください。[m
+[31m-// 例）import { createMapAdapter } from './map-adapter.js';[m
+[31m-[m
+[31m-/* ---------- Leaflet CSS（保険で自動注入） ---------- */[m
+[31m-function ensureLeafletCss() {[m
+[31m-  if (document.querySelector('link[data-leaflet-css]')) return;[m
+[31m-  const link = document.createElement('link');[m
+[31m-  link.rel = 'stylesheet';[m
+[31m-  link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';[m
+[31m-  link.setAttribute('data-leaflet-css', '');[m
+[31m-  document.head.appendChild(link);[m
+[32m+[m[32m// Leaflet専用の薄いアダプタ（ESM）。Google等へ差し替えやすいAPIを統一。[m
+[32m+[m[32m// すでに HTML 側でこのファイルを <script type="module"> 直読みしないこと[m
+[32m+[m[32m// （shops-map.js から import するだけにすること）[m
 [32m+[m
-[32m+[m[32mconst isFormData = (b) =>[m
-[32m+[m[32m  typeof FormData !== "undefined" && b instanceof FormData;[m
+[32m+[m[32mconst LCSS =[m
+[32m+[m[32m  "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";[m
+[32m+[m[32mconst LJS =[m
+[32m+[m[32m  "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";[m
 [32m+[m
-[32m+[m[32mconst hasLIFF = () =>[m
-[32m+[m[32m  typeof window !== "undefined" && typeof window.liff !== "undefined";[m
+[32m+[m[32m/** LeafletのCSS/JSを未ロードなら動的ロード */[m
+[32m+[m[32mfunction ensureLeafletLoaded() {[m
+[32m+[m[32m  return new Promise((resolve, reject) => {[m
+[32m+[m[32m    if (window.L && window.L.map) return resolve(window.L);[m
 [32m+[m
-[32m+[m[32m/** LIFF があれば ID トークンを返す。なければ null */[m
-[32m+[m[32mexport async function ensureIdToken() {[m
-[32m+[m[32m  if (!hasLIFF()) return null;[m
-   try {[m
-[31m-    const p = idToken.split('.')[1];[m
-[31m-    const s = p.replace(/-/g,'+').replace(/_/g,'/');[m
-[31m-    const pad = s.length % 4 ? '='.repeat(4 - (s.length % 4)) : '';[m
-[31m-    const payload = JSON.parse(atob(s + pad));[m
-[31m-    const now = Math.floor(Date.now()/1000);[m
-[31m-    return typeof payload.exp === 'number' ? (payload.exp - skewSec) <= now : true;[m
-[31m-  } catch { return true; }[m
-[32m+[m[32m    // liff.ready を待つ（失敗しても無視）[m
-[32m+[m[32m    await window.liff.ready.catch(() => {});[m
-[32m+[m[32m    // アプリ内 or ログイン済みなら ID トークン取得を試す[m
-[32m+[m[32m    if (window.liff.isInClient?.() || window.liff.isLoggedIn?.()) {[m
-[32m+[m[32m      return window.liff.getIDToken?.() || null;[m
+[32m+[m[32m    // CSS[m
+[32m+[m[32m    const hasCss = [...document.styleSheets].some((s) =>[m
+[32m+[m[32m      (s.href || "").includes("/leaflet.css")[m
+[32m+[m[32m    );[m
+[32m+[m[32m    if (!hasCss) {[m
+[32m+[m[32m      const link = document.createElement("link");[m
+[32m+[m[32m      link.rel = "stylesheet";[m
+[32m+[m[32m      link.href = LCSS;[m
+[32m+[m[32m      document.head.appendChild(link);[m
 [32m+[m[32m    }[m
-[32m+[m[32m  } catch {}[m
-[32m+[m[32m  return null;[m
+[32m+[m
+[32m+[m[32m    // JS[m
+[32m+[m[32m    const s = document.createElement("script");[m
+[32m+[m[32m    s.src = LJS;[m
+[32m+[m[32m    s.async = true;[m
+[32m+[m[32m    s.onload = () => (window.L && window.L.map ? resolve(window.L) : reject(new Error("Leaflet load failed")));[m
+[32m+[m[32m    s.onerror = () => reject(new Error("Leaflet script error"));[m
+[32m+[m[32m    document.head.appendChild(s);[m
+[32m+[m[32m  });[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m/** 座標を色々なキー名から安全に取り出す */[m
+[32m+[m[32mfunction pickLatLng(item) {[m
+[32m+[m[32m  const num = (v) => {[m
+[32m+[m[32m    const n = Number(v);[m
+[32m+[m[32m    return Number.isFinite(n) ? n : null;[m
+[32m+[m[32m  };[m
+[32m+[m[32m  const lat =[m
+[32m+[m[32m    num(item?.lat) ??[m
+[32m+[m[32m    num(item?.latitude) ??[m
+[32m+[m[32m    num(item?.location?.lat) ??[m
+[32m+[m[32m    num(item?.coords?.lat) ??[m
+[32m+[m[32m    null;[m
+[32m+[m[32m  const lng =[m
+[32m+[m[32m    num(item?.lng) ??[m
+[32m+[m[32m    num(item?.lon) ??[m
+[32m+[m[32m    num(item?.longitude) ??[m
+[32m+[m[32m    num(item?.location?.lng) ??[m
+[32m+[m[32m    num(item?.location?.lon) ??[m
+[32m+[m[32m    num(item?.coords?.lng) ??[m
+[32m+[m[32m    null;[m
+[32m+[m[32m  return [lat, lng];[m
  }[m
  [m
-[31m-export async function ensureIdToken() {[m
-[31m-  await liff.ready;[m
-[31m-  if (!liff.isLoggedIn()) {[m
-[31m-    if (DEBUG) console.debug('[liff] not logged in → login');[m
-[31m-    await liff.login();[m
-[31m-    return null;[m
-[32m+[m[32m/** 共通 fetch（必要なら Authorization を付与） */[m
-[32m+[m[32mexport async function apiFetch(path, opts = {}) {[m
-[32m+[m[32m  const { headers = {}, body, ...rest } = opts;[m
-[32m+[m[32m  const h = new Headers(headers);[m
-[32m+[m
-[32m+[m[32m  // 既定ヘッダ[m
-[32m+[m[32m  if (!h.has("Accept")) h.set("Accept", "application/json");[m
-[32m+[m[32m  // JSON 送信時のみ Content-Type を自動付与（FormData には付けない）[m
-[32m+[m[32m  if (body && !isFormData(body) && !h.has("Content-Type")) {[m
-[32m+[m[32m    h.set("Content-Type", "application/json");[m
+[31m-/* ================= Leaflet adapter ================= */[m
+[31m-class LeafletAdapter {[m
+[32m+[m[32mexport class LeafletAdapter {[m
+   constructor() {[m
+     this.map = null;[m
+[31m-    this.markers = new Map();[m
+[32m+[m[32m    this.layer = null;[m
+[32m+[m[32m    this.markers = [];[m
+[32m+[m[32m    this._onClick = null;[m
    }[m
-[31m-  let tok = liff.getIDToken();[m
-[31m-  if (!tok || isExpired(tok)) {[m
-[31m-    if (DEBUG) console.debug('[liff] token missing/expired → re-login');[m
-[31m-    liff.logout();[m
-[31m-    await liff.login(); // ここでリダイレクト → 復帰後は新トークン[m
-[31m-    return null;[m
-[32m+[m
-[32m+[m[32m  // LIFF があれば ID トークンを付与（なければ付けない＝公開API想定）[m
-[32m+[m[32m  const idToken = await ensureIdToken();[m
-[32m+[m[32m  if (idToken) h.set("Authorization", `Bearer ${idToken}`);[m
-[32m+[m
-[32m+[m[32m  const res = await fetch(API_BASE + path, { ...rest, headers: h, body });[m
-[32m+[m
-[32m+[m[32m  if (!res.ok) {[m
-[32m+[m[32m    const text = await res.text().catch(() => "");[m
-[32m+[m[32m    const err = new Error(`HTTP ${res.status}`);[m
-[32m+[m[32m    err.status = res.status;[m
-[32m+[m[32m    err.body = text;[m
-[32m+[m[32m    throw err;[m
-   }[m
-[31m-  return tok;[m
-[32m+[m[32m  return res;[m
- }[m
  [m
-[31m-export async function apiFetch(path, init = {}) {[m
-[31m-  const tok = await ensureIdToken();[m
-[31m-  const headers = new Headers(init.headers || {});[m
-[31m-  if (tok) headers.set('Authorization', `Bearer ${tok}`);[m
-[31m-  const res = await fetch(`${CONFIG.API_BASE}${path}`, { ...init, headers, credentials:'include' });[m
-[31m-  if (DEBUG) console.debug('[RES]', res.status, path);[m
-[31m-  return res;[m
-[32m+[m[32m/** JSON ヘルパー */[m
-[32m+[m[32mexport async function apiJSON(path, opts) {[m
-[32m+[m[32m  const res = await apiFetch(path, opts);[m
-[32m+[m[32m  const text = await res.text(); // 空ボディ対策[m
-[32m+[m[32m  if (!text) return null;[m
-[32m+[m[32m  try {[m
-[32m+[m[32m    return JSON.parse(text);[m
-[32m+[m[32m  } catch {[m
-[32m+[m[32m    const err = new Error("Invalid JSON");[m
-[32m+[m[32m    err.body = text;[m
-[32m+[m[32m    throw err;[m
+[31m-  async init(container, center, zoom, options = {}) {[m
+[31m-    ensureLeafletCss();[m
+[32m+[m[32m  /** @param {string|HTMLElement} elOrId */[m
+[32m+[m[32m  async init(elOrId, { center = [35.681236, 139.767125], zoom = 14 } = {}) {[m
+[32m+[m[32m    const el =[m
+[32m+[m[32m      typeof elOrId === "string"[m
+[32m+[m[32m        ? document.getElementById(elOrId)[m
+[32m+[m[32m        : elOrId;[m
+[32m+[m[32m    if (!el) throw new Error("map container not found");[m
+ [m
+[31m-    // Leaflet の地図生成[m
+[31m-    this.map = L.map(container, {[m
+[31m-      center: [center.lat, center.lng],[m
+[31m-      zoom,[m
+[31m-      zoomControl: false,[m
+[31m-      attributionControl: false,[m
+[31m-    });[m
+[32m+[m[32m    const L = await ensureLeafletLoaded();[m
+[32m+[m
+[32m+[m[32m    this.map = L.map(el, { zoomControl: false }).setView(center, zoom);[m
+ [m
+[31m-    // タイル（デフォルトは OpenStreetMap）[m
+[31m-    L.tileLayer([m
+[31m-      options.tileUrl || 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',[m
+[31m-      {[m
+[31m-        maxZoom: 19,[m
+[31m-        attribution:[m
+[31m-          options.attribution || '&copy; OpenStreetMap contributors',[m
+[31m-      }[m
+[31m-    ).addTo(this.map);[m
+[31m-[m
+[31m-    // レイアウト確定後にサイズ再計算（白画面防止）[m
+[31m-    setTimeout(() => this.map.invalidateSize(), 0);[m
+[32m+[m[32m    // OSM タイル[m
+[32m+[m[32m    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {[m
+[32m+[m[32m      attribution:[m
+[32m+[m[32m        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',[m
+[32m+[m[32m      maxZoom: 19,[m
+[32m+[m[32m    }).addTo(this.map);[m
+[32m+[m
+[32m+[m[32m    this.layer = L.layerGroup().addTo(this.map);[m
+[32m+[m[32m    return this;[m
+   }[m
+ [m
+[31m-  addMarker({ lat, lng }, { id, title, onClick, icon } = {}) {[m
+[31m-    const m = L.marker([lat, lng], icon ? { icon } : undefined).addTo(this.map);[m
+[31m-    if (title) m.bindTooltip(title);[m
+[31m-    if (onClick) m.on('click', () => onClick(id));[m
+[31m-    const key = id ?? m._leaflet_id;[m
+[31m-    this.markers.set(key, m);[m
+[31m-    return key;[m
+[32m+[m[32m  setCenter(lat, lng, zoom) {[m
+[32m+[m[32m    if (!this.map) return;[m
+[32m+[m[32m    this.map.setView([lat, lng], zoom ?? this.map.getZoom());[m
+   }[m
+ [m
+[31m-  flyTo({ lat, lng }, zoom) {[m
+[31m-    this.map.flyTo([lat, lng], zoom ?? this.map.getZoom(), { duration: 0.6 });[m
+[32m+[m[32m  /** 1つのピンを追加 */[m
+[32m+[m[32m  addMarker(item, { icon } = {}) {[m
+[32m+[m[32m    if (!this.map || !window.L) return null;[m
+[32m+[m[32m    const [lat, lng] = pickLatLng(item);[m
+[32m+[m[32m    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;[m
+[32m+[m
+[32m+[m[32m    const m = window.L[m
+[32m+[m[32m      .marker([lat, lng], icon ? { icon } : undefined)[m
+[32m+[m[32m      .addTo(this.layer);[m
+[32m+[m[32m    m.__payload = item;[m
+[32m+[m
+[32m+[m[32m    // 既にハンドラが設定されていればバインド[m
+[32m+[m[32m    if (this._onClick) m.on("click", () => this._onClick(item, m));[m
+[32m+[m
+[32m+[m[32m    this.markers.push(m);[m
+[32m+[m[32m    return m;[m
+   }[m
+ [m
+[31m-  setCenter({ lat, lng }, zoom) {[m
+[31m-    this.map.setView([lat, lng], zoom ?? this.map.getZoom());[m
+[32m+[m[32m  /** 複数ピンを一括追加（← shops-map.js が呼んでいる想定のAPI） */[m
+[32m+[m[32m  addMarkers(items = [], opts) {[m
+[32m+[m[32m    const created = [];[m
+[32m+[m[32m    for (const it of items) {[m
+[32m+[m[32m      const m = this.addMarker(it, opts);[m
+[32m+[m[32m      if (m) created.push(m);[m
+[32m+[m[32m    }[m
+[32m+[m[32m    return created;[m
+   }[m
+ [m
+[31m-  fitBounds(bounds) {[m
+[31m-    this.map.fitBounds(bounds);[m
+[32m+[m[32m  /** クリックハンドラを後付け（既存ピンにも付け直す） */[m
+[32m+[m[32m  onMarkerClick(handler) {[m
+[32m+[m[32m    this._onClick = typeof handler === "function" ? handler : null;[m
+[32m+[m[32m    for (const m of this.markers) {[m
+[32m+[m[32m      m.off("click");[m
+[32m+[m[32m      if (this._onClick) m.on("click", () => this._onClick(m.__payload, m));[m
+[32m+[m[32m    }[m
+   }[m
+[31m-}[m
+ [m
+[31m-/* ================= Google adapter（後で実装予定） ================= */[m
+[31m-class GoogleAdapter {[m
+[31m-  async init() {[m
+[31m-    throw new Error('Google Maps はこのビルドでは無効です（Leaflet を使用）');[m
+[32m+[m[32m  /** 追加済みピンで地図をフィット */[m
+[32m+[m[32m  fitToMarkers({ padding = 40 } = {}) {[m
+[32m+[m[32m    if (!this.map || !this.markers.length || !window.L) return;[m
+[32m+[m[32m    const group = window.L.featureGroup(this.markers);[m
+[32m+[m[32m    this.map.fitBounds(group.getBounds(), {[m
+[32m+[m[32m      padding: [padding, padding],[m
+[32m+[m[32m      maxZoom: 17,[m
+[32m+[m[32m    });[m
 [32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  /** 全ピン削除 */[m
+[32m+[m[32m  clearMarkers() {[m
+[32m+[m[32m    if (this.layer) this.layer.clearLayers();[m
+[32m+[m[32m    this.markers.length = 0;[m
+   }[m
  }[m
  [m
-[31m-export async function apiJSON(path, init = {}) {[m
-[31m-  const r = await apiFetch(path, init);[m
-[31m-  const t = await r.text();[m
-[31m-  let j; try { j = t ? JSON.parse(t) : {}; } catch { j = { ok:false, error:'Invalid JSON', raw:t }; }[m
-[31m-  if (!r.ok) throw Object.assign(new Error(j.error || r.statusText), { status:r.status, body:j });[m
-[31m-  return j;[m
-[32m+[m[32m/** テキストヘルパー */[m
-[32m+[m[32mexport async function apiText(path, opts) {[m
-[32m+[m[32m  const res = await apiFetch(path, opts);[m
-[32m+[m[32m  return res.text();[m
+[31m-/* ---------- factory ---------- */[m
+[31m-export function createMapAdapter(engine = 'leaflet') {[m
+[31m-  return engine === 'google' ? new GoogleAdapter() : new LeafletAdapter();[m
+[32m+[m[32m/** 将来 Google などに差し替える入口 */[m
+[32m+[m[32mexport function createMapAdapter(kind = "leaflet") {[m
+[32m+[m[32m  if (kind !== "leaflet") {[m
+[32m+[m[32m    throw new Error("Only 'leaflet' is supported for now");[m
+[32m+[m[32m  }[m
+[32m+[m[32m  return new LeafletAdapter();[m
  }[m
