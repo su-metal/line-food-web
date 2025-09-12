@@ -1374,4 +1374,15 @@ section.price {
 .leaflet-marker-icon.shop-marker svg {
   width: 100%; height: 100%; display: block;
 }
+/* ===== Map card actions: smaller labels ===== */
+.map-card .mc-actions .mc-btn {
+  font-size: 13px !important;
+  line-height: 1.1;
+  padding: .55rem .9rem !important;  /* 既存より少し小さめ */
+  min-height: 36px;                  /* タップしやすさ確保 */
+}
+
+.map-card .mc-actions .mc-btn.ghost {
+  font-size: 13px !important;
+}
 
