@@ -2680,7 +2680,7 @@ body {
 }
 
 .container {
-  background: #F3f3f3 !important;
+  background: #cccccc !important;
 }
 
 /* h3{
@@ -2688,7 +2688,7 @@ body {
 } */
 
 .app-header {
-  background: #f1f1f1 !important;
+  background: #cccccc !important;
   border-bottom: none !important;
 }
 
