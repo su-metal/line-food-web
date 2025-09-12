@@ -9,47 +9,66 @@ export function createMapAdapter(kind = "leaflet") {
 class LeafletAdapter {
   constructor() {
     this.map = null;
-    this.layer = null;        // FeatureGroup (markers 用)
+    this.layer = null; // FeatureGroup (markers 用)
     this._clickCb = null;
     this._markers = [];
     this.currentDot = null;
     this.searchMarker = null;
-    this._shopIcon = null;    // ← 明示サイズの DivIcon を用意
+    this._shopIcon = null; // ← 明示サイズの DivIcon を用意
   }
 
   /* サイトカラーのショップアイコン（明示サイズ） */
-  _makeShopIcon() {
-    if (!this._shopIcon) {
-      const SVG =
-        `<svg viewBox="0 0 24 24" aria-hidden="true" style="display:block;width:100%;height:100%;color:var(--accent,#0e5d45)">
-           <g fill="currentColor">
-             <path d="M12 2c-3.9 0-7 2.9-7 6.5 0 4.7 6.2 11.8 6.5 12.1a.9.9 0 0 0 1 .0C12.8 20.3 19 13.2 19 8.5 19 4.9 15.9 2 12 2zM9 7h6a1 1 0 0 1 1 1v5h-2v-2H10v2H8V8a1 1 0 0 1 1-1zM10 9v1h4V9h-4z"/>
-           </g>
-         </svg>`;
-      // 明示サイズ・アンカーを指定（CSS無しでも必ず表示）
-      this._shopIcon = window.L.divIcon({
-        className: "shop-marker",
-        html: SVG,
-        iconSize: [30, 30],
-        iconAnchor: [15, 30],   // 底辺中央
-        popupAnchor: [0, -30]
-      });
-    }
-    return this._shopIcon;
+  // === カスタム：ショップピン（DPR対応・サイトカラー） ===
+  _mkShopIcon() {
+    if (this._iconShop) return this._iconShop;
+
+    const root = document.documentElement;
+    // サイトカラー（--accent が無ければ --brand、それも無ければ既定色）
+    const css = getComputedStyle(root);
+    const brand = (
+      css.getPropertyValue("--accent") ||
+      css.getPropertyValue("--brand") ||
+      "#0B5C3D"
+    ).trim();
+
+    // デバイスピクセル比に応じて拡大（上限2x）
+    const DPR = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+    const W = Math.round(34 * DPR); // 横
+    const H = Math.round(44 * DPR); // 縦（ティアドロップの高さ）
+
+    // 角丸ティアドロップ + 「店」風の簡易アイコン
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 34 44" aria-hidden="true">
+       <path d="M17 0c8.8 0 16 6.9 16 15.5 0 10.3-12.2 22.6-15.1 25.5a1.3 1.3 0 0 1-1.8 0C13.2 38.1 1 25.8 1 15.5 1 6.9 8.2 0 17 0Z" fill="${brand}"/>
+       <rect x="9" y="10" width="16" height="10" rx="2" ry="2" fill="#fff"/>
+       <rect x="12" y="13" width="4" height="7" rx="1" fill="${brand}"/>
+       <rect x="18" y="13" width="4" height="7" rx="1" fill="${brand}"/>
+     </svg>`;
+
+    this._iconShop = window.L.divIcon({
+      className: "lf-pin-shop",
+      html: svg,
+      iconSize: [W, H],
+      iconAnchor: [W / 2, H - 2], // 尖りの少し上を基準に
+      popupAnchor: [0, -H],
+    });
+    return this._iconShop;
   }
 
-  async init(containerId, { center = [35.681236, 139.767125], zoom = 13 } = {}) {
+  async init(
+    containerId,
+    { center = [35.681236, 139.767125], zoom = 13 } = {}
+  ) {
     if (!window.L) throw new Error("Leaflet not loaded");
     // ベースマップ
     this.map = window.L.map(containerId, {
       zoomControl: false,
-      attributionControl: true
+      attributionControl: true,
     }).setView(center, zoom);
 
-    window.L.tileLayer(
-      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-      { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }
-    ).addTo(this.map);
+    window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "&copy; OpenStreetMap contributors",
+    }).addTo(this.map);
 
     this.layer = window.L.featureGroup().addTo(this.map);
   }
@@ -61,39 +80,40 @@ class LeafletAdapter {
     const icon = this._makeShopIcon();
 
     // 既存マーカー削除
-    this._markers.forEach(m => m.remove());
+    this._markers.forEach((m) => m.remove());
     this._markers = [];
 
     // 追加
     for (let i = 0; i < items.length; i += chunk) {
       const part = items.slice(i, i + chunk);
       for (const it of part) {
-        const lat = Number(it.__lat), lng = Number(it.__lng);
+        const lat = Number(it.__lat),
+          lng = Number(it.__lng);
         if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
 
-        const m = L.marker([lat, lng], {
-          icon,
-          keyboard: false,
-          riseOnHover: true,
-          zIndexOffset: 100   // タイルより前面に
+        const m = window.L.marker([it.__lat, it.__lng], {
+          icon: this._mkShopIcon(),
         }).addTo(this.layer);
 
         m._shop = it;
         m.on("click", () => this._clickCb?.(it));
         this._markers.push(m);
       }
-      if (delay) await new Promise(r => setTimeout(r, delay));
+      if (delay) await new Promise((r) => setTimeout(r, delay));
     }
     return this._markers;
   }
 
-  onMarkerClick(cb) { this._clickCb = cb; }
+  onMarkerClick(cb) {
+    this._clickCb = cb;
+  }
 
   fitToMarkers({ padding = 56, maxZoom = 16 } = {}) {
     if (!this._markers.length) return;
     const L = window.L;
-    const b = L.latLngBounds(this._markers.map(m => m.getLatLng()));
-    if (b.isValid()) this.map.fitBounds(b, { padding: [padding, padding], maxZoom });
+    const b = L.latLngBounds(this._markers.map((m) => m.getLatLng()));
+    if (b.isValid())
+      this.map.fitBounds(b, { padding: [padding, padding], maxZoom });
   }
 
   setCenter(lat, lng, zoom) {
@@ -106,7 +126,11 @@ class LeafletAdapter {
     const L = window.L;
     if (!this.currentDot) {
       this.currentDot = L.circleMarker([lat, lng], {
-        radius: 6, color: "#2a6ef0", weight: 2, fillColor: "#2a6ef0", fillOpacity: 1
+        radius: 9,
+        color: "#2a6ef0",
+        weight: 2,
+        fillColor: "#2a6ef0",
+        fillOpacity: 1,
       }).addTo(this.layer);
     } else {
       this.currentDot.setLatLng([lat, lng]);
@@ -118,7 +142,11 @@ class LeafletAdapter {
     const L = window.L;
     if (!this.searchMarker) {
       this.searchMarker = L.circleMarker([lat, lng], {
-        radius: 6, color: "#0e5d45", weight: 2, fillColor: "#0e5d45", fillOpacity: 1
+        radius: 6,
+        color: "#0e5d45",
+        weight: 2,
+        fillColor: "#0e5d45",
+        fillOpacity: 1,
       }).addTo(this.layer);
     } else {
       this.searchMarker.setLatLng([lat, lng]); // bringToFront は不要（モバイル互換）
