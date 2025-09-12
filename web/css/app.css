@@ -1313,4 +1313,56 @@ section.price {
       0 12px 28px rgba(0, 0, 0, 0.36);
   }
 }
+/* === Softer card shadows & image-block shadow (rounded) === */
+
+/* カード全体の影：かなり控えめに */
+.hero-spotlight .spotlight-card,
+.shop-card.card-v3 {
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 6px 12px rgba(0, 0, 0, 0.06);
+  overflow: visible;           /* 影が切れないように */
+  background-clip: padding-box;
+}
+
+/* 画像ブロック自体にもごく薄い影を付与（角丸でクリップ） */
+.hero-spotlight .spotlight-card .spotlight-media,
+.shop-card.card-v3 .card-head {
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  overflow: hidden;            /* 画像は角に沿って切る */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* 画像はブロック化 */
+.hero-spotlight .spotlight-card .spotlight-media img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* （任意）PCホバー時も控えめ強調 */
+@media (hover: hover) and (pointer: fine) {
+  .hero-spotlight .spotlight-card:hover,
+  .shop-card.card-v3:hover {
+    box-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.05),
+      0 10px 18px rgba(0, 0, 0, 0.08);
+    transform: translateY(-1px);
+    transition: box-shadow .18s ease, transform .18s ease;
+  }
+}
+
+/* ダークモードはコントラストだけ微調整（依然として控えめ） */
+@media (prefers-color-scheme: dark) {
+  .hero-spotlight .spotlight-card,
+  .shop-card.card-v3 {
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.30),
+      0 10px 20px rgba(0, 0, 0, 0.34);
+  }
+}
 
