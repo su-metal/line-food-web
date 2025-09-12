@@ -1,94 +1,97 @@
 // web/js/map-adapter.js
-// Leaflet 用アダプタ（ESM）。Google 等に差し替えやすい共通APIを提供。
+// Leaflet 専用の軽量アダプタ。あとで Google に差し替える場合もこのAPIを保てばOK。
 
-const LCSS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-const LJS  = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-
-/** LeafletのCSS/JSを未ロードなら動的ロード */
-function ensureLeafletLoaded() {
-  return new Promise((resolve, reject) => {
-    if (window.L && window.L.map) return resolve(window.L);
-
-    // CSS（未挿入なら追加）
-    const hasCss = [...document.styleSheets].some(s =>
-      (s.href || "").includes("/leaflet.css")
-    );
-    if (!hasCss) {
-      const link = document.createElement("link");
-      link.rel = "stylesheet";
-      link.href = LCSS;
-      document.head.appendChild(link);
-    }
-
-    // JS
-    const s = document.createElement("script");
-    s.src = LJS;
-    s.async = true;
-    s.onload = () =>
-      (window.L && window.L.map)
-        ? resolve(window.L)
-        : reject(new Error("Leaflet load failed"));
-    s.onerror = () => reject(new Error("Leaflet script error"));
-    document.head.appendChild(s);
-  });
+export function createMapAdapter(kind = "leaflet") {
+  return new LeafletAdapter();
 }
 
-/** 数値化（失敗時は null） */
-const num = (v) => {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : null;
-};
-
-/** 座標を多様なキー名から抽出 */
-function pickLatLng(item) {
-  const lat =
-    num(item?.lat) ??
-    num(item?.latitude) ??
-    num(item?.lat_deg) ??
-    num(item?.location?.lat) ??
-    num(item?.coords?.lat) ??
-    num(item?.geo?.lat) ??
-    null;
-
-  const lng =
-    num(item?.lng) ??
-    num(item?.lon) ??
-    num(item?.longitude) ??
-    num(item?.lng_deg) ??
-    num(item?.location?.lng) ??
-    num(item?.location?.lon) ??
-    num(item?.coords?.lng) ??
-    num(item?.geo?.lng) ??
-    null;
-
-  return [lat, lng];
-}
-
-export class LeafletAdapter {
+// ---- Leaflet 実装 ----
+class LeafletAdapter {
   constructor() {
     this.map = null;
-    this.layer = null;
-    this.markers = [];
-    this._onClick = null;
+    this._markers = [];
+    this._clickCb = null;
   }
 
-  /** @param {string|HTMLElement} elOrId */
-  async init(elOrId, { center = [35.681236, 139.767125], zoom = 14 } = {}) {
-    const el = typeof elOrId === "string" ? document.getElementById(elOrId) : elOrId;
-    if (!el) throw new Error("map container not found");
-
-    const L = await ensureLeafletLoaded();
-    this.map = L.map(el, { zoomControl: false }).setView(center, zoom);
+  async init(containerId, { center = [35.681236, 139.767125], zoom = 14 } = {}) {
+    if (!window.L) throw new Error("Leaflet not loaded");
+    // ズームUIは地図の既存UIに任せる（必要なら true）
+    this.map = L.map(containerId, { zoomControl: false }).setView(center, zoom);
 
     // OSM タイル
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      attribution: "&copy; OpenStreetMap contributors",
       maxZoom: 19,
     }).addTo(this.map);
 
-    this.layer = L.layerGroup().addTo(this.map);
     return this;
+  }
+
+  // 多様なキー名から座標を拾う
+  _pickLatLng(obj) {
+    const n = (v) => {
+      const x = Number(v);
+      return Number.isFinite(x) ? x : null;
+    };
+    const lat =
+      n(obj?.lat) ??
+      n(obj?.latitude) ??
+      n(obj?.lat_deg) ??
+      n(obj?.location?.lat) ??
+      n(obj?.coords?.lat) ??
+      n(obj?.geo?.lat);
+    const lng =
+      n(obj?.lng) ??
+      n(obj?.lon) ??
+      n(obj?.longitude) ??
+      n(obj?.lng_deg) ??
+      n(obj?.location?.lng) ??
+      n(obj?.location?.lon) ??
+      n(obj?.coords?.lng) ??
+      n(obj?.geo?.lng);
+    return [lat, lng];
+  }
+
+  addMarkers(items = []) {
+    if (!this.map) throw new Error("init() してから呼んでください");
+    const created = [];
+    items.forEach((shop) => {
+      const [lat, lng] = this._pickLatLng(shop);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+      const m = L.marker([lat, lng]).addTo(this.map);
+      m._shop = shop;
+      m.on("click", () => this._clickCb && this._clickCb(shop));
+      this._markers.push(m);
+      created.push(m);
+    });
+    return created;
+  }
+
+  onMarkerClick(cb) {
+    this._clickCb = cb;
+  }
+
+  fitToMarkers({ padding = 60, maxZoom = 17 } = {}) {
+    const pts = this._markers.map((m) => m.getLatLng());
+    if (!pts.length) return;
+    const b = L.latLngBounds(pts);
+    this.map.fitBounds(b, { padding: [padding, padding], maxZoom });
+  }
+
+  // 任意の点群（[lat,lng] or {lat,lng}）で画面フィット
+  fitToPoints(points = [], { padding = 60, maxZoom = 17 } = {}) {
+    const pts = points
+      .map((p) =>
+        Array.isArray(p)
+          ? L.latLng(p[0], p[1])
+          : p && Number.isFinite(p.lat) && Number.isFinite(p.lng)
+          ? L.latLng(p.lat, p.lng)
+          : null
+      )
+      .filter(Boolean);
+    if (!pts.length) return;
+    const b = L.latLngBounds(pts);
+    this.map.fitBounds(b, { padding: [padding, padding], maxZoom });
   }
 
   setCenter(lat, lng, zoom) {
@@ -96,104 +99,25 @@ export class LeafletAdapter {
     this.map.setView([lat, lng], zoom ?? this.map.getZoom());
   }
 
-  /** 単体マーカー */
-  addMarker(item, { icon } = {}) {
-    if (!this.map || !window.L) return null;
-    const [lat, lng] = pickLatLng(item);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-
-    const m = window.L.marker([lat, lng], icon ? { icon } : undefined).addTo(this.layer);
-    m.__payload = item;
-
-    if (this._onClick) m.on("click", () => this._onClick(item, m));
-    this.markers.push(m);
-    return m;
-  }
-
-  /** 複数マーカー（shops-map.js が使う想定API） */
-  addMarkers(items = [], opts) {
-    const created = [];
-    for (const it of items) {
-      const m = this.addMarker(it, opts);
-      if (m) created.push(m);
-    }
-    return created;
-  }
-
-  /** クリックハンドラ（後からでも既存マーカーへ付け替え） */
-  onMarkerClick(handler) {
-    this._onClick = typeof handler === "function" ? handler : null;
-    for (const m of this.markers) {
-      m.off?.("click");
-      if (this._onClick) m.on?.("click", () => this._onClick(m.__payload, m));
-    }
-  }
-
-  /** すべてのマーカーが入るようにフィット */
-  fitToMarkers({ padding = 40 } = {}) {
-    if (!this.map || !this.markers.length || !window.L) return;
-    const group = window.L.featureGroup(this.markers);
-    const bounds = group.getBounds();
-    if (!bounds || !bounds.isValid?.()) return; // 無効なら何もしない
-    this.map.fitBounds(bounds, {
-      padding: [padding, padding],
-      maxZoom: 17,
+  // 現在地から最寄りピンを返す
+  getNearest(lat, lng) {
+    if (!this._markers.length) return null;
+    const here = L.latLng(lat, lng);
+    let best = null;
+    let bestD = Infinity;
+    this._markers.forEach((m) => {
+      const d = here.distanceTo(m.getLatLng());
+      if (d < bestD) {
+        bestD = d;
+        best = m;
+      }
     });
+    return best
+      ? { marker: best, shop: best._shop, latlng: best.getLatLng(), distance_m: bestD }
+      : null;
   }
 
-  /**
-   * Leaflet の fitBounds 互換 + エイリアス動作
-   * - 境界（[[lat,lng],[lat,lng]] など）を渡されたらそのまま適用
-   * - 「オプションのみ（{padding:40} など）」や引数なしなら、全マーカーへフィット
-   */
-  fitBounds(boundsOrOpts, maybeOpts) {
-    const L = window.L;
-    // 1) 引数なし → 全マーカー
-    if (!boundsOrOpts) {
-      this.fitToMarkers(maybeOpts || {});
-      return;
-    }
-
-    // 2) オプションだけ来たケース（shops-map.js でありがち）
-    const isOptionsOnly =
-      typeof boundsOrOpts === "object" &&
-      !Array.isArray(boundsOrOpts) &&
-      (("padding" in boundsOrOpts) || ("maxZoom" in boundsOrOpts) || ("animate" in boundsOrOpts));
-
-    if (isOptionsOnly) {
-      this.fitToMarkers(boundsOrOpts);
-      return;
-    }
-
-    // 3) 明示的な境界（配列 or LatLngBounds-like）
-    if (Array.isArray(boundsOrOpts) && L) {
-      try {
-        const b = L.latLngBounds(boundsOrOpts);
-        if (b.isValid?.()) {
-          this.map.fitBounds(b, maybeOpts || {});
-          return;
-        }
-      } catch { /* fallthrough */ }
-    } else if (boundsOrOpts && boundsOrOpts.isValid?.()) {
-      this.map.fitBounds(boundsOrOpts, maybeOpts || {});
-      return;
-    }
-
-    // 4) 最後の砦：全マーカー
-    this.fitToMarkers(maybeOpts || {});
-  }
-
-  clearMarkers() {
-    if (this.layer) this.layer.clearLayers();
-    this.markers.length = 0;
+  get markerCount() {
+    return this._markers.length;
   }
 }
-
-/** 将来の差し替え入口（Google等） */
-export function createMapAdapter(kind = "leaflet") {
-  if (kind !== "leaflet") throw new Error("Only 'leaflet' is supported for now");
-  return new LeafletAdapter();
-}
-
-/** 互換エイリアス（過去の import 名対策） */
-export const createAdapter = createMapAdapter;

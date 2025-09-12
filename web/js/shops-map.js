@@ -2,13 +2,12 @@
 import { apiJSON } from "./http.js";
 import { createMapAdapter } from "./map-adapter.js";
 
-/* ===== 小ユーティリティ ===== */
+/* ===== Utils ===== */
 const NOIMG = "./img/noimg.svg";
 const yen = (v) => (Number.isFinite(+v) ? "¥" + Number(v).toLocaleString("ja-JP") : "");
 const km = (m) =>
   Number.isFinite(m) ? (m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`) : "";
 
-/* 店オブジェクトから緯度経度を拾う（多様なキー名に対応） */
 const num = (v) => {
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
@@ -22,7 +21,6 @@ function pickLatLng(obj) {
     num(obj?.coords?.lat) ??
     num(obj?.geo?.lat) ??
     null;
-
   const lng =
     num(obj?.lng) ??
     num(obj?.lon) ??
@@ -33,7 +31,6 @@ function pickLatLng(obj) {
     num(obj?.coords?.lng) ??
     num(obj?.geo?.lng) ??
     null;
-
   return [lat, lng];
 }
 
@@ -52,13 +49,15 @@ function fillMapCard(shop = {}) {
   img.src = shop.photo_url || shop.thumb_url || NOIMG;
   img.alt = shop.name || "店舗";
 
-  // メタ行（カテゴリ / 距離 / 時間帯 など）
   const cat =
     shop.category_name || shop.category || shop.tags?.[0] || shop.genres?.[0] || "カテゴリ";
   const dist = km(shop.distance_m);
   const b0 = Array.isArray(shop.bundles) ? shop.bundles[0] : null;
   const time =
-    b0?.slot_label || b0?.slot || b0?.time || (shop.start && shop.end ? `${shop.start}–${shop.end}` : "");
+    b0?.slot_label ||
+    b0?.slot ||
+    b0?.time ||
+    (shop.start && shop.end ? `${shop.start}–${shop.end}` : "");
 
   meta.innerHTML = `
     <span class="chip chip--brand">${cat}</span>
@@ -66,7 +65,6 @@ function fillMapCard(shop = {}) {
     ${time ? `<span class="chip">🕒 ${time}</span>` : ""}
   `;
 
-  // 商品があればひと言
   if (Array.isArray(shop.bundles) && shop.bundles.length) {
     const pVals = [shop.bundles[0]?.price_min, shop.bundles[0]?.price, shop.min_price]
       .map((x) => Number(x))
@@ -83,7 +81,6 @@ function fillMapCard(shop = {}) {
   card.classList.add("is-open");
 }
 
-/* 閉じるボタン */
 document.getElementById("mc-close")?.addEventListener("click", () => {
   const card = document.getElementById("map-card");
   if (card) {
@@ -97,11 +94,11 @@ document.getElementById("mc-close")?.addEventListener("click", () => {
   try {
     const mapAdp = createMapAdapter("leaflet");
 
-    // デフォルト：東京駅
+    // 初期中心：東京駅
     let center = [35.681236, 139.767125];
     let gotGeo = false;
 
-    // 現在地（許可されたら）
+    // 現在地トライ
     try {
       const pos = await new Promise((res, rej) => {
         if (!navigator.geolocation) return rej(new Error("no_geolocation"));
@@ -117,67 +114,29 @@ document.getElementById("mc-close")?.addEventListener("click", () => {
       /* 許可なしでも続行 */
     }
 
-    // マップ起動
+    // 地図を起動
     await mapAdp.init("map", { center, zoom: 14 });
 
-    // ===== 「現在地へ」ボタン（コンパス） =====
-    (() => {
-      const btn = document.getElementById("btnLocate");
-      if (!btn) return;
+    // 現在地マーカー（青丸）を管理
+    let meMarker = null;
+    const upsertMeMarker = (lat, lng) => {
+      if (!window.L) return;
+      if (meMarker) {
+        meMarker.setLatLng([lat, lng]);
+      } else {
+        meMarker = L.circleMarker([lat, lng], {
+          radius: 7,
+          color: "#2a6ef0",
+          weight: 2,
+          fillColor: "#2a6ef0",
+          fillOpacity: 1,
+        }).addTo(mapAdp.map);
+        meMarker.bindTooltip("現在地", { permanent: false });
+      }
+    };
+    if (gotGeo) upsertMeMarker(center[0], center[1]);
 
-      const initCenter = { lat: center[0], lng: center[1] };
-
-      const recenter = async () => {
-        btn.disabled = true;
-        try {
-          const pos = await new Promise((res, rej) => {
-            if (!navigator.geolocation) return rej(new Error("no_geolocation"));
-            navigator.geolocation.getCurrentPosition(res, rej, {
-              enableHighAccuracy: true,
-              timeout: 10000,
-              maximumAge: 60000,
-            });
-          });
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-
-          if (typeof mapAdp.setCenter === "function") {
-            mapAdp.setCenter(lat, lng, 16);
-          } else if (typeof mapAdp.fitToMarkers === "function") {
-            mapAdp.fitToMarkers([{ lat, lng }], { padding: 32, maxZoom: 16 });
-          }
-          mapAdp.setUserLocation?.(lat, lng);
-        } catch (e) {
-          // 失敗したら初期中心へ
-          if (typeof mapAdp.setCenter === "function") {
-            mapAdp.setCenter(initCenter.lat, initCenter.lng, 14);
-          } else if (typeof mapAdp.fitToMarkers === "function") {
-            mapAdp.fitToMarkers([initCenter], { padding: 32, maxZoom: 14 });
-          }
-          console.warn("[locate] failed", e);
-        } finally {
-          btn.disabled = false;
-        }
-      };
-
-      btn.addEventListener("click", recenter);
-    })();
-    // ===== /現在地へ =====
-
-    // 現在地ピン（取得できた場合のみ）
-    if (gotGeo && window.L) {
-      // 目立つ青丸
-      const me = window.L.circleMarker(center, {
-        radius: 7,
-        color: "#2a6ef0",
-        weight: 2,
-        fillColor: "#2a6ef0",
-        fillOpacity: 1,
-      }).addTo(mapAdp.layer);
-      me.bindTooltip("現在地", { permanent: false });
-    }
-
-    // 店舗を取得（現在地ベース）。なければ新着でフォールバック
+    // 店舗取得（現在地ベース）。無ければ新着で補完
     let items = [];
     try {
       const qs = new URLSearchParams({
@@ -196,22 +155,63 @@ document.getElementById("mc-close")?.addEventListener("click", () => {
       console.warn("[shops-map] list fetch failed", e);
     }
 
-    // マーカー追加（座標が拾えるものだけ）
+    // 座標のある店舗のみマーカー化
     const withCoords = items.filter((it) => {
       const [lat, lng] = pickLatLng(it);
       return Number.isFinite(lat) && Number.isFinite(lng);
     });
+    mapAdp.addMarkers(withCoords);
 
-    const markers = mapAdp.addMarkers(withCoords);
-
-    // クリックでカードを開く
+    // ピン → カード
     mapAdp.onMarkerClick((shop) => fillMapCard(shop));
 
-    // 1件以上あれば全体にフィット、なければ中心据え置き
-    if (markers.length) {
-      mapAdp.fitToMarkers({ padding: 60, maxZoom: 16 });
-    } else {
-      console.warn("[shops-map] no items with coordinates");
+    // 初期ビュー：マーカーがあれば全体、無ければそのまま
+    if (mapAdp.markerCount) {
+      mapAdp.fitToMarkers({ padding: 60 });
+    }
+
+    // --- ここが今回の要件：コンパス押下で「現在地＋最寄り店舗」を同時表示 ---
+    const focusMeAndNearest = (lat, lng) => {
+      upsertMeMarker(lat, lng);
+      if (mapAdp.markerCount) {
+        const nearest = mapAdp.getNearest(lat, lng);
+        if (nearest?.latlng) {
+          mapAdp.fitToPoints(
+            [
+              [lat, lng],
+              [nearest.latlng.lat, nearest.latlng.lng],
+            ],
+            { padding: 80, maxZoom: 16 }
+          );
+          return;
+        }
+      }
+      // ピンが無い/見つからない場合は通常センターへ
+      mapAdp.setCenter(lat, lng, 15);
+    };
+
+    // 「現在地へ（コンパス）」ボタン
+    document.getElementById("btnLocate")?.addEventListener("click", async () => {
+      try {
+        const pos = await new Promise((res, rej) => {
+          if (!navigator.geolocation) return rej(new Error("no_geolocation"));
+          navigator.geolocation.getCurrentPosition(res, rej, {
+            enableHighAccuracy: true,
+            timeout: 8000,
+            maximumAge: 0,
+          });
+        });
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        focusMeAndNearest(lat, lng);
+      } catch {
+        // 権限NG等は無視
+      }
+    });
+
+    // もし初回で現在地が取れていたら、最寄りと一緒に表示
+    if (gotGeo) {
+      focusMeAndNearest(center[0], center[1]);
     }
   } catch (e) {
     console.error("[shops-map] fatal", e);
