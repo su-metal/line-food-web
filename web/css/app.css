@@ -2732,3 +2732,11 @@ body {
 .spotlight-card .spotlight-info .title {
   color: var(--brand) !important;
 }
+/* hero-spotlight: shop-card風のやさしい影 */
+.hero-spotlight {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+  /* 角丸も合わせたい場合はコメント解除
+  border-radius: 16px;
+  */
+}
+
