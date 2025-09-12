@@ -1133,3 +1133,83 @@ section.price {
     aspect-ratio: 16 / 9;
   }
 }
+/* === Map bottom-sheet 強制 2カラム（画像 左 / 情報 右 / ボタン 右下）=== */
+/* 既存の display 指定に勝つために !important を使用 */
+.map-card {
+  display: grid !important;
+  grid-template-columns: minmax(240px, 1.2fr) minmax(220px, 1fr);
+  column-gap: 16px;
+  align-items: start;
+}
+
+.map-card .mc-media {
+  grid-column: 1;
+  grid-row: 1 / 3;
+  margin: 0 !important; /* 既存の下マージンを打ち消し */
+  position: relative;
+}
+
+.map-card .mc-media img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.map-card .mc-like {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.map-card .mc-body {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0; /* タイトルの折返し制御 */
+}
+
+.map-card .mc-title {
+  font-size: 18px;
+  line-height: 1.4;
+  margin: 0;
+  word-break: break-word;
+}
+
+.map-card .mc-note {
+  margin: 0;
+  color: #666;
+}
+
+.map-card .mc-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.map-card .mc-actions {
+  margin-top: auto; /* ボタンを右下へ */
+  padding-top: 8px;
+  display: flex;
+  gap: 8px;
+}
+
+/* かなり狭い画面では縦並びにフォールバック */
+@media (max-width: 360px) {
+  .map-card {
+    grid-template-columns: 1fr !important;
+  }
+  .map-card .mc-media {
+    grid-row: auto;
+  }
+  .map-card .mc-body {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  .map-card .mc-actions {
+    margin-top: 8px;
+  }
+}
