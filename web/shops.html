@@ -6,9 +6,25 @@
 />
 <title>お店を探す | line-food-web</title>
 <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-
 <!-- アプリ共通CSS -->
 <link rel="stylesheet" href="./css/app.css?v=shops-map-1" />
+<!-- OSM タイルへ事前接続（DNS+TLSを先に張る） -->
+<link rel="preconnect" href="https://a.tile.openstreetmap.org" crossorigin />
+<link rel="preconnect" href="https://b.tile.openstreetmap.org" crossorigin />
+<link rel="preconnect" href="https://c.tile.openstreetmap.org" crossorigin />
+
+<!-- Leaflet CSS を preload で先取して即適用 -->
+<link
+  rel="preload"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  as="style"
+  onload="this.onload=null;this.rel='stylesheet'"
+/>
+<noscript
+  ><link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/></noscript>
 
 <!-- Leaflet（地図ライブラリ）：CSS + JS を読み込む -->
 <link

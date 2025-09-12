@@ -1,123 +1,134 @@
 // web/js/map-adapter.js
-// Leaflet 専用の軽量アダプタ。あとで Google に差し替える場合もこのAPIを保てばOK。
+// Leaflet adapter: fast-first-paint & chunked markers
+const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+const SAVE_DATA = !!(conn && conn.saveData);
+const SLOW_NET = !!(conn && /(^|-)2g/.test(conn.effectiveType || ""));
 
 export function createMapAdapter(kind = "leaflet") {
+  if (kind !== "leaflet") throw new Error("Only Leaflet adapter is provided");
   return new LeafletAdapter();
 }
 
-// ---- Leaflet 実装 ----
 class LeafletAdapter {
   constructor() {
     this.map = null;
+    this.layer = null;        // markers layer
     this._markers = [];
-    this._clickCb = null;
+    this._onClick = null;
   }
 
-  async init(containerId, { center = [35.681236, 139.767125], zoom = 14 } = {}) {
-    if (!window.L) throw new Error("Leaflet not loaded");
-    // ズームUIは地図の既存UIに任せる（必要なら true）
-    this.map = L.map(containerId, { zoomControl: false }).setView(center, zoom);
+  async init(elId, { center = [35.681236, 139.767125], zoom = 13 } = {}) {
+    if (!window.L) {
+      // 動的ロードが必要な場合だけ（shops.htmlでCDN読み込み済みなら通らない）
+      await import("https://unpkg.com/leaflet@1.9.4/dist/leaflet-src.esm.js");
+    }
 
-    // OSM タイル
+    const L = window.L;
+    this.map = L.map(elId, {
+      preferCanvas: true,                // ← 軽い
+      zoomControl: false,                // 自前UIなら消す
+      zoomAnimation: false,              // 初期体験を軽く
+      markerZoomAnimation: false,
+      fadeAnimation: true,
+      inertia: true,
+      worldCopyJump: true
+    }).setView(center, zoom);
+
+    // 軽めタイル（Retinaを抑制 / keepBuffer縮小）
+    const retina = !(SAVE_DATA || SLOW_NET); // 低速/節約ならretina無効
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap contributors",
+      attribution: '&copy; OpenStreetMap contributors',
+      crossOrigin: true,
+      detectRetina: retina,
+      updateWhenIdle: true,
+      updateWhenZooming: false,
+      keepBuffer: 1,              // ← 既定2→1（スクロール時の再描画を軽く）
+      tileSize: 256,
       maxZoom: 19,
+      subdomains: "abc"
     }).addTo(this.map);
 
+    this.layer = L.layerGroup().addTo(this.map);
     return this;
   }
 
-  // 多様なキー名から座標を拾う
-  _pickLatLng(obj) {
-    const n = (v) => {
-      const x = Number(v);
-      return Number.isFinite(x) ? x : null;
-    };
-    const lat =
-      n(obj?.lat) ??
-      n(obj?.latitude) ??
-      n(obj?.lat_deg) ??
-      n(obj?.location?.lat) ??
-      n(obj?.coords?.lat) ??
-      n(obj?.geo?.lat);
-    const lng =
-      n(obj?.lng) ??
-      n(obj?.lon) ??
-      n(obj?.longitude) ??
-      n(obj?.lng_deg) ??
-      n(obj?.location?.lng) ??
-      n(obj?.location?.lon) ??
-      n(obj?.coords?.lng) ??
-      n(obj?.geo?.lng);
-    return [lat, lng];
+  // 一括置き換え（古いマーカーは破棄）
+  async setMarkers(items = [], { chunk = 60, delay = 16 } = {}) {
+    this.clearMarkers();
+    return this.addMarkers(items, { chunk, delay });
   }
 
-  addMarkers(items = []) {
-    if (!this.map) throw new Error("init() してから呼んでください");
-    const created = [];
-    items.forEach((shop) => {
-      const [lat, lng] = this._pickLatLng(shop);
-      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-      const m = L.marker([lat, lng]).addTo(this.map);
-      m._shop = shop;
-      m.on("click", () => this._clickCb && this._clickCb(shop));
-      this._markers.push(m);
-      created.push(m);
-    });
-    return created;
+  // 追加入力（チャンク分割で分割描画）
+  async addMarkers(items = [], { chunk = 60, delay = 16 } = {}) {
+    if (!Array.isArray(items) || !items.length) return [];
+
+    const L = window.L;
+    const batch = (arr, n) => {
+      const out = [];
+      for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n));
+      return out;
+    };
+
+    const batches = batch(items, chunk);
+    for (const group of batches) {
+      for (const it of group) {
+        const lat = Number(it.__lat ?? it.lat);
+        const lng = Number(it.__lng ?? it.lng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+
+        // PNGマーカーより軽い circleMarker を採用
+        const m = L.circleMarker([lat, lng], {
+          radius: 7,
+          weight: 2,
+          color: "#1a3a2d",
+          fillColor: "#1a3a2d",
+          fillOpacity: 1
+        });
+        m._shop = it;
+        m.addTo(this.layer);
+        if (this._onClick) m.on("click", () => this._onClick(it));
+        this._markers.push(m);
+      }
+      // フレームを解放（小刻みに描画）
+      await new Promise((r) => setTimeout(r, delay));
+    }
+    return this._markers.slice();
   }
 
   onMarkerClick(cb) {
-    this._clickCb = cb;
+    this._onClick = typeof cb === "function" ? cb : null;
   }
 
-  fitToMarkers({ padding = 60, maxZoom = 17 } = {}) {
-    const pts = this._markers.map((m) => m.getLatLng());
-    if (!pts.length) return;
-    const b = L.latLngBounds(pts);
-    this.map.fitBounds(b, { padding: [padding, padding], maxZoom });
+  clearMarkers() {
+    if (!this.layer) return;
+    this.layer.clearLayers();
+    this._markers = [];
   }
 
-  // 任意の点群（[lat,lng] or {lat,lng}）で画面フィット
-  fitToPoints(points = [], { padding = 60, maxZoom = 17 } = {}) {
-    const pts = points
-      .map((p) =>
-        Array.isArray(p)
-          ? L.latLng(p[0], p[1])
-          : p && Number.isFinite(p.lat) && Number.isFinite(p.lng)
-          ? L.latLng(p.lat, p.lng)
-          : null
-      )
-      .filter(Boolean);
-    if (!pts.length) return;
-    const b = L.latLngBounds(pts);
-    this.map.fitBounds(b, { padding: [padding, padding], maxZoom });
+  fitToMarkers({ padding = 60, maxZoom = 16 } = {}) {
+    if (!this.map) return;
+    if (!this._markers.length) return;
+
+    const L = window.L;
+    const bounds = L.latLngBounds(
+      this._markers.map((m) => m.getLatLng())
+    );
+    if (!bounds.isValid()) return;
+    this.map.fitBounds(bounds, { padding: [padding, padding], maxZoom });
   }
 
   setCenter(lat, lng, zoom) {
     if (!this.map) return;
-    this.map.setView([lat, lng], zoom ?? this.map.getZoom());
+    if (Number.isFinite(zoom)) this.map.setView([lat, lng], zoom, { animate: true });
+    else this.map.panTo([lat, lng], { animate: true });
   }
 
-  // 現在地から最寄りピンを返す
-  getNearest(lat, lng) {
-    if (!this._markers.length) return null;
-    const here = L.latLng(lat, lng);
-    let best = null;
-    let bestD = Infinity;
-    this._markers.forEach((m) => {
-      const d = here.distanceTo(m.getLatLng());
-      if (d < bestD) {
-        bestD = d;
-        best = m;
-      }
-    });
-    return best
-      ? { marker: best, shop: best._shop, latlng: best.getLatLng(), distance_m: bestD }
-      : null;
-  }
-
-  get markerCount() {
-    return this._markers.length;
+  addCurrentDot(lat, lng) {
+    const L = window.L;
+    const me = L.circleMarker([lat, lng], {
+      radius: 7, color: "#2a6ef0", weight: 2, fillColor: "#2a6ef0", fillOpacity: 1
+    }).addTo(this.layer);
+    this._markers.push(me);
+    return me;
   }
 }
