@@ -1021,3 +1021,24 @@ section.price {
     font-size: 17px;
   }
 }
+/* ===== Shops map page (Leaflet) ===== */
+/* マップを全面に固定配置し、タブバー分だけ下を空ける */
+#map {
+  position: fixed;
+  inset: 0 0 var(--tabbar-h, 64px) 0;
+  z-index: 0;
+  background: #eae7df; /* タイル読み込み前の下地 */
+}
+
+/* 上部の検索バーやボタン類のラッパー（もし未定義なら） */
+.map-ui {
+  position: fixed;
+  top: max(10px, env(safe-area-inset-top));
+  left: 10px;
+  right: 10px;
+  z-index: 2;
+  pointer-events: none; /* 透過してマップを操作できる */
+}
+.map-ui > * {
+  pointer-events: auto;
+} /* ただし子要素は操作可能 */

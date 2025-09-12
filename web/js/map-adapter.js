@@ -4,6 +4,42 @@ export function createMapAdapter(engine = "leaflet") {
   return LeafletAdapter(); // default
 }
 
+// --- CSS を一度だけ自動注入（保険） ---
+function ensureLeafletCss() {
+  if (document.querySelector("link[data-leaflet-css]")) return;
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+  link.setAttribute("data-leaflet-css", "");
+  document.head.appendChild(link);
+}
+
+class LeafletAdapter {
+  async init(container, center, zoom, options = {}) {
+    ensureLeafletCss();
+
+    this.map = L.map(container, {
+      center: [center.lat, center.lng],
+      zoom,
+      zoomControl: false,
+      attributionControl: false,
+    });
+
+    L.tileLayer(
+      options.tileUrl || "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      {
+        maxZoom: 19,
+        attribution: options.attribution || "&copy; OpenStreetMap contributors",
+      }
+    ).addTo(this.map);
+
+    // レイアウト確定後にサイズを再計算（白画面防止）
+    setTimeout(() => this.map.invalidateSize(), 0);
+  }
+
+  // ...（既存の addMarker / flyTo などはそのまま）...
+}
+
 // web/js/map-adapter.js  ← ファイル先頭〜中腹（クラス定義より前）に追加
 export async function loadGoogleMapsOnce(
   apiKey,
