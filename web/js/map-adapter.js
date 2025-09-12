@@ -19,24 +19,21 @@ class LeafletAdapter {
 
   /* サイトカラーのショップアイコン（明示サイズ） */
   // === カスタム：ショップピン（DPR対応・サイトカラー） ===
+  // === Shop pin (DPR対応・サイトカラー) ===
   _mkShopIcon() {
     if (this._iconShop) return this._iconShop;
 
-    const root = document.documentElement;
-    // サイトカラー（--accent が無ければ --brand、それも無ければ既定色）
-    const css = getComputedStyle(root);
+    const css = getComputedStyle(document.documentElement);
     const brand = (
       css.getPropertyValue("--accent") ||
       css.getPropertyValue("--brand") ||
       "#0B5C3D"
     ).trim();
 
-    // デバイスピクセル比に応じて拡大（上限2x）
     const DPR = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
-    const W = Math.round(34 * DPR); // 横
-    const H = Math.round(44 * DPR); // 縦（ティアドロップの高さ）
+    const W = Math.round(34 * DPR);
+    const H = Math.round(44 * DPR);
 
-    // 角丸ティアドロップ + 「店」風の簡易アイコン
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 34 44" aria-hidden="true">
        <path d="M17 0c8.8 0 16 6.9 16 15.5 0 10.3-12.2 22.6-15.1 25.5a1.3 1.3 0 0 1-1.8 0C13.2 38.1 1 25.8 1 15.5 1 6.9 8.2 0 17 0Z" fill="${brand}"/>
        <rect x="9" y="10" width="16" height="10" rx="2" ry="2" fill="#fff"/>
@@ -48,10 +45,15 @@ class LeafletAdapter {
       className: "lf-pin-shop",
       html: svg,
       iconSize: [W, H],
-      iconAnchor: [W / 2, H - 2], // 尖りの少し上を基準に
+      iconAnchor: [W / 2, H - 2],
       popupAnchor: [0, -H],
     });
     return this._iconShop;
+  }
+
+  // 互換：既存コードが _makeShopIcon を呼んでも動くように
+  _makeShopIcon() {
+    return this._mkShopIcon();
   }
 
   async init(
