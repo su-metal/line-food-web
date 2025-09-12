@@ -1,48 +1,72 @@
 // web/js/http.js
-import { CONFIG } from './config.js';
-const DEBUG = location.search.includes('debug=1');
+// LIFF がなくても動く安全版。LIFF があれば ID トークンを付与します。
 
-function isExpired(idToken, skewSec = 30) {
-  try {
-    const p = idToken.split('.')[1];
-    const s = p.replace(/-/g,'+').replace(/_/g,'/');
-    const pad = s.length % 4 ? '='.repeat(4 - (s.length % 4)) : '';
-    const payload = JSON.parse(atob(s + pad));
-    const now = Math.floor(Date.now()/1000);
-    return typeof payload.exp === 'number' ? (payload.exp - skewSec) <= now : true;
-  } catch { return true; }
-}
+const API_BASE = ""; // 同一オリジン。別ドメインにしたいならここを設定
 
+const isFormData = (b) =>
+  typeof FormData !== "undefined" && b instanceof FormData;
+
+const hasLIFF = () =>
+  typeof window !== "undefined" && typeof window.liff !== "undefined";
+
+/** LIFF があれば ID トークンを返す。なければ null */
 export async function ensureIdToken() {
-  await liff.ready;
-  if (!liff.isLoggedIn()) {
-    if (DEBUG) console.debug('[liff] not logged in → login');
-    await liff.login();
-    return null;
-  }
-  let tok = liff.getIDToken();
-  if (!tok || isExpired(tok)) {
-    if (DEBUG) console.debug('[liff] token missing/expired → re-login');
-    liff.logout();
-    await liff.login(); // ここでリダイレクト → 復帰後は新トークン
-    return null;
-  }
-  return tok;
+  if (!hasLIFF()) return null;
+  try {
+    // liff.ready を待つ（失敗しても無視）
+    await window.liff.ready.catch(() => {});
+    // アプリ内 or ログイン済みなら ID トークン取得を試す
+    if (window.liff.isInClient?.() || window.liff.isLoggedIn?.()) {
+      return window.liff.getIDToken?.() || null;
+    }
+  } catch {}
+  return null;
 }
 
-export async function apiFetch(path, init = {}) {
-  const tok = await ensureIdToken();
-  const headers = new Headers(init.headers || {});
-  if (tok) headers.set('Authorization', `Bearer ${tok}`);
-  const res = await fetch(`${CONFIG.API_BASE}${path}`, { ...init, headers, credentials:'include' });
-  if (DEBUG) console.debug('[RES]', res.status, path);
+/** 共通 fetch（必要なら Authorization を付与） */
+export async function apiFetch(path, opts = {}) {
+  const { headers = {}, body, ...rest } = opts;
+  const h = new Headers(headers);
+
+  // 既定ヘッダ
+  if (!h.has("Accept")) h.set("Accept", "application/json");
+  // JSON 送信時のみ Content-Type を自動付与（FormData には付けない）
+  if (body && !isFormData(body) && !h.has("Content-Type")) {
+    h.set("Content-Type", "application/json");
+  }
+
+  // LIFF があれば ID トークンを付与（なければ付けない＝公開API想定）
+  const idToken = await ensureIdToken();
+  if (idToken) h.set("Authorization", `Bearer ${idToken}`);
+
+  const res = await fetch(API_BASE + path, { ...rest, headers: h, body });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    const err = new Error(`HTTP ${res.status}`);
+    err.status = res.status;
+    err.body = text;
+    throw err;
+  }
   return res;
 }
 
-export async function apiJSON(path, init = {}) {
-  const r = await apiFetch(path, init);
-  const t = await r.text();
-  let j; try { j = t ? JSON.parse(t) : {}; } catch { j = { ok:false, error:'Invalid JSON', raw:t }; }
-  if (!r.ok) throw Object.assign(new Error(j.error || r.statusText), { status:r.status, body:j });
-  return j;
+/** JSON ヘルパー */
+export async function apiJSON(path, opts) {
+  const res = await apiFetch(path, opts);
+  const text = await res.text(); // 空ボディ対策
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    const err = new Error("Invalid JSON");
+    err.body = text;
+    throw err;
+  }
+}
+
+/** テキストヘルパー */
+export async function apiText(path, opts) {
+  const res = await apiFetch(path, opts);
+  return res.text();
 }
