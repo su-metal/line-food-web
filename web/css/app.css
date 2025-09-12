@@ -422,6 +422,7 @@ main,
 /* Body */
 .shop-card.card-v3 .card-body {
   padding: 0.7rem 0.9rem 0.9rem;
+  background: #e9e8e4 !important;
 }
 
 /* Product row layout */
