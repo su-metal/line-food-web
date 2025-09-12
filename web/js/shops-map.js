@@ -129,12 +129,13 @@ async function suggestJP(q) {
     const searchWrap  = searchInput?.closest(".map-search");
     let lastData = [];         // 直近に表示した店舗データ
     let searchDot = null;      // 検索地点ドット
+    const SEARCH_ZOOM = 16;    // ← 検索時はここにクローズアップ
 
     // 1) 地図をまず出す
     let center = getLastCenter() || [35.681236, 139.767125];
     await mapAdp.init("map", { center, zoom: 13 });
 
-    // 検索ドットを 1 個だけ出す（Leaflet 直叩き、存在すれば更新）
+    // 検索ドット（1個だけ）
     function showSearchDot(lat, lng) {
       setLastCenter(lat, lng);
       if (window.L && mapAdp.map) {
@@ -160,9 +161,10 @@ async function suggestJP(q) {
     }
 
     // 3) 共通：この地点を基準に店舗を再読込
-    const reloadAt = async (lat, lng) => {
-      // ★ まず必ずそこでセンタリング（即座に画面が動く）
-      mapAdp.setCenter(lat, lng, 15);
+    //    options.focusOnly=true のときは「検索クローズアップ」＝ フィットしない
+    const reloadAt = async (lat, lng, { focusOnly = false } = {}) => {
+      // まず確実にクローズアップ or 通常ズームでセンター
+      mapAdp.setCenter(lat, lng, focusOnly ? SEARCH_ZOOM : 15);
       showSearchDot(lat, lng);
 
       // 近隣店舗を取得
@@ -186,16 +188,15 @@ async function suggestJP(q) {
       lastData = withCoords;
       setCachedItems(items);
 
-      // ★ 検索地点＋店舗をまとめてフィット（店舗が無ければそのままセンター）
-      if (withCoords.length && window.L) {
-        const bounds = window.L.latLngBounds([[lat, lng], ...withCoords.map(it=>[it.__lat, it.__lng])]);
-        if (bounds.isValid()) mapAdp.map.fitBounds(bounds, { padding: [56, 56], maxZoom: 16 });
+      // ★ 検索クローズアップ時はフィットしない（ズーム維持で検索地点を中心表示）
+      if (!focusOnly && withCoords.length) {
+        mapAdp.fitToMarkers({ padding: 56 });
       }
     };
 
-    // 4) 初期：?q= があればジオコード、無ければ現在地へ
+    // 4) 初期：?q= があれば「検索クローズアップ」／無ければ現在地で通常描画
     if (qParam) {
-      try { const hit = await geocodeJP(qParam); if (hit) await reloadAt(hit[0], hit[1]); }
+      try { const hit = await geocodeJP(qParam); if (hit) await reloadAt(hit[0], hit[1], { focusOnly: true }); }
       catch(e){ console.warn("[shops-map] geocode failed", e); }
     } else {
       (async () => {
@@ -250,7 +251,7 @@ async function suggestJP(q) {
       const s = suggItems[i]; if (!s) return;
       if (searchInput) searchInput.value = s.name;
       renderSuggest([]);
-      await reloadAt(s.lat, s.lng);
+      await reloadAt(s.lat, s.lng, { focusOnly: true }); // ← 検索はクローズアップ
     }
 
     if (searchInput) {
@@ -270,7 +271,7 @@ async function suggestJP(q) {
           else {
             const q = searchInput.value.trim();
             if (!q) return;
-            geocodeJP(q).then(hit=>{ if (hit) reloadAt(hit[0], hit[1]); });
+            geocodeJP(q).then(hit=>{ if (hit) reloadAt(hit[0], hit[1], { focusOnly: true }); });
           }
         } else if (e.key === "Escape") {
           renderSuggest([]);
@@ -279,7 +280,7 @@ async function suggestJP(q) {
       document.addEventListener("click", (ev)=>{ if (!searchWrap?.contains(ev.target)) renderSuggest([]); });
     }
 
-    // 6) 現在地へ（現在地＋最寄り1件にフィット）
+    // 6) 現在地へ（現在地＋最寄り1件にフィット：従来どおり）
     document.getElementById("btnLocate")?.addEventListener("click", async () => {
       let me = center;
       try {
