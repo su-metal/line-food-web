@@ -124,8 +124,8 @@ export class LeafletAdapter {
   onMarkerClick(handler) {
     this._onClick = typeof handler === "function" ? handler : null;
     for (const m of this.markers) {
-      m.off("click");
-      if (this._onClick) m.on("click", () => this._onClick(m.__payload, m));
+      m.off?.("click");
+      if (this._onClick) m.on?.("click", () => this._onClick(m.__payload, m));
     }
   }
 
@@ -133,28 +133,54 @@ export class LeafletAdapter {
   fitToMarkers({ padding = 40 } = {}) {
     if (!this.map || !this.markers.length || !window.L) return;
     const group = window.L.featureGroup(this.markers);
-    this.map.fitBounds(group.getBounds(), {
+    const bounds = group.getBounds();
+    if (!bounds || !bounds.isValid?.()) return; // 無効なら何もしない
+    this.map.fitBounds(bounds, {
       padding: [padding, padding],
       maxZoom: 17,
     });
   }
 
-  /** Leaflet ネイティブの fitBounds またはエイリアス動作 */
+  /**
+   * Leaflet の fitBounds 互換 + エイリアス動作
+   * - 境界（[[lat,lng],[lat,lng]] など）を渡されたらそのまま適用
+   * - 「オプションのみ（{padding:40} など）」や引数なしなら、全マーカーへフィット
+   */
   fitBounds(boundsOrOpts, maybeOpts) {
-    // 引数があればネイティブに委譲（[ [lat,lng], [lat,lng] ] 等）
-    if (boundsOrOpts && this.map && window.L) {
-      const L = window.L;
-      const b =
-        Array.isArray(boundsOrOpts) ? L.latLngBounds(boundsOrOpts) : boundsOrOpts;
-      this.map.fitBounds(b, maybeOpts || {});
+    const L = window.L;
+    // 1) 引数なし → 全マーカー
+    if (!boundsOrOpts) {
+      this.fitToMarkers(maybeOpts || {});
       return;
     }
-    // 引数が無ければ全マーカーにフィット（shops-map.js 互換）
-    this.fitToMarkers(
-      typeof boundsOrOpts === "object" && !Array.isArray(boundsOrOpts)
-        ? boundsOrOpts
-        : {}
-    );
+
+    // 2) オプションだけ来たケース（shops-map.js でありがち）
+    const isOptionsOnly =
+      typeof boundsOrOpts === "object" &&
+      !Array.isArray(boundsOrOpts) &&
+      (("padding" in boundsOrOpts) || ("maxZoom" in boundsOrOpts) || ("animate" in boundsOrOpts));
+
+    if (isOptionsOnly) {
+      this.fitToMarkers(boundsOrOpts);
+      return;
+    }
+
+    // 3) 明示的な境界（配列 or LatLngBounds-like）
+    if (Array.isArray(boundsOrOpts) && L) {
+      try {
+        const b = L.latLngBounds(boundsOrOpts);
+        if (b.isValid?.()) {
+          this.map.fitBounds(b, maybeOpts || {});
+          return;
+        }
+      } catch { /* fallthrough */ }
+    } else if (boundsOrOpts && boundsOrOpts.isValid?.()) {
+      this.map.fitBounds(boundsOrOpts, maybeOpts || {});
+      return;
+    }
+
+    // 4) 最後の砦：全マーカー
+    this.fitToMarkers(maybeOpts || {});
   }
 
   clearMarkers() {
