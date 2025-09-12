@@ -1153,8 +1153,7 @@ section.price {
 /* ===== Map shop pin color ===== */
 :root {
   /* 既に --brand / --accent があればこのブロックは不要 */
-  /* --brand: #06c755; */  /* 例：LINEグリーン */
-  /* --accent: #2a6ef0; */
+  --accent: #b38b59;
 }
 
 .leaflet-marker-icon.shop-pin {
