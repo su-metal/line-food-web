@@ -1,142 +1,109 @@
 // web/js/map-adapter.js
-// Leaflet / Google を差し替え可能にする簡易アダプタ（今回は Leaflet 実装）
+// すでにある export はそのまま。LeafletAdapter を以下の内容に差し替え。
 
-export function createMapAdapter(provider = "leaflet") {
-  return new LeafletAdapter();
-}
-
-/* ================= Leaflet Adapter ================ */
 class LeafletAdapter {
   constructor() {
     this.map = null;
-    this.layer = null;        // ベースのレイヤー（LayerGroup）
-    this._markers = [];
-    this._clickCb = null;
+    this.markers = [];
+    this._onClick = null;
+    this.markersLayer = null; // 店舗マーカー用
+    this.miscLayer = null;    // 現在地ドットなど雑レイヤー
+    this.meMarker = null;     // 現在地マーカー保持
   }
 
   async init(containerId, { center = [35.681236, 139.767125], zoom = 14 } = {}) {
-    if (!window.L) throw new Error("Leaflet not loaded");
+    const L = window.L;
+    if (!L) throw new Error("Leaflet not loaded");
 
-    // マップ
-    this.map = L.map(containerId, {
-      preferCanvas: true,         // モバイルで高速化
-      zoomControl: false,
-      maxZoom: 19,
-      attributionControl: true,
-    }).setView(center, zoom);
+    this.map = L.map(containerId, { zoomControl: false, attributionControl: true });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(this.map);
 
-    // タイル
-    L.tileLayer(
-      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-      {
-        maxZoom: 19,
-        attribution: '&copy; OpenStreetMap contributors',
-        crossOrigin: true,
-      }
-    ).addTo(this.map);
+    // レイヤーを分離（店舗と現在地を別管理）
+    this.markersLayer = L.layerGroup().addTo(this.map);
+    this.miscLayer = L.layerGroup().addTo(this.map);
 
-    // まとめ用レイヤ
-    this.layer = L.layerGroup().addTo(this.map);
-
-    return this;
+    this.map.setView(center, zoom);
   }
 
-  /** ピンSVG（DivIcon 用） */
-  _divIconFor(shop) {
-    const color = "#0f5b4f"; // ブランド寄りの深緑
-    const html = `
-      <svg class="map-pin" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M12 22s-7-7.8-7-13a7 7 0 1 1 14 0c0 5.2-7 13-7 13z" fill="${color}"/>
-        <circle cx="12" cy="9" r="3.2" fill="#fff"/>
-      </svg>`;
-    return L.divIcon({
-      className: "lfw-pin", // 背景や枠を消すためのクラス
-      html,
-      iconSize: [28, 36],
-      iconAnchor: [14, 34],   // 先端が地点に来るように
-      popupAnchor: [0, -34],
-    });
+  clearMarkers() {
+    this.markersLayer?.clearLayers();
+    this.markers = [];
   }
 
-  /** 複数マーカー追加。戻り値: Leaflet Layer の配列 */
-  addMarkers(items = [], opts = {}) {
-    const circleThreshold = opts.circleThreshold ?? 80; // 多い時は円
-    const useCircles = items.length > circleThreshold;
+  /**
+   * 店舗マーカーを高速追加（円マーカー）
+   * items: { __lat, __lng, ... } を想定
+   */
+  async addMarkers(items = [], { chunk = 0, delay = 0 } = {}) {
+    const L = window.L;
+    const addOne = (s) => {
+      const m = L.circleMarker([s.__lat, s.__lng], {
+        radius: 8,
+        color: "#154f3e",
+        weight: 2,
+        fillColor: "#0e7b61",
+        fillOpacity: 0.9,
+        pane: "markerPane"
+      }).addTo(this.markersLayer);
+      m.on("click", () => this._onClick?.(s));
+      this.markers.push(m);
+    };
 
-    const created = [];
-    for (const shop of items) {
-      const lat = num(shop?.lat) ?? num(shop?.latitude) ?? num(shop?.lat_deg) ??
-                  num(shop?.location?.lat) ?? num(shop?.coords?.lat) ?? num(shop?.geo?.lat);
-      const lng = num(shop?.lng) ?? num(shop?.lon) ?? num(shop?.longitude) ?? num(shop?.lng_deg) ??
-                  num(shop?.location?.lng) ?? num(shop?.location?.lon) ?? num(shop?.coords?.lng) ?? num(shop?.geo?.lng);
-      if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
-
-      let marker;
-      if (useCircles) {
-        // 速い円マーカー（でも必ずクリック可能に）
-        marker = L.circleMarker([lat, lng], {
-          radius: 7,
-          color: "#0f5b4f",
-          weight: 2,
-          fillColor: "#0f5b4f",
-          fillOpacity: 0.95,
-          interactive: true,
-        });
-      } else {
-        // 見た目が“ピン”の DivIcon
-        marker = L.marker([lat, lng], {
-          icon: this._divIconFor(shop),
-          keyboard: false,
-          riseOnHover: true,
-          title: shop?.name || "",
-        });
+    if (!chunk || chunk <= 0) {
+      items.forEach(addOne);
+    } else {
+      for (let i = 0; i < items.length; i += chunk) {
+        items.slice(i, i + chunk).forEach(addOne);
+        if (delay) await new Promise((r) => setTimeout(r, delay));
       }
-
-      marker.addTo(this.layer);
-      marker.on("click", () => {
-        if (typeof this._clickCb === "function") this._clickCb(shop);
-      });
-
-      created.push(marker);
     }
-
-    this._markers.push(...created);
-    return created;
+    return this.markers;
   }
 
-  /** クリックハンドラ登録 */
-  onMarkerClick(cb) {
-    this._clickCb = cb;
+  async setMarkers(items = [], opts = {}) {
+    this.clearMarkers();
+    return this.addMarkers(items, opts);
   }
 
-  /** 現在地など1点へ移動 */
+  onMarkerClick(handler) {
+    this._onClick = handler;
+  }
+
+  fitToMarkers({ padding = 56, maxZoom = 17 } = {}) {
+    const L = window.L;
+    if (!this.markers.length) return;
+    const b = L.latLngBounds(this.markers.map((m) => m.getLatLng()));
+    if (b.isValid()) this.map.fitBounds(b, { padding: [padding, padding], maxZoom });
+  }
+
   setCenter(lat, lng, zoom) {
-    if (!this.map) return;
-    this.map.setView([lat, lng], zoom ?? this.map.getZoom(), { animate: true });
+    this.map.setView([lat, lng], zoom ?? this.map.getZoom());
   }
 
-  /** マーカー群に合わせてズーム（パディング px 指定可） */
-  fitToMarkers({ padding = 60 } = {}) {
-    if (!this.map || !this._markers.length) return;
-    const group = L.featureGroup(this._markers);
-    this.map.fitBounds(group.getBounds(), {
-      padding: L.point(padding, padding),
-      animate: true,
+  /**
+   * 現在地の青ドットを表示（前のものは置き換え）
+   */
+  addCurrentDot(lat, lng) {
+    const L = window.L;
+    if (this.meMarker) this.miscLayer.removeLayer(this.meMarker);
+
+    // 視認性の高い DivIcon
+    const icon = L.divIcon({
+      className: "me-marker",
+      html: '<span class="me-dot" aria-hidden="true"></span>',
+      iconSize: [18, 18],
+      iconAnchor: [9, 9]
     });
-  }
 
-  /** 任意の座標配列 [[lat,lng], ...] をフィット */
-  fitToPoints(points = [], { padding = 60 } = {}) {
-    if (!this.map || !points.length) return;
-    const bounds = L.latLngBounds(points.map((p) => L.latLng(p[0], p[1])));
-    if (bounds.isValid()) {
-      this.map.fitBounds(bounds, { padding: L.point(padding, padding), animate: true });
-    }
+    this.meMarker = L.marker([lat, lng], { icon, interactive: false });
+    this.miscLayer.addLayer(this.meMarker);
+    return this.meMarker;
   }
 }
 
-/* ---- helpers ---- */
-function num(v) {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : null;
+// 既存の createMapAdapter から LeafletAdapter を返す実装はそのまま
+export function createMapAdapter(kind = "leaflet") {
+  return new LeafletAdapter();
 }
