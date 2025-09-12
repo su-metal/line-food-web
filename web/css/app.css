@@ -1030,8 +1030,9 @@ section.price {
   background: #eae7df; /* タイル読み込み前の下地 */
 }
 
-/* 上部の検索バーやボタン類のラッパー（もし未定義なら） */
-.map-ui {
+/* 上部の検索バーやボタン類（HTML: .map-topbar。互換で .map-ui も同義に） */
+.map-ui,
+.map-topbar {
   position: fixed;
   top: max(10px, env(safe-area-inset-top));
   left: 10px;
@@ -1039,6 +1040,7 @@ section.price {
   z-index: 2;
   pointer-events: none; /* 透過してマップを操作できる */
 }
-.map-ui > * {
-  pointer-events: auto;
-} /* ただし子要素は操作可能 */
+.map-ui > *,
+.map-topbar > * {
+  pointer-events: auto; /* 子要素は操作可能 */
+}

@@ -3,17 +3,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>お店を探す | line-food-web</title>
 <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+
+<!-- アプリ共通CSS -->
 <link rel="stylesheet" href="./css/app.css?v=shops-map-1" />
-<!-- Leaflet core CSS（shops.html の <head> 内に追加） -->
-<link rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      crossorigin="" />
+
+<!-- Leaflet（地図ライブラリ）：CSS + JS を読み込む -->
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  crossorigin=""
+/>
+<script
+  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  defer
+></script>
 
 <body class="map-page">
-
-  <!-- 地図そのもの -->
+  <!-- 地図そのもの（※ JS は #map を探すのでこのIDで） -->
   <div class="map-wrap">
-    <div id="gmap" aria-label="周辺マップ"></div>
+    <div id="map" aria-label="周辺マップ"></div>
 
     <!-- 上部：検索/フィルタのピル -->
     <div class="map-topbar">
@@ -74,10 +82,11 @@
     <a href="#"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5 19a7 7 0 0 1 14 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span class="label">マイページ</span></a>
   </nav>
 
-  <!-- アプリJS -->
-  <script type="module" src="./js/shops-map.js"></script>
+  <!-- アプリJS（Leaflet読込後に実行される） -->
+  <script type="module" src="./js/shops-map.js?v=1"></script>
 
-  <!-- Google Maps（APIキー差し替え） -->
-  <!-- <script async defer
-    src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&callback=initShopsMap"></script> -->
+  <!-- Google Maps は使わないので読み込まない（差し替え時に有効化）
+  <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=YOUR_KEY&callback=initShopsMap&loading=async"></script>
+  -->
 </body>
