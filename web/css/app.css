@@ -17,7 +17,7 @@
   --heart: #e2535f;
   --sub: #f4f2ed;
   --warn: #c97e22;
-  --white:#ffffff;
+  --white: #ffffff;
 
   /* Aliases for legacy rules */
   --primary: var(--brand);
@@ -2614,7 +2614,7 @@ body {
 }
 /* === Spotlight / Hero の背景を統一（やわらかいベージュ） === */
 :root {
-  --hero-bg: #E9E8E4;
+  --hero-bg: #e9e8e4;
 }
 
 /* セクション背景 */
@@ -2645,86 +2645,91 @@ body {
 /* ===== Spotlight tweaks ===== */
 
 /* 左上バッジの色を #d9534f に統一（本日のおすすめ） */
-.sp-flag{
-  background:#d9534f !important;
-  color:#fff !important;
-  border-color:#d9534f !important;
+.sp-flag {
+  background: #d9534f !important;
+  color: #fff !important;
+  border-color: #d9534f !important;
 }
 
 /* 右下のリボンは非表示 */
-.sp-ribbon{
-  display:none !important;
+.sp-ribbon {
+  display: none !important;
 }
 
 /* 価格カードは1行で表示（改行しない） */
-.sp-price-card{
-  display:inline-flex;
-  align-items:baseline;
-  gap:6px;
-  white-space:nowrap;
-  line-height:1;
+.sp-price-card {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  white-space: nowrap;
+  line-height: 1;
 }
-.sp-price-card .yen{ font-weight:700; }
-.sp-price-card small{ opacity:.9; }
+.sp-price-card .yen {
+  font-weight: 700;
+}
+.sp-price-card small {
+  opacity: 0.9;
+}
 
-.hero-spotlight{
+.hero-spotlight {
+  background: #fff !important;
+  box-shadow: var(--shadow-1) 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.spotlight-card {
   background: #fff !important;
 }
 
-.spotlight-card{
-  background: #fff !important;
-}
-
-.container{
-  background: #F1F1F1 !important;
+.container {
+  background: #f1f1f1 !important;
 }
 
 /* h3{
   color: var(--white) !important;
 } */
 
-.app-header{
-  background: #F1F1F1 !important;
+.app-header {
+  background: #f1f1f1 !important;
   border-bottom: none !important;
 }
 
 /* Spotlight meta chips */
-.spotlight-info .meta{
-  display:flex;
-  flex-wrap:wrap;
-  align-items:center;
-  gap:8px;
-  margin-top:6px;
+.spotlight-info .meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
 }
 
-.spotlight-info .meta .chip{
-  display:inline-flex;
-  align-items:center;
-  gap:.35em;
-  height:26px;
-  padding:0 10px;
-  border-radius:999px;
-  border:1px solid color-mix(in srgb, var(--brand) 18%, transparent);
-  background:#fff;
-  color:var(--ink);
-  font-size:12.5px;
-  font-weight:700;
-  white-space:nowrap;
+.spotlight-info .meta .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--brand) 18%, transparent);
+  background: #fff;
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
-.spotlight-info .meta .chip.brand{
-  background:var(--brand);
-  border-color:var(--brand);
-  color:#fff;
+.spotlight-info .meta .chip.brand {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
 }
 
-.spotlight-info .meta .place{
-  color:var(--muted);
-  font-size:12.5px;
-  font-weight:600;
-  white-space:nowrap;
+.spotlight-info .meta .place {
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
-.spotlight-card .spotlight-info .title{
+.spotlight-card .spotlight-info .title {
   color: var(--brand) !important;
 }
