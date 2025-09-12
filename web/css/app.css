@@ -1096,3 +1096,41 @@ section.price {
     justify-content: flex-start;
   }
 }
+/* === Map Card: actions only to the right (force) === */
+#map-card .mc-body{
+  position: relative;
+  /* 右側のボタン列のぶんだけ本文側に余白を常に確保 */
+  --mc-actions-w: 150px;
+  padding-right: calc(var(--mc-actions-w) + 16px) !important;
+}
+
+#map-card .mc-actions{
+  position: absolute !important;
+  right: 16px !important;
+  bottom: 16px !important;
+  display: grid !important;
+  grid-auto-flow: row;
+  gap: 10px !important;
+  width: var(--mc-actions-w) !important;
+  z-index: 2;
+}
+
+#map-card .mc-actions .mc-btn{
+  width: 100% !important;         /* ボタンを右カラムいっぱいに */
+  justify-content: center !important;
+}
+
+/* もし極端に狭い画面で潰れる場合だけ下に戻す（任意） */
+@media (max-width: 330px){
+  #map-card .mc-body{
+    padding-right: 16px !important;
+  }
+  #map-card .mc-actions{
+    position: static !important;
+    display: flex !important;
+    gap: 8px !important;
+    width: auto !important;
+    margin-top: 12px !important;
+  }
+}
+
