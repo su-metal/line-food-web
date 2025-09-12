@@ -2676,15 +2676,15 @@ body {
 }
 
 .container{
-  background: var(--brand) !important;
+  background: #F1F1F1 !important;
 }
 
 h3{
-  color: var(--white) !important;
+  /* color: var(--white) !important; */
 }
 
 .app-header{
-  background: var(--brand) !important;
+  background: #F1F1F1 !important;
   border-bottom: none !important;
 }
 
