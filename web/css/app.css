@@ -1053,6 +1053,83 @@ section.price {
   width: 28px;
   height: 36px;
   display: block;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,.25));
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
   pointer-events: none; /* アイコン自体は透過、クリックはマーカーに届く */
+}
+/* === Map bottom-sheet: 2-column layout on wide screens === */
+/* モバイルは従来の縦並び。幅が確保できるときだけ画像左／情報右にする */
+@media (min-width: 560px) {
+  .map-card {
+    /* 既存の見た目は維持しつつ、内部だけグリッド化 */
+    display: grid;
+    grid-template-columns: minmax(260px, 1.2fr) minmax(240px, 1fr);
+    grid-auto-rows: auto;
+    column-gap: 16px;
+    align-items: start;
+  }
+
+  .map-card .mc-media {
+    grid-column: 1;
+    grid-row: 1 / span 2; /* 画像を左側にどっしり配置 */
+    margin: 0; /* 既存の下マージンを打ち消す */
+  }
+
+  .map-card .mc-media img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 10; /* 横長のカード写真っぽく */
+    object-fit: cover;
+    border-radius: 12px;
+  }
+
+  .map-card .mc-like {
+    position: absolute;
+    top: 10px;
+    right: 10px; /* 写真の右上に重ねる */
+  }
+
+  .map-card .mc-body {
+    grid-column: 2;
+    grid-row: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0; /* タイトルの折り返し制御 */
+    gap: 8px;
+  }
+
+  .map-card .mc-title {
+    font-size: 18px;
+    line-height: 1.4;
+    margin: 0 0 2px 0;
+    word-break: break-word;
+  }
+
+  .map-card .mc-note {
+    margin: 0;
+    color: #6b6b6b;
+  }
+
+  .map-card .mc-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .map-card .mc-actions {
+    margin-top: auto; /* ボタンをカード右下に寄せる */
+    padding-top: 8px;
+    display: flex;
+    gap: 8px;
+  }
+}
+
+/* もう少し広いときは画像を少し大きめに */
+@media (min-width: 760px) {
+  .map-card {
+    grid-template-columns: minmax(320px, 1.4fr) minmax(280px, 1fr);
+    column-gap: 20px;
+  }
+  .map-card .mc-media img {
+    aspect-ratio: 16 / 9;
+  }
 }
