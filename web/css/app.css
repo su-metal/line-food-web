@@ -233,7 +233,7 @@ body {
 
 /* ------------------- Quick sort segment ------------------- */
 .quick {
-  padding: 0.4rem 0 0.2rem;
+  padding: 1.4rem 0 0.2rem;
 }
 .seg-row {
   display: inline-flex;
