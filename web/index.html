@@ -534,7 +534,9 @@
     const el = document.querySelector(".home-cta");
     if (!el) return;
 
-    // 初期は非表示（CSSで opacity:0）、スクロールで is-visible を付与
+    /* 初期は必ず非表示に固定（クラスが付いていた場合も剥がす） */
+    el.classList.remove("is-visible");
+
     const setVisible = (v) => el.classList.toggle("is-visible", v);
 
     // 監視用の目印（ヒーローの直後）
@@ -550,20 +552,21 @@
     anchor.after(sentinel);
 
     if ("IntersectionObserver" in window) {
-      // 目印が画面内→非表示 / 目印が上に抜けた→表示
+      // 目印が画面内 → 非表示／目印が上に抜けた → 表示
       const io = new IntersectionObserver(
         ([entry]) => setVisible(!entry.isIntersecting),
-        { root: null, threshold: 0, rootMargin: "0px 0px -60% 0px" }
+        { root: null, threshold: 0, rootMargin: "0px 0px -50% 0px" }
       );
       io.observe(sentinel);
     } else {
-      // フォールバック
+      // フォールバック：80px以上スクロールで表示
       const onScroll = () => setVisible(window.scrollY > 80);
       window.addEventListener("scroll", onScroll, { passive: true });
       onScroll();
     }
   })();
 </script>
+
 <script type="module">
   (() => {
     if (window.__spotlightAffordanceInit) return;
