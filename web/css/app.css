@@ -2731,3 +2731,6 @@ body {
 .hero-spotlight{
   border: 5px solid var(--brand);
 }
+.shop-card card-v3{
+  border: 5px solid var(--brand);
+}
