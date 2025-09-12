@@ -1207,8 +1207,8 @@ section.price {
 .shop-card.card-v3 {
   /* くっきり目の多段シャドウ＋薄い境界線 */
   box-shadow:
-    0 0 0 1px rgba(0, 0, 0, .06) !important,    /* ヘアラインの輪郭 */
-    0 4px 12px rgba(0, 0, 0, .10) !important,   /* 近距離の拡散 */
+    0 0 0 1px rgba(0, 0, 0, .06) ,    /* ヘアラインの輪郭 */
+    0 4px 12px rgba(0, 0, 0, .10) ,   /* 近距離の拡散 */
     0 14px 28px rgba(0, 0, 0, .12) !important;  /* 遠距離の拡散 */
   border: 1px solid rgba(0, 0, 0, .04) !important; /* ごく薄い実線（背景が明るい場合の保険） */
   background-clip: padding-box !important; /* 角丸と境界のにじみ防止 */
@@ -1219,8 +1219,8 @@ section.price {
 .hero-spotlight .spotlight-card:hover,
 .shop-card.card-v3:hover {
   box-shadow:
-    0 0 0 1px rgba(0, 0, 0, .08) !important,
-    0 6px 16px rgba(0, 0, 0, .12) !important,
+    0 0 0 1px rgba(0, 0, 0, .08) ,
+    0 6px 16px rgba(0, 0, 0, .12) ,
     0 22px 44px rgba(0, 0, 0, .16) !important;
   transform: translateY(-1px);
 }
@@ -1230,8 +1230,8 @@ section.price {
   .hero-spotlight .spotlight-card,
   .shop-card.card-v3 {
     box-shadow:
-      0 0 0 1px rgba(255, 255, 255, .08) !important,
-      0 6px 18px rgba(0, 0, 0, .50) !important,
+      0 0 0 1px rgba(255, 255, 255, .08) ,
+      0 6px 18px rgba(0, 0, 0, .50),
       0 24px 56px rgba(0, 0, 0, .60) !important;
     border-color: rgba(255, 255, 255, .06) !important;
   }
@@ -1239,8 +1239,8 @@ section.price {
   .hero-spotlight .spotlight-card:hover,
   .shop-card.card-v3:hover {
     box-shadow:
-      0 0 0 1px rgba(255, 255, 255, .10) !important,
-      0 10px 24px rgba(0, 0, 0, .55) !important,
+      0 0 0 1px rgba(255, 255, 255, .10),
+      0 10px 24px rgba(0, 0, 0, .55) ,
       0 32px 72px rgba(0, 0, 0, .70) !important;
   }
 }
