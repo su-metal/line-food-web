@@ -2679,16 +2679,16 @@ body {
   background: #fff !important;
 }
 
-.container {
-  background: #cccccc !important;
-}
+/* .container {
+  
+} */
 
 /* h3{
   color: var(--white) !important;
 } */
 
 .app-header {
-  background: #cccccc !important;
+  
   border-bottom: none !important;
 }
 
