@@ -1202,46 +1202,49 @@ section.price {
 .tabbar .label {
   color: var(--brand) !important;
 }
-/* === Cards: stronger, clearer separation from background === */
+/* === Floating outside shadow for cards === */
 .hero-spotlight .spotlight-card,
 .shop-card.card-v3 {
-  /* くっきり目の多段シャドウ＋薄い境界線 */
+  /* 外側に広がる立体的な影（レイヤーを重ねて柔らかく） */
   box-shadow:
-    0 0 0 1px rgba(0, 0, 0, .06) ,    /* ヘアラインの輪郭 */
-    0 4px 12px rgba(0, 0, 0, .10) ,   /* 近距離の拡散 */
-    0 14px 28px rgba(0, 0, 0, .12) !important;  /* 遠距離の拡散 */
-  border: 1px solid rgba(0, 0, 0, .04) !important; /* ごく薄い実線（背景が明るい場合の保険） */
-  background-clip: padding-box !important; /* 角丸と境界のにじみ防止 */
-  transition: box-shadow .18s ease, transform .18s ease !important;
+    0 14px 36px rgba(0, 0, 0, .18),
+    0 6px 18px rgba(0, 0, 0, .12) !important;
+
+  /* 親の overflow で影が切れる環境のための保険（外側だけに影） */
+  filter:
+    drop-shadow(0 10px 22px rgba(0, 0, 0, .14))
+    drop-shadow(0 3px 8px rgba(0, 0, 0, .10)) !important;
+
+  /* 角丸のにじみ防止＆視覚的に浮かせる微アニメ */
+  background-clip: padding-box !important;
+  transition: transform .18s ease, box-shadow .18s ease, filter .18s ease !important;
 }
 
-/* Hover/押下でほんの少し持ち上げて視認性を補強（タッチでも軽く効く） */
+/* 軽くホバー/タップで持ち上がる */
 .hero-spotlight .spotlight-card:hover,
 .shop-card.card-v3:hover {
+  transform: translateY(-2px);
   box-shadow:
-    0 0 0 1px rgba(0, 0, 0, .08) ,
-    0 6px 16px rgba(0, 0, 0, .12) ,
-    0 22px 44px rgba(0, 0, 0, .16) !important;
-  transform: translateY(-1px);
+    0 18px 44px rgba(0, 0, 0, .20),
+    0 8px 22px rgba(0, 0, 0, .14) !important;
+  filter:
+    drop-shadow(0 12px 26px rgba(0, 0, 0, .16))
+    drop-shadow(0 4px 10px rgba(0, 0, 0, .12)) !important;
 }
 
-/* ダークモード時はコントラスト最適化（明るめの輪郭＋深めの影） */
+/* ダークモード最適化（影は深め・輪郭は強すぎない） */
 @media (prefers-color-scheme: dark) {
   .hero-spotlight .spotlight-card,
   .shop-card.card-v3 {
     box-shadow:
-      0 0 0 1px rgba(255, 255, 255, .08) ,
-      0 6px 18px rgba(0, 0, 0, .50),
-      0 24px 56px rgba(0, 0, 0, .60) !important;
-    border-color: rgba(255, 255, 255, .06) !important;
-  }
-
-  .hero-spotlight .spotlight-card:hover,
-  .shop-card.card-v3:hover {
-    box-shadow:
-      0 0 0 1px rgba(255, 255, 255, .10),
-      0 10px 24px rgba(0, 0, 0, .55) ,
-      0 32px 72px rgba(0, 0, 0, .70) !important;
+      0 18px 48px rgba(0, 0, 0, .55),
+      0 8px 22px rgba(0, 0, 0, .45) !important;
+    filter:
+      drop-shadow(0 14px 30px rgba(0, 0, 0, .50))
+      drop-shadow(0 5px 12px rgba(0, 0, 0, .40)) !important;
   }
 }
+
+/* 影が親でクリップされる場合の保険（任意） */
+/* .card-row { overflow: visible !important; } */
 
