@@ -8,22 +8,30 @@ export function createMapAdapter(kind = "leaflet") {
 
 class LeafletAdapter {
   map = null;
-  layer = null;        // マーカー置き場
-  markers = [];        // 店舗マーカー配列
-  clickHandler = null; // クリック時コールバック
+
+  // レイヤ分離：店舗とUI（検索ピン/現在地）
+  layerShops = null;
+  layerUI = null;
+
+  markers = [];         // 店舗マーカー
+  meDot = null;         // 現在地ドット
+  searchMarker = null;  // 検索地点ピン
+  clickHandler = null;  // 店舗マーカークリック時
 
   async init(domId, { center = [35.681236, 139.767125], zoom = 13 } = {}) {
     await ensureLeaflet();
 
-    // 地図
     this.map = L.map(domId, { zoomControl: false });
+
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
       attribution: "&copy; OpenStreetMap contributors",
     }).addTo(this.map);
 
-    // 店舗マーカー用レイヤ
-    this.layer = L.layerGroup().addTo(this.map);
+    // 追加順で上に描かれる → UIを後から追加して前面へ
+    this.layerShops = L.layerGroup().addTo(this.map);
+    this.layerUI    = L.layerGroup().addTo(this.map);
+
     this.map.setView(center, zoom);
   }
 
@@ -33,51 +41,57 @@ class LeafletAdapter {
     else this.map.panTo([lat, lng]);
   }
 
+  /* ===== 現在地ドット（UIレイヤー） ===== */
   addCurrentDot(lat, lng) {
     if (!this.map) return null;
-    const dot = L.circleMarker([lat, lng], {
+    if (!this.layerUI) this.layerUI = L.layerGroup().addTo(this.map);
+
+    if (this.meDot) {
+      this.meDot.setLatLng([lat, lng]);
+      return this.meDot;
+    }
+    this.meDot = L.circleMarker([lat, lng], {
       radius: 6,
       color: "#2a6ef0",
       weight: 2,
       fillColor: "#2a6ef0",
       fillOpacity: 1,
-    }).addTo(this.layer || this.map);
-    dot.bindTooltip("現在地", { permanent: false });
-    return dot;
+    }).addTo(this.layerUI);
+    this.meDot.bindTooltip("現在地", { permanent: false });
+    return this.meDot;
   }
 
-  // サイトカラー（CSS変数）で色が決まる DivIcon
-  #makeShopDivIcon() {
-    const svg = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="36" height="48" viewBox="0 0 48 64" aria-hidden="true" focusable="false">
-        <!-- ピン本体：サイトカラー = currentColor -->
-        <path d="M24 2C12.3 2 3 11.2 3 22.8c0 12.5 13 26 19.2 37 .9 1.6 3.7 1.6 4.6 0C32 48.8 45 35.3 45 22.8 45 11.2 35.7 2 24 2z" fill="currentColor"/>
-        <!-- 白丸 -->
-        <circle cx="24" cy="22.5" r="13" fill="#fff"/>
-        <!-- 店アイコン（ストロークはサイトカラー） -->
-        <g fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="15" y="18" width="18" height="10" rx="1.6"/>
-          <path d="M15 18l2.5-4h13l2.5 4M24 18v10M19 28v-4M29 28v-4"/>
-        </g>
-      </svg>`;
-    return L.divIcon({
-      className: "shop-pin",        // CSSで色指定
-      html: svg,
-      iconSize: [36, 48],
-      iconAnchor: [18, 46],         // 先端が地物を指すように
-    });
+  /* ===== 検索地点ピン（UIレイヤー） ===== */
+  setSearchMarker(lat, lng) {
+    if (!this.map) return null;
+    if (!this.layerUI) this.layerUI = L.layerGroup().addTo(this.map);
+
+    if (this.searchMarker) {
+      this.searchMarker.setLatLng([lat, lng]).bringToFront();
+      return this.searchMarker;
+    }
+    this.searchMarker = L.marker([lat, lng], {
+      icon: this.#makeSearchDivIcon(),
+      riseOnHover: true,
+      keyboard: false,
+    }).addTo(this.layerUI);
+    return this.searchMarker;
   }
 
-  /**
-   * 店舗マーカーを一括セット（既存をクリア）
-   * @param {Array} items - { __lat, __lng, ...shop } の配列
-   * @param {Object} options - { chunk?: number, delay?: number }
-   */
+  clearSearchMarker() {
+    if (this.searchMarker) {
+      this.layerUI?.removeLayer(this.searchMarker);
+      this.searchMarker = null;
+    }
+  }
+
+  /* ===== 店舗マーカー（店舗レイヤー） ===== */
   async setMarkers(items, { chunk = 100, delay = 0 } = {}) {
     if (!this.map) return [];
-    if (!this.layer) this.layer = L.layerGroup().addTo(this.map);
+    if (!this.layerShops) this.layerShops = L.layerGroup().addTo(this.map);
 
-    this.layer.clearLayers();
+    // 店舗レイヤのみクリア（UIは保持する）
+    this.layerShops.clearLayers();
     this.markers = [];
 
     const icon = this.#makeShopDivIcon();
@@ -95,7 +109,7 @@ class LeafletAdapter {
         });
         m.__data = it;
         m.on("click", () => this.clickHandler?.(it));
-        m.addTo(this.layer);
+        m.addTo(this.layerShops);
         this.markers.push(m);
       }
     };
@@ -122,12 +136,48 @@ class LeafletAdapter {
     if (!bounds.isValid()) return;
     this.map.fitBounds(bounds, { padding: [padding, padding], maxZoom });
   }
+
+  /* ====== Pins (DivIcon SVG) ====== */
+
+  // サイトカラーに追従する店舗ピン
+  #makeShopDivIcon() {
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="36" height="48" viewBox="0 0 48 64" aria-hidden="true">
+        <path d="M24 2C12.3 2 3 11.2 3 22.8c0 12.5 13 26 19.2 37 .9 1.6 3.7 1.6 4.6 0C32 48.8 45 35.3 45 22.8 45 11.2 35.7 2 24 2z" fill="currentColor"/>
+        <circle cx="24" cy="22.5" r="13" fill="#fff"/>
+        <g fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="15" y="18" width="18" height="10" rx="1.6"/>
+          <path d="M15 18l2.5-4h13l2.5 4M24 18v10M19 28v-4M29 28v-4"/>
+        </g>
+      </svg>`;
+    return L.divIcon({
+      className: "shop-pin",
+      html: svg,
+      iconSize: [36, 48],
+      iconAnchor: [18, 46],
+    });
+  }
+
+  // 検索結果ピン（アクセント色）
+  #makeSearchDivIcon() {
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="34" height="46" viewBox="0 0 48 64" aria-hidden="true">
+        <path d="M24 2C12.3 2 3 11.2 3 22.8c0 12.5 13 26 19.2 37 .9 1.6 3.7 1.6 4.6 0C32 48.8 45 35.3 45 22.8 45 11.2 35.7 2 24 2z" fill="currentColor"/>
+        <circle cx="24" cy="22.5" r="9" fill="#fff"/>
+        <path d="M21 20h6v6h-6z" fill="currentColor"/>
+      </svg>`;
+    return L.divIcon({
+      className: "search-pin",
+      html: svg,
+      iconSize: [34, 46],
+      iconAnchor: [17, 44],
+    });
+  }
 }
 
 /* ---- Helpers ---- */
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 async function ensureLeaflet() {
   if (window.L) return;
-  // HTML 側で leaflet.js を読み込む前提
   throw new Error("Leaflet not loaded. Include leaflet.js before this module.");
 }
