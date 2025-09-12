@@ -2686,6 +2686,7 @@ h3{
 .app-header{
   background: var(--brand) !important;
 }
+
 /* Spotlight meta chips */
 .spotlight-info .meta{
   display:flex;
