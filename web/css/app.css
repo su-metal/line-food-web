@@ -1056,160 +1056,43 @@ section.price {
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
   pointer-events: none; /* アイコン自体は透過、クリックはマーカーに届く */
 }
-/* === Map bottom-sheet: 2-column layout on wide screens === */
-/* モバイルは従来の縦並び。幅が確保できるときだけ画像左／情報右にする */
-@media (min-width: 560px) {
-  .map-card {
-    /* 既存の見た目は維持しつつ、内部だけグリッド化 */
-    display: grid;
-    grid-template-columns: minmax(260px, 1.2fr) minmax(240px, 1fr);
-    grid-auto-rows: auto;
-    column-gap: 16px;
-    align-items: start;
-  }
-
-  .map-card .mc-media {
-    grid-column: 1;
-    grid-row: 1 / span 2; /* 画像を左側にどっしり配置 */
-    margin: 0; /* 既存の下マージンを打ち消す */
-  }
-
-  .map-card .mc-media img {
-    width: 100%;
-    height: auto;
-    aspect-ratio: 16 / 10; /* 横長のカード写真っぽく */
-    object-fit: cover;
-    border-radius: 12px;
-  }
-
-  .map-card .mc-like {
-    position: absolute;
-    top: 10px;
-    right: 10px; /* 写真の右上に重ねる */
-  }
-
-  .map-card .mc-body {
-    grid-column: 2;
-    grid-row: 1;
-    display: flex;
-    flex-direction: column;
-    min-width: 0; /* タイトルの折り返し制御 */
-    gap: 8px;
-  }
-
-  .map-card .mc-title {
-    font-size: 18px;
-    line-height: 1.4;
-    margin: 0 0 2px 0;
-    word-break: break-word;
-  }
-
-  .map-card .mc-note {
-    margin: 0;
-    color: #6b6b6b;
-  }
-
-  .map-card .mc-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-
-  .map-card .mc-actions {
-    margin-top: auto; /* ボタンをカード右下に寄せる */
-    padding-top: 8px;
-    display: flex;
-    gap: 8px;
-  }
-}
-
-/* もう少し広いときは画像を少し大きめに */
-@media (min-width: 760px) {
-  .map-card {
-    grid-template-columns: minmax(320px, 1.4fr) minmax(280px, 1fr);
-    column-gap: 20px;
-  }
-  .map-card .mc-media img {
-    aspect-ratio: 16 / 9;
-  }
-}
-/* === Map bottom-sheet 強制 2カラム（画像 左 / 情報 右 / ボタン 右下）=== */
-/* 既存の display 指定に勝つために !important を使用 */
-.map-card {
-  display: grid !important;
-  grid-template-columns: minmax(240px, 1.2fr) minmax(220px, 1fr);
-  column-gap: 16px;
-  align-items: start;
-}
-
-.map-card .mc-media {
-  grid-column: 1;
-  grid-row: 1 / 3;
-  margin: 0 !important; /* 既存の下マージンを打ち消し */
+/* === Map card: actions only to the right === */
+.map-card .mc-body {
   position: relative;
 }
 
-.map-card .mc-media img {
-  width: 100%;
-  height: auto;
-  aspect-ratio: 16 / 10;
-  object-fit: cover;
-  border-radius: 12px;
-}
-
-.map-card .mc-like {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-}
-
-.map-card .mc-body {
-  grid-column: 2;
-  grid-row: 1 / 3;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 0; /* タイトルの折返し制御 */
-}
-
-.map-card .mc-title {
-  font-size: 18px;
-  line-height: 1.4;
-  margin: 0;
-  word-break: break-word;
-}
-
-.map-card .mc-note {
-  margin: 0;
-  color: #666;
-}
-
-.map-card .mc-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.map-card .mc-actions {
-  margin-top: auto; /* ボタンを右下へ */
-  padding-top: 8px;
-  display: flex;
-  gap: 8px;
-}
-
-/* かなり狭い画面では縦並びにフォールバック */
-@media (max-width: 360px) {
-  .map-card {
-    grid-template-columns: 1fr !important;
-  }
-  .map-card .mc-media {
-    grid-row: auto;
-  }
+/* 幅がある時は、右側にボタンの置き場を確保して絶対配置 */
+@media (min-width: 420px) {
   .map-card .mc-body {
-    grid-column: 1;
-    grid-row: auto;
+    /* ボタン分の余白を右に確保（重なり防止） */
+    padding-right: 168px !important;
   }
   .map-card .mc-actions {
-    margin-top: 8px;
+    position: absolute !important;
+    right: 16px;
+    bottom: 16px;
+    display: grid !important;
+    grid-auto-flow: row;
+    gap: 10px;
+    width: 152px;              /* ボタン幅を統一 */
+  }
+  .map-card .mc-actions .mc-btn {
+    width: 100% !important;   /* 右側で気持ちよくフィット */
+  }
+}
+
+/* スマホなど狭い幅では、従来通り本文下で横並び */
+@media (max-width: 419.98px) {
+  .map-card .mc-body {
+    padding-right: 16px !important;
+  }
+  .map-card .mc-actions {
+    position: static !important;
+    transform: none !important;
+    width: auto !important;
+    display: flex !important;
+    gap: 8px;
+    margin-top: 12px;
+    justify-content: flex-start;
   }
 }
