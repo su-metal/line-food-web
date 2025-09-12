@@ -2677,3 +2677,7 @@ body {
 .container{
   background: var(--brand) !important;
 }
+
+h3{
+  color: #fff !important;
+}
