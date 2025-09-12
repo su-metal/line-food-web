@@ -1162,3 +1162,22 @@ section.price {
   will-change: transform;
 }
 .leaflet-marker-icon.shop-pin svg { display: block; }
+
+/* ===== Map pins color ===== */
+.leaflet-marker-icon.shop-pin {
+  color: var(--brand, var(--accent, #2a6ef0)) !important;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.25));
+}
+.leaflet-marker-icon.shop-pin svg { display: block; }
+
+.leaflet-marker-icon.search-pin {
+  color: var(--accent, #ff4d4f) !important; /* 検索結果はアクセント色 */
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.25));
+}
+.leaflet-marker-icon.search-pin svg { display: block; }
+
+/* 検索ピン（サイトカラーに追従） */
+.search-pin {
+  color: var(--brand); /* サイトのブランド色 */
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,.25));
+}

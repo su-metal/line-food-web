@@ -13,10 +13,10 @@ class LeafletAdapter {
   layerShops = null;
   layerUI = null;
 
-  markers = [];         // 店舗マーカー
-  meDot = null;         // 現在地ドット
-  searchMarker = null;  // 検索地点ピン
-  clickHandler = null;  // 店舗マーカークリック時
+  markers = []; // 店舗マーカー
+  meDot = null; // 現在地ドット
+  searchMarker = null; // 検索地点ピン
+  clickHandler = null; // 店舗マーカークリック時
 
   async init(domId, { center = [35.681236, 139.767125], zoom = 13 } = {}) {
     await ensureLeaflet();
@@ -30,7 +30,7 @@ class LeafletAdapter {
 
     // 追加順で上に描かれる → UIを後から追加して前面へ
     this.layerShops = L.layerGroup().addTo(this.map);
-    this.layerUI    = L.layerGroup().addTo(this.map);
+    this.layerUI = L.layerGroup().addTo(this.map);
 
     this.map.setView(center, zoom);
   }
@@ -62,19 +62,49 @@ class LeafletAdapter {
   }
 
   /* ===== 検索地点ピン（UIレイヤー） ===== */
+  // 検索地点ピン（UIレイヤに1つだけ保持）
   setSearchMarker(lat, lng) {
     if (!this.map) return null;
-    if (!this.layerUI) this.layerUI = L.layerGroup().addTo(this.map);
 
+    // UIレイヤ（最前面相当の pane を用意）
+    if (!this.layerUI) {
+      if (this.map.createPane && !this.map.getPane("uiPin")) {
+        const pane = this.map.createPane("uiPin");
+        // markerPane(600) より上、tooltip(650)未満あたり
+        pane.style.zIndex = 640;
+      }
+      // pane 指定で “前面に出す”
+      this.layerUI = L.layerGroup([], { pane: "uiPin" }).addTo(this.map);
+    }
+
+    // 既存の検索ピンがあれば位置だけ更新（bringToFrontは使わない）
     if (this.searchMarker) {
-      this.searchMarker.setLatLng([lat, lng]).bringToFront();
+      this.searchMarker.setLatLng([lat, lng]);
+      // Marker は bringToFront が無いので、ZIndexで前面に
+      if (typeof this.searchMarker.setZIndexOffset === "function") {
+        this.searchMarker.setZIndexOffset(10000);
+      }
       return this.searchMarker;
     }
+
+    // 新規作成（サイトカラーは CSS の .search-pin で制御）
+    const icon = L.divIcon({
+      className: "search-pin",
+      html: `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="46" viewBox="0 0 48 64" aria-hidden="true">
+      <path d="M24 2C12.3 2 3 11.2 3 22.8c0 12.5 13 26 19.2 37 .9 1.6 3.7 1.6 4.6 0C32 48.8 45 35.3 45 22.8 45 11.2 35.7 2 24 2z" fill="currentColor"/>
+      <circle cx="24" cy="22.5" r="9" fill="#fff"/>
+      <path d="M21 20h6v6h-6z" fill="currentColor"/>
+    </svg>`,
+      iconSize: [34, 46],
+      iconAnchor: [17, 44],
+    });
+
     this.searchMarker = L.marker([lat, lng], {
-      icon: this.#makeSearchDivIcon(),
-      riseOnHover: true,
+      icon,
+      zIndexOffset: 10000, // 前面に
       keyboard: false,
     }).addTo(this.layerUI);
+
     return this.searchMarker;
   }
 
@@ -176,7 +206,9 @@ class LeafletAdapter {
 }
 
 /* ---- Helpers ---- */
-function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
 async function ensureLeaflet() {
   if (window.L) return;
   throw new Error("Leaflet not loaded. Include leaflet.js before this module.");
