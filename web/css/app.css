@@ -2723,3 +2723,7 @@ h3{
   font-weight:600;
   white-space:nowrap;
 }
+
+.spotlight-card .spotlight-info .title{
+  color: var(--brand) !important;
+}
