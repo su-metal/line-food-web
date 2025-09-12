@@ -2685,7 +2685,7 @@ h3{
 
 .app-header{
   background: var(--brand) !important;
-  border-bottom: 0px !important;
+  border-bottom: none !important;
 }
 
 /* Spotlight meta chips */
