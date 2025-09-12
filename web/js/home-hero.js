@@ -1,36 +1,17 @@
-// web/js/home-hero.js  — clean one-pass spotlight
-// 重複を排除し、1ファイル1責務（スポットライトの描画）に集約
+// web/js/home-hero.js
 import { apiJSON } from "./http.js";
 
 const NOIMG = "./img/noimg.svg";
 const yen = (v) => (Number.isFinite(+v) ? Number(v).toLocaleString("ja-JP") : "");
 
-// ---------- helpers ----------
 const pickOne = (arr) =>
   Array.isArray(arr) && arr.length ? arr[Math.floor(Math.random() * arr.length)] : null;
-
-const km = (v) => {
-  const n = Number(v);
-  if (!Number.isFinite(n)) return null;
-  return (n >= 10 ? n.toFixed(0) : n.toFixed(1)) + " km";
-};
-
-const pickCat = (s) =>
-  s?.category ?? s?.category_name ?? s?.tags?.[0] ?? s?.genres?.[0] ?? "その他";
-
-const pickPlace = (s) =>
-  s?.area_name ||
-  s?.near_station ||
-  s?.ward ||
-  s?.city ||
-  (typeof s?.address === "string" ? s.address.split(/[ ,、　]/)[0] : "") ||
-  "";
 
 function minPrice(shop) {
   const prices = (shop?.bundles || [])
     .map((b) => +b?.price ?? +b?.price_min ?? NaN)
     .filter(Number.isFinite);
-  return prices.length ? Math.min(...prices) : +(shop?.min_price ?? NaN);
+  return prices.length ? Math.min(...prices) : +shop?.min_price || null;
 }
 
 function remainRibbon(shop) {
@@ -39,85 +20,92 @@ function remainRibbon(shop) {
   return min > 0 && min <= 2 ? `当日残り ${min} セットのみ` : "本日のおすすめ";
 }
 
-function detailMeta(shop) {
-  const cat = pickCat(shop);
-  const dist = km(shop?.distance_km ?? shop?.distance);
-  const place = pickPlace(shop);
-  return [cat, dist, place].filter(Boolean).join(" ・ ");
+/* ---------- メタ（カテゴリ / 距離 / 場所）を常に“チップ”で描画する ---------- */
+function fillMetaChips(shop = {}) {
+  const host = document.getElementById("sp-meta");
+  if (!host) return;
+
+  const cat =
+    shop.category_name ||
+    shop.category ||
+    shop.tags?.[0] ||
+    shop.genres?.[0] ||
+    "カテゴリ";
+
+  const distVal = Number(shop.distance_km ?? shop.distance);
+  const dist =
+    Number.isFinite(distVal) ? (distVal >= 10 ? distVal.toFixed(0) : distVal.toFixed(1)) + " km" : "—";
+
+  const place =
+    shop.area ||
+    shop.city ||
+    shop.station ||
+    shop.address_short ||
+    (shop.address ? String(shop.address).split(/[ ,、　]/)[0] : "") ||
+    "";
+
+  host.innerHTML = `
+    <span class="chip brand">${cat}</span>
+    <span class="chip">${dist}</span>
+    <span class="place">${place}</span>
+  `;
 }
 
-// ---------- main ----------
-async function chooseShop() {
-  // 1) 最近追加から画像ありを優先
+/* ---------- ヒーローの本体を埋める ---------- */
+async function loadSpotlight() {
+  const card = document.getElementById("spotlight");
+  if (!card) return;
+
+  let shop = null;
+
+  // 1) 最近追加から
   try {
     const r = await apiJSON("/api/shops-recent?limit=24");
-    const s = pickOne((r?.items || []).filter((x) => x?.photo_url));
-    if (s) return s;
+    shop = pickOne((r?.items || []).filter((s) => s?.photo_url));
   } catch (e) {
-    console.warn("[home-hero] recent fetch failed:", e);
+    console.warn("[spotlight] recent failed", e);
   }
-  // 2) だめなら近場
-  try {
-    const n = await apiJSON("/api/nearby?limit=24");
-    const s = pickOne((n?.items || []).filter((x) => x?.photo_url));
-    if (s) return s;
-  } catch (e) {
-    console.warn("[home-hero] nearby fetch failed:", e);
-  }
-  return null;
-}
 
-function hydrateSpotlight(shop) {
-  const $ = (id) => document.getElementById(id);
+  // 2) なければ近場
+  if (!shop) {
+    try {
+      const n = await apiJSON("/api/nearby?limit=24");
+      shop = pickOne((n?.items || []).filter((s) => s?.photo_url));
+    } catch (e) {
+      console.warn("[spotlight] nearby failed", e);
+    }
+  }
   if (!shop) return;
 
-  const linkEl = $("sp-link");
-  const imgEl = $("sp-img");
-  const titleEl = $("sp-title");
-  const metaEl = $("sp-meta");
-  const priceEl = $("sp-price");
-  const ribbonEl = $("sp-ribbon");
-  const countEl = $("sp-count");
-  const flagEl = $("sp-flag");
+  const $ = (id) => document.getElementById(id);
 
-  const link = shop?.id ? `/shop.html?id=${encodeURIComponent(shop.id)}` : "#";
-  const img = shop?.photo_url || NOIMG;
+  const link = `/shop.html?id=${encodeURIComponent(shop.id)}`;
+  const img = shop.photo_url || NOIMG;
 
-  if (linkEl) linkEl.href = link;
-  if (imgEl) {
-    imgEl.src = img;
-    imgEl.alt = shop?.name || "おすすめ";
-    imgEl.loading = "lazy";
-    imgEl.decoding = "async";
-  }
-  if (titleEl) titleEl.textContent = shop?.name || "おすすめ";
-  if (metaEl) metaEl.textContent = detailMeta(shop);
+  // 画像/リンク/タイトル
+  $("sp-link").href = link;
+  $("sp-img").src = img;
+  $("sp-img").alt = shop?.name || "おすすめ";
+  $("sp-title").textContent = shop?.name || "おすすめ";
 
-  const p = minPrice(shop);
-  if (priceEl) priceEl.textContent = p != null && Number.isFinite(+p) ? yen(p) : "";
+  // ★ ここを“テキスト代入”ではなく常にチップで更新
+  fillMetaChips(shop);
 
-  if (ribbonEl) ribbonEl.textContent = remainRibbon(shop);
-  if (countEl) {
-    const total = Math.max((shop?.bundles || []).length, 1);
-    countEl.textContent = `1/${total}`;
-  }
+  // 価格 / リボン / カウント
+  const price = minPrice(shop);
+  if (price != null) $("sp-price").textContent = yen(price);
+  $("sp-ribbon")?.setAttribute?.("hidden", "hidden"); // 仕様で非表示にしたい場合
+  const total = Math.max((shop?.bundles || []).length, 1);
+  $("sp-count").textContent = `1/${total}`;
 
-  // 左上バッジ（常時）
-  if (flagEl) flagEl.textContent = "本日のおすすめ";
+  // 左上フラグ（.sp-flag）も必要なら更新
+  const flag = document.querySelector(".sp-flag");
+  if (flag) flag.textContent = remainRibbon(shop);
 }
 
-export async function loadSpotlight() {
-  const root = document.getElementById("spotlight");
-  if (!root) return;
-  const shop = await chooseShop();
-  hydrateSpotlight(shop);
-}
-
-// 自動実行（ホーム限定）
+/* ---------- 初期化（DOM読み込み後1回だけ） ---------- */
 document.addEventListener("DOMContentLoaded", () => {
-  try {
-    loadSpotlight();
-  } catch (e) {
-    console.warn("[home-hero] fatal", e);
-  }
+  loadSpotlight().catch((e) => console.warn("[spotlight] fatal", e));
 });
+
+
