@@ -1,355 +1,79 @@
+<!-- web/shops.html -->
 <!DOCTYPE html>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>お店の詳細 | line-food-web</title>
+<title>お店を探す | line-food-web</title>
 <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-<link rel="stylesheet" href="./css/app.css?v=shop-1" />
+<link rel="stylesheet" href="./css/app.css?v=map-20250912c" />
+<!-- Leaflet CSS -->
+<link rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      crossorigin="" />
 
-<body class="shop-page">
-  <!-- ヘッダ（簡易） -->
-  <header class="app-header">
-    <div class="search-wrap">
-      <svg aria-hidden="true" viewBox="0 0 24 24">
-        <path d="M21 21l-4.3-4.3M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" />
+<body class="map-page">
+  <!-- マップ本体：必ず id="map" -->
+  <div id="map" aria-label="周辺マップ"></div>
+
+  <!-- 上部 UI -->
+  <div class="map-topbar">
+    <button class="map-chip" id="btnFilter" aria-label="フィルタ">
+      <svg viewBox="0 0 24 24"><path d="M3 6h18M7 12h10M10 18h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <div class="map-search" role="search">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M21 21l-4.3-4.3M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"
+              fill="none" stroke="currentColor" stroke-width="2"/>
       </svg>
-      <input id="q" type="search" placeholder="この店の商品を検索（未実装）" />
+      <input id="q" type="search" placeholder="駅・エリア・店舗名" />
     </div>
-    <a class="icon-btn" aria-label="戻る" href="javascript:history.back()">
-      <svg viewBox="0 0 24 24">
-        <path d="M15 18l-6-6 6-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- 現在地へ（コンパス） -->
+    <button class="map-chip" id="btnLocate" aria-label="現在地へ">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 20.5a8.5 8.5 0 1 0 0-17 8.5 8.5 0 0 0 0 17Z" fill="none" stroke="currentColor" stroke-width="2"/>
+        <path d="M12 12l5-2-2 5-3-3Z" fill="currentColor"/>
+        <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
       </svg>
-    </a>
-  </header>
+    </button>
+  </div>
 
-  <main class="container">
-    <!-- ===== Hero / 店舗概要 ===== -->
-    <section class="hero-spotlight">
-      <article class="spotlight-card" id="shop-hero">
-        <div class="spotlight-media">
-          <img id="hero-img" src="./img/noimg.svg" alt="店舗画像" />
-          <span class="sp-flag" id="hero-flag" aria-label="状態">本日のおすすめ</span>
-          <div class="sp-price" id="hero-price" hidden>
-            <div class="sp-price-card">
-              <span class="yen">¥</span><span id="hero-price-val">0</span>
-              <small id="hero-price-sub">税込</small>
-            </div>
-          </div>
-          <div class="sp-grad"></div>
-        </div>
-        <div class="spotlight-info">
-          <h3 class="title" id="shop-title">読み込み中…</h3>
-          <div class="meta" id="shop-meta">
-            <span class="chip chip--brand">カテゴリ</span>
-            <span class="chip">—</span>
-            <span class="meta-place">エリア / 最寄り</span>
-          </div>
-        </div>
-      </article>
-    </section>
-
-    <!-- ===== バンドル一覧 ===== -->
-    <section>
-      <div class="section-head">
-        <h3>販売中のセット</h3>
+  <!-- ピンを押したときのボトムカード -->
+  <article id="map-card" class="map-card" aria-live="polite" hidden>
+    <div class="mc-media">
+      <img id="mc-img" alt="" />
+      <button class="mc-like" aria-label="お気に入り">
+        <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+      </button>
+    </div>
+    <div class="mc-body">
+      <h3 id="mc-title" class="mc-title">店舗名</h3>
+      <p id="mc-note" class="mc-note">現在のレスキュー依頼はありません。</p>
+      <div class="mc-meta" id="mc-meta"></div>
+      <div class="mc-actions">
+        <a id="mc-link" class="mc-btn" href="#">お店のページへ</a>
+        <button id="mc-close" class="mc-btn ghost" type="button">閉じる</button>
       </div>
-      <article class="shop-card card-v3" id="bundle-card">
-        <header class="card-head">
-          <div class="store">
-            <div class="avatar" aria-hidden="true">S</div>
-            <div class="store-meta">
-              <h4 class="store-name" id="store-name">店舗名</h4>
-              <div class="store-sub">
-                <span class="chip point" id="store-cat">カテゴリ</span>
-                <span class="chip status" id="store-dist">—</span>
-                <span class="chip place" id="store-place">住所など</span>
-              </div>
-            </div>
-          </div>
-          <button class="heart fav-btn" aria-label="お気に入り" id="fav-btn">
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/>
-            </svg>
-          </button>
-        </header>
-        <div class="card-body" id="bundle-body">
-          <div class="product-summary">
-            <div class="thumb-wrap">
-              <img class="product-img" alt="">
-              <span class="soon-overlay" hidden>終了間近</span>
-            </div>
-            <div class="product-main">
-              <div class="product-name">読み込み中…</div>
-              <div class="product-meta">
-                <span class="time"></span>
-              </div>
-            </div>
-            <div class="ps-aside">
-              <span class="stock-inline" hidden></span>
-              <span class="price-inline" hidden></span>
-            </div>
-          </div>
-        </div>
-      </article>
-    </section>
-  </main>
+    </div>
+  </article>
 
-  <!-- タブバー -->
+  <!-- タブバー（検索タブをアクティブ） -->
   <nav class="tabbar" aria-label="メイン">
     <a href="./index.html">
       <span class="icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24">
-          <path d="M4 10v10h16V10M2 11l10-7 10 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </span>
-      <span class="label">ホーム</span>
+        <svg viewBox="0 0 24 24"><path d="M4 10v10h16V10M2 11l10-7 10 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span><span class="label">ホーム</span>
     </a>
-    <a href="./shops.html">
+    <a class="active" href="./shops.html">
       <span class="icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24">
-          <circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="1.8"/>
-          <path d="M20 20l-3.8-3.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-        </svg>
-      </span>
-      <span class="label">お店を探す</span>
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M20 20l-3.8-3.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </span><span class="label">お店を探す</span>
     </a>
     <a href="#"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21s-6.7-4.2-9.2-8C1.2 10 2.1 7.2 4.6 6c1.9-1 4.3-.5 5.6 1.2C11.5 5.5 13.9 5 15.8 6c2.5 1.2 3.4 4 1.8 7-2.5 3.8-9.6 8-9.6 8Z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></span><span class="label">お気に入り</span></a>
     <a href="#"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5.6 5.6l2.2 2.2M16.2 5.6l2.2 2.2M5.6 16.2l2.2 2.2M16.2 16.2l2.2 2.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span class="label">レスキュー</span></a>
     <a href="#"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5 19a7 7 0 0 1 14 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span class="label">マイページ</span></a>
   </nav>
 
-  <!-- LIFF（任意。無くても http.js は動作） -->
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-
-  <!-- 詳細ページ用スクリプト（モジュール） -->
-  <script type="module">
-    import { apiJSON } from "./js/http.js";
-
-    const NOIMG = "./img/noimg.svg";
-    const yen = (v) => (Number.isFinite(+v) ? Number(v).toLocaleString("ja-JP") : "");
-    const safe = (v) => (v == null ? "" : String(v));
-
-    const km = (m) =>
-      Number.isFinite(m) ? (m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`) : "";
-
-    const num = (v) => {
-      const n = Number(v);
-      return Number.isFinite(n) ? n : null;
-    };
-
-    function pickLatLng(obj) {
-      const lat =
-        num(obj?.lat) ?? num(obj?.latitude) ?? num(obj?.lat_deg) ?? num(obj?.location?.lat) ??
-        num(obj?.coords?.lat) ?? num(obj?.geo?.lat) ?? null;
-      const lng =
-        num(obj?.lng) ?? num(obj?.lon) ?? num(obj?.longitude) ?? num(obj?.lng_deg) ??
-        num(obj?.location?.lng) ?? num(obj?.location?.lon) ?? num(obj?.coords?.lng) ??
-        num(obj?.geo?.lng) ?? null;
-      return [lat, lng];
-    }
-
-    function minPrice(shop) {
-      const prices = (shop?.bundles || [])
-        .map((b) => +b?.price ?? +b?.price_min ?? NaN)
-        .filter(Number.isFinite);
-      return prices.length ? Math.min(...prices) : +shop?.min_price || null;
-    }
-
-    function remainRibbon(shop) {
-      const remains = (shop?.bundles || []).map((b) => +b?.remain || +b?.remaining || +b?.stock || 0);
-      const min = remains.length ? Math.min(...remains) : 0;
-      return min > 0 && min <= 2 ? `当日残り ${min} セットのみ` : "本日のおすすめ";
-    }
-
-    function fillMeta(shop = {}) {
-      const host = document.getElementById("shop-meta");
-      if (!host) return;
-
-      const cat = shop.category_name || shop.category || shop.tags?.[0] || shop.genres?.[0] || "カテゴリ";
-      const dist = km(shop.distance_m);
-      const place =
-        shop.area || shop.city || shop.station ||
-        shop.address_short || (shop.address ? String(shop.address).split(/[ ,、　]/)[0] : "") || "";
-
-      host.innerHTML = `
-        <span class="chip chip--brand">${safe(cat)}</span>
-        ${dist ? `<span class="chip">${dist}</span>` : ""}
-        ${place ? `<span class="meta-place">${safe(place)}</span>` : ""}
-      `;
-    }
-
-    function renderBundles(shop = {}) {
-      const body = document.getElementById("bundle-body");
-      if (!body) return;
-      body.innerHTML = "";
-
-      const bundles = Array.isArray(shop.bundles) ? shop.bundles : [];
-
-      if (!bundles.length) {
-        const empty = document.createElement("div");
-        empty.className = "product-summary";
-        empty.innerHTML = `
-          <div class="product-main">
-            <div class="product-name">現在のレスキュー依頼はありません。</div>
-          </div>`;
-        body.appendChild(empty);
-        return;
-      }
-
-      const SOON_MINUTES = 30;
-      const minutesUntilEnd = (slot) => {
-        if (!slot) return Infinity;
-        const m = String(slot).match(/(\d{1,2}):(\d{2})\s*[-–~〜]\s*(\d{1,2}):(\d{2})/);
-        if (!m) return Infinity;
-        const endH = +m[3], endMin = +m[4];
-        const now = new Date();
-        const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), endH, endMin, 0, 0);
-        const diff = Math.floor((end - now) / 60000);
-        return diff >= 0 ? diff : Infinity;
-      };
-
-      const makeRow = () => {
-        const row = document.createElement("div");
-        row.className = "product-summary";
-        row.innerHTML = `
-          <div class="thumb-wrap">
-            <img class="product-img" alt="">
-            <span class="soon-overlay" hidden>終了間近</span>
-          </div>
-          <div class="product-main">
-            <div class="product-name"></div>
-            <div class="product-meta">
-              <span class="time"></span>
-            </div>
-          </div>
-          <div class="ps-aside">
-            <span class="stock-inline" hidden></span>
-            <span class="price-inline" hidden></span>
-          </div>`;
-        return row;
-      };
-
-      bundles.forEach((b) => {
-        const row = makeRow();
-
-        const img = row.querySelector(".product-img");
-        img.src = b?.thumb_url || shop.photo_url || NOIMG;
-        img.alt = `${safe(b?.title ?? b?.name ?? "セット")} の画像`;
-
-        row.querySelector(".product-name").textContent =
-          safe(b?.title ?? b?.name ?? b?.bundle_title ?? "セット");
-
-        const slotLabel = b?.slot_label || b?.slot || b?.time || "";
-        row.querySelector(".time").textContent = slotLabel ? `🕒 ${slotLabel}` : "";
-
-        const overlay = row.querySelector(".soon-overlay");
-        overlay.hidden = !(minutesUntilEnd(slotLabel) <= SOON_MINUTES);
-
-        const priceVal = [b?.price_min, b?.price].map(Number).find((v) => Number.isFinite(v));
-        const priceEl = row.querySelector(".price-inline");
-        if (Number.isFinite(priceVal)) {
-          priceEl.textContent = "¥" + Number(priceVal).toLocaleString("ja-JP");
-          priceEl.hidden = false;
-          priceEl.classList.add("show");
-        }
-
-        const remain = [b?.qty_available, b?.stock, shop?.stock_remain]
-          .map((v) => Number(v))
-          .find((v) => Number.isFinite(v));
-        const stockEl = row.querySelector(".stock-inline");
-        if (Number.isFinite(remain) && remain > 0) {
-          stockEl.textContent = `残り${remain}個`;
-          stockEl.hidden = false;
-          stockEl.classList.add("show");
-        }
-
-        body.appendChild(row);
-      });
-    }
-
-    async function fetchShopById(id) {
-      // 1) /api/shop?id=
-      try {
-        const r = await apiJSON(`/api/shop?id=${encodeURIComponent(id)}`);
-        if (r && (r.id || r.name)) return r;
-      } catch {}
-
-      // 2) /api/shops/:id
-      try {
-        const r = await apiJSON(`/api/shops/${encodeURIComponent(id)}`);
-        if (r && (r.id || r.name)) return r;
-      } catch {}
-
-      // 3) recent 内から探索
-      try {
-        const r = await apiJSON(`/api/shops-recent?limit=200`);
-        const hit = (r.items || []).find((x) => String(x.id) === String(id));
-        if (hit) return hit;
-      } catch {}
-
-      // 4) 近場（東京駅）から探索（最終フォールバック）
-      try {
-        const r = await apiJSON(`/api/nearby?lat=35.681236&lng=139.767125&radius=20000&limit=200`);
-        const hit = (r.items || []).find((x) => String(x.id) === String(id));
-        if (hit) return hit;
-      } catch {}
-
-      throw new Error("not_found");
-    }
-
-    (async () => {
-      const id = new URLSearchParams(location.search).get("id");
-      if (!id) {
-        document.getElementById("shop-title").textContent = "お店が見つかりません";
-        return;
-      }
-
-      try {
-        const shop = await fetchShopById(id);
-
-        // ヒーロー
-        const heroImg = shop.photo_url || (shop.bundles && shop.bundles[0]?.thumb_url) || NOIMG;
-        document.getElementById("hero-img").src = heroImg;
-        document.getElementById("shop-title").textContent = shop.name || "店舗";
-        document.getElementById("store-name").textContent = shop.name || "店舗";
-
-        // メタ
-        fillMeta(shop);
-        const [lat, lng] = pickLatLng(shop);
-        document.getElementById("store-cat").textContent =
-          shop.category_name || shop.category || shop.tags?.[0] || shop.genres?.[0] || "カテゴリ";
-        document.getElementById("store-dist").textContent = km(shop.distance_m);
-        document.getElementById("store-place").textContent =
-          shop.area || shop.city || shop.station || shop.address || "";
-
-        // 価格とフラグ
-        const mp = minPrice(shop);
-        const priceWrap = document.getElementById("hero-price");
-        if (mp != null) {
-          document.getElementById("hero-price-val").textContent = yen(mp);
-          priceWrap.hidden = false;
-        } else {
-          priceWrap.hidden = true;
-        }
-        document.getElementById("hero-flag").textContent = remainRibbon(shop);
-
-        // お気に入りボタン
-        const favBtn = document.getElementById("fav-btn");
-        favBtn.dataset.shopId = String(shop.id ?? "");
-        // 動的 import（LIFF が無くても安全に）
-        try {
-          const m = await import("./js/fav.js");
-          if (m.initAllFavButtons) {
-            if (window.liff?.ready) await window.liff.ready;
-            m.initAllFavButtons();
-          }
-        } catch {}
-
-        // バンドル
-        renderBundles(shop);
-      } catch (e) {
-        document.getElementById("shop-title").textContent = "お店の取得に失敗しました";
-        console.warn("[shop] load failed", e);
-      }
-    })();
-  </script>
+  <!-- Leaflet JS（先に読み込み。グローバル L を作る）-->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+  <!-- ページのロジック -->
+  <script type="module" src="./js/shops-map.js?v=map-20250912c"></script>
 </body>
