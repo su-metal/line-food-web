@@ -91,7 +91,7 @@ function setCachedItems(items) {
       return Number.isFinite(lat) && Number.isFinite(lng) ? { ...it, __lat: lat, __lng: lng } : null;
     }).filter(Boolean);
     if (cached.length) {
-      await mapAdp.setMarkers(cached, { chunk: 80, delay: 8 });
+      await mapAdp.addMarkers(cached, { chunk: 80, delay: 8 });
       mapAdp.fitToMarkers({ padding: 56 });
     }
 
@@ -130,7 +130,7 @@ function setCachedItems(items) {
       return Number.isFinite(lat) && Number.isFinite(lng) ? { ...it, __lat: lat, __lng: lng } : null;
     }).filter(Boolean);
 
-    await mapAdp.setMarkers(withCoords, { chunk: 80, delay: 8 });
+    await mapAdp.addMarkers(withCoords, { chunk: 80, delay: 8 });
     setCachedItems(items);
 
     // 6) マーカーがあればフィット
