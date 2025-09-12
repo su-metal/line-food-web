@@ -2728,9 +2728,3 @@ body {
 .spotlight-card .spotlight-info .title{
   color: var(--brand) !important;
 }
-.hero-spotlight{
-  border: 5px solid var(--brand);
-}
-.shop-card{
-  border: 5px solid var(--brand) !important;
-}
