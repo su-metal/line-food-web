@@ -1,97 +1,133 @@
 // web/js/map-adapter.js
-class LeafletAdapter {
-  constructor() {
-    this.map = null;
-    this.markersLayer = null; // 店舗
-    this.miscLayer = null;    // 現在地など
-    this.markers = [];
-    this._onClick = null;
-    this.meMarker = null;     // 現在地(FeatureGroup)
+export function createMapAdapter(kind = "leaflet") {
+  if (kind !== "leaflet") {
+    throw new Error("Only Leaflet adapter is implemented in this build.");
   }
+  return new LeafletAdapter();
+}
 
-  async init(containerId, { center = [35.681236,139.767125], zoom = 14 } = {}) {
-    const L = window.L;
-    if (!L) throw new Error("Leaflet not loaded");
+class LeafletAdapter {
+  map = null;
+  layer = null;        // マーカー置き場
+  markers = [];        // 店舗マーカー配列
+  clickHandler = null; // クリック時コールバック
 
-    this.map = L.map(containerId, { zoomControl:false, attributionControl:true });
+  async init(domId, { center = [35.681236, 139.767125], zoom = 13 } = {}) {
+    await ensureLeaflet();
+
+    // 地図
+    this.map = L.map(domId, { zoomControl: false });
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; OpenStreetMap contributors'
+      maxZoom: 19,
+      attribution: "&copy; OpenStreetMap contributors",
     }).addTo(this.map);
 
-    this.markersLayer = L.layerGroup().addTo(this.map);
-    this.miscLayer    = L.layerGroup().addTo(this.map);
-
+    // 店舗マーカー用レイヤ
+    this.layer = L.layerGroup().addTo(this.map);
     this.map.setView(center, zoom);
   }
 
-  clearMarkers() {
-    this.markersLayer?.clearLayers();
-    this.markers = [];
+  setCenter(lat, lng, zoom) {
+    if (!this.map) return;
+    if (Number.isFinite(zoom)) this.map.setView([lat, lng], zoom);
+    else this.map.panTo([lat, lng]);
   }
 
-  async addMarkers(items = [], { chunk = 0, delay = 0 } = {}) {
-    const L = window.L;
-    const addOne = (s) => {
-      const m = L.circleMarker([s.__lat, s.__lng], {
-        radius: 8,
-        color: "#154f3e",
-        weight: 2,
-        fillColor: "#0e7b61",
-        fillOpacity: 0.9
-      }).addTo(this.markersLayer);
-      m.on("click", () => this._onClick?.(s));
-      this.markers.push(m);
+  addCurrentDot(lat, lng) {
+    if (!this.map) return null;
+    const dot = L.circleMarker([lat, lng], {
+      radius: 6,
+      color: "#2a6ef0",
+      weight: 2,
+      fillColor: "#2a6ef0",
+      fillOpacity: 1,
+    }).addTo(this.layer || this.map);
+    dot.bindTooltip("現在地", { permanent: false });
+    return dot;
+  }
+
+  // サイトカラー（CSS変数）で色が決まる DivIcon
+  #makeShopDivIcon() {
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="36" height="48" viewBox="0 0 48 64" aria-hidden="true" focusable="false">
+        <!-- ピン本体：サイトカラー = currentColor -->
+        <path d="M24 2C12.3 2 3 11.2 3 22.8c0 12.5 13 26 19.2 37 .9 1.6 3.7 1.6 4.6 0C32 48.8 45 35.3 45 22.8 45 11.2 35.7 2 24 2z" fill="currentColor"/>
+        <!-- 白丸 -->
+        <circle cx="24" cy="22.5" r="13" fill="#fff"/>
+        <!-- 店アイコン（ストロークはサイトカラー） -->
+        <g fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="15" y="18" width="18" height="10" rx="1.6"/>
+          <path d="M15 18l2.5-4h13l2.5 4M24 18v10M19 28v-4M29 28v-4"/>
+        </g>
+      </svg>`;
+    return L.divIcon({
+      className: "shop-pin",        // CSSで色指定
+      html: svg,
+      iconSize: [36, 48],
+      iconAnchor: [18, 46],         // 先端が地物を指すように
+    });
+  }
+
+  /**
+   * 店舗マーカーを一括セット（既存をクリア）
+   * @param {Array} items - { __lat, __lng, ...shop } の配列
+   * @param {Object} options - { chunk?: number, delay?: number }
+   */
+  async setMarkers(items, { chunk = 100, delay = 0 } = {}) {
+    if (!this.map) return [];
+    if (!this.layer) this.layer = L.layerGroup().addTo(this.map);
+
+    this.layer.clearLayers();
+    this.markers = [];
+
+    const icon = this.#makeShopDivIcon();
+
+    const addBatch = (batch) => {
+      for (const it of batch) {
+        const lat = it.__lat ?? it.lat;
+        const lng = it.__lng ?? it.lng ?? it.lon;
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+
+        const m = L.marker([lat, lng], {
+          icon,
+          riseOnHover: true,
+          keyboard: false,
+        });
+        m.__data = it;
+        m.on("click", () => this.clickHandler?.(it));
+        m.addTo(this.layer);
+        this.markers.push(m);
+      }
     };
-    if (!chunk || chunk <= 0) {
-      items.forEach(addOne);
+
+    if (!delay || chunk >= items.length) {
+      addBatch(items);
     } else {
       for (let i = 0; i < items.length; i += chunk) {
-        items.slice(i, i + chunk).forEach(addOne);
-        if (delay) await new Promise(r => setTimeout(r, delay));
+        addBatch(items.slice(i, i + chunk));
+        if (delay) await sleep(delay);
       }
     }
     return this.markers;
   }
 
-  async setMarkers(items = [], opts = {}) {
-    this.clearMarkers();
-    return this.addMarkers(items, opts);
+  onMarkerClick(fn) {
+    this.clickHandler = fn;
   }
 
-  onMarkerClick(handler){ this._onClick = handler; }
-
-  fitToMarkers({ padding = 56, maxZoom = 17 } = {}) {
-    const L = window.L;
-    if (!this.markers.length) return;
-    const b = L.latLngBounds(this.markers.map(m => m.getLatLng()));
-    if (b.isValid()) this.map.fitBounds(b, { padding:[padding,padding], maxZoom });
-  }
-
-  setCenter(lat, lng, zoom){ this.map.setView([lat, lng], zoom ?? this.map.getZoom()); }
-
-  /** 現在地：CSS不要のインラインスタイル＋円マーカーの二段構え */
-  addCurrentDot(lat, lng) {
-    const L = window.L;
-    if (this.meMarker) this.miscLayer.removeLayer(this.meMarker);
-
-    // 1) 視認性の高い DivIcon（インラインCSSで確実に表示）
-    const html =
-      '<span style="display:block;width:18px;height:18px;border-radius:50%;' +
-      'background:#2a6ef0;border:2px solid #fff;' +
-      'box-shadow:0 0 0 3px rgba(42,110,240,.35),0 0 0 1.5px #ffffff inset"></span>';
-    const divIcon = L.divIcon({ className: '', html, iconSize:[18,18], iconAnchor:[9,9] });
-    const divMarker = L.marker([lat, lng], { icon: divIcon, interactive:false, zIndexOffset: 1000 });
-
-    // 2) フォールバックの円（もしDivIconが描けなくても残る）
-    const dot = L.circleMarker([lat, lng], {
-      radius: 5, color: "#2a6ef0", fillColor: "#2a6ef0", fillOpacity: 1, weight: 2
-    });
-
-    this.meMarker = L.featureGroup([dot, divMarker]).addTo(this.miscLayer);
-    return this.meMarker;
+  fitToMarkers({ padding = 56, maxZoom = 16 } = {}) {
+    if (!this.map) return;
+    const bounds = L.latLngBounds([]);
+    for (const m of this.markers) bounds.extend(m.getLatLng());
+    if (!bounds.isValid()) return;
+    this.map.fitBounds(bounds, { padding: [padding, padding], maxZoom });
   }
 }
 
-export function createMapAdapter(kind = "leaflet") {
-  return new LeafletAdapter();
+/* ---- Helpers ---- */
+function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+async function ensureLeaflet() {
+  if (window.L) return;
+  // HTML 側で leaflet.js を読み込む前提
+  throw new Error("Leaflet not loaded. Include leaflet.js before this module.");
 }
