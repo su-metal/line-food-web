@@ -2673,7 +2673,6 @@ body {
 
 .hero-spotlight {
   background: #fff !important;
-  box-shadow: var(--shadow-1) 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .spotlight-card {
@@ -2681,7 +2680,7 @@ body {
 }
 
 .container {
-  background: #f1f1f1 !important;
+  background: #F3f3f3 !important;
 }
 
 /* h3{
