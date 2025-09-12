@@ -1,14 +1,19 @@
 <!-- web/shops.html -->
 <!DOCTYPE html>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1, viewport-fit=cover"
+/>
 <title>お店を探す | line-food-web</title>
 <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
 <link rel="stylesheet" href="./css/app.css?v=map-20250912c" />
 <!-- Leaflet CSS -->
-<link rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      crossorigin="" />
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  crossorigin=""
+/>
 
 <body class="map-page">
   <!-- マップ本体：必ず id="map" -->
@@ -17,21 +22,38 @@
   <!-- 上部 UI -->
   <div class="map-topbar">
     <button class="map-chip" id="btnFilter" aria-label="フィルタ">
-      <svg viewBox="0 0 24 24"><path d="M3 6h18M7 12h10M10 18h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <svg viewBox="0 0 24 24">
+        <path
+          d="M3 6h18M7 12h10M10 18h4"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        />
+      </svg>
     </button>
     <div class="map-search" role="search">
       <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M21 21l-4.3-4.3M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"
-              fill="none" stroke="currentColor" stroke-width="2"/>
+        <path
+          d="M21 21l-4.3-4.3M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        />
       </svg>
       <input id="q" type="search" placeholder="駅・エリア・店舗名" />
     </div>
     <!-- 現在地へ（コンパス） -->
     <button class="map-chip" id="btnLocate" aria-label="現在地へ">
       <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M12 20.5a8.5 8.5 0 1 0 0-17 8.5 8.5 0 0 0 0 17Z" fill="none" stroke="currentColor" stroke-width="2"/>
-        <path d="M12 12l5-2-2 5-3-3Z" fill="currentColor"/>
-        <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+        <path
+          d="M12 20.5a8.5 8.5 0 1 0 0-17 8.5 8.5 0 0 0 0 17Z"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        />
+        <path d="M12 12l5-2-2 5-3-3Z" fill="currentColor" />
+        <circle cx="12" cy="12" r="1.5" fill="currentColor" />
       </svg>
     </button>
   </div>
@@ -41,7 +63,14 @@
     <div class="mc-media">
       <img id="mc-img" alt="" />
       <button class="mc-like" aria-label="お気に入り">
-        <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+        <svg viewBox="0 0 24 24">
+          <path
+            d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+          />
+        </svg>
       </button>
     </div>
     <div class="mc-body">
@@ -55,21 +84,106 @@
     </div>
   </article>
 
-  <!-- タブバー（検索タブをアクティブ） -->
+  <!-- タブバー（検索タブをアクティブに） -->
   <nav class="tabbar" aria-label="メイン">
     <a href="./index.html">
       <span class="icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><path d="M4 10v10h16V10M2 11l10-7 10 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span><span class="label">ホーム</span>
+        <svg viewBox="0 0 24 24">
+          <path
+            d="M4 10v10h16V10M2 11l10-7 10 7"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </span>
+      <span class="label">ホーム</span>
     </a>
+
     <a class="active" href="./shops.html">
       <span class="icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M20 20l-3.8-3.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-      </span><span class="label">お店を探す</span>
+        <svg viewBox="0 0 24 24">
+          <circle
+            cx="11"
+            cy="11"
+            r="6"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+          />
+          <path
+            d="M20 20l-3.8-3.8"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+          />
+        </svg>
+      </span>
+      <span class="label">お店を探す</span>
     </a>
-    <a href="#"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21s-6.7-4.2-9.2-8C1.2 10 2.1 7.2 4.6 6c1.9-1 4.3-.5 5.6 1.2C11.5 5.5 13.9 5 15.8 6c2.5 1.2 3.4 4 1.8 7-2.5 3.8-9.6 8-9.6 8Z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></span><span class="label">お気に入り</span></a>
-    <a href="#"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5.6 5.6l2.2 2.2M16.2 5.6l2.2 2.2M5.6 16.2l2.2 2.2M16.2 16.2l2.2 2.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span class="label">レスキュー</span></a>
-    <a href="#"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5 19a7 7 0 0 1 14 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span class="label">マイページ</span></a>
+
+    <a href="#"
+      ><span class="icon" aria-hidden="true"
+        ><svg viewBox="0 0 24 24">
+          <path
+            d="M12 21s-6.7-4.2-9.2-8C1.2 10 2.1 7.2 4.6 6c1.9-1 4.3-.5 5.6 1.2C11.5 5.5 13.9 5 15.8 6c2.5 1.2 3.4 4 1.8 7-2.5 3.8-9.6 8-9.6 8Z"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+          /></svg></span
+      ><span class="label">お気に入り</span></a
+    >
+    <a href="#"
+      ><span class="icon" aria-hidden="true"
+        ><svg viewBox="0 0 24 24">
+          <circle
+            cx="12"
+            cy="12"
+            r="9"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+          />
+          <circle
+            cx="12"
+            cy="12"
+            r="4"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+          />
+          <path
+            d="M5.6 5.6l2.2 2.2M16.2 5.6l2.2 2.2M5.6 16.2l2.2 2.2M16.2 16.2l2.2 2.2"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+          /></svg></span
+      ><span class="label">レスキュー</span></a
+    >
+    <a href="#"
+      ><span class="icon" aria-hidden="true"
+        ><svg viewBox="0 0 24 24">
+          <circle
+            cx="12"
+            cy="8"
+            r="3.2"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+          />
+          <path
+            d="M5 19a7 7 0 0 1 14 0"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+          /></svg></span
+      ><span class="label">マイページ</span></a
+    >
   </nav>
 
   <!-- Leaflet JS（先に読み込み。グローバル L を作る）-->
