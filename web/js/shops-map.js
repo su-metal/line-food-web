@@ -1,25 +1,31 @@
 // web/js/shops-map.js
 import { apiJSON } from "./http.js";
+import { createMapAdapter } from "./map-adapter.js";
 
-const NOIMG = "./img/noimg.svg";
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+const engine = new URLSearchParams(location.search).get("engine") || "leaflet";
+// 後で Google に切り替える場合は ?engine=google を付けるか、↑のデフォルトを "google" に変更
+const mapAdp = createMapAdapter(engine);
 
-/** 地図・マーカーの状態 */
-let map;
-let markers = [];
-let lastCenter;
-let fetching = false;
-
-/** 現在地（失敗時は東京駅） */
-async function getInitialLatLng() {
+/* ===== Helpers ===== */
+const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
+function extractLatLng(obj) {
+  const lat =
+    num(obj?.lat) ?? num(obj?.latitude) ?? num(obj?.lat_deg) ??
+    num(obj?.location?.lat) ?? num(obj?.coords?.lat) ?? num(obj?.geo?.lat);
+  const lng =
+    num(obj?.lng) ?? num(obj?.lon) ?? num(obj?.longitude) ?? num(obj?.lng_deg) ??
+    num(obj?.location?.lng) ?? num(obj?.location?.lon) ??
+    num(obj?.coords?.lng) ?? num(obj?.geo?.lng);
+  return [lat, lng];
+}
+function metersToHuman(m) {
+  return Number.isFinite(m) ? (m < 1000 ? `${Math.round(m)} m` : `${(m/1000).toFixed(1)} km`) : "";
+}
+async function getCenterFromGeolocation() {
   try {
-    const pos = await new Promise((res, rej) => {
-      if (!navigator.geolocation) return rej(new Error("no_geolocation"));
-      navigator.geolocation.getCurrentPosition(res, rej, {
-        enableHighAccuracy: false,
-        timeout: 8000,
-        maximumAge: 60000,
+    const pos = await new Promise((resolve, reject) => {
+      navigator.geolocation?.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: false, timeout: 6000, maximumAge: 60000
       });
     });
     return { lat: pos.coords.latitude, lng: pos.coords.longitude };
@@ -27,203 +33,83 @@ async function getInitialLatLng() {
     return { lat: 35.681236, lng: 139.767125 }; // 東京駅
   }
 }
+function normalizeShop(raw, userCenter) {
+  const [lat, lng] = extractLatLng(raw);
+  const title =
+    raw?.name || raw?.shop_name || raw?.title || "店舗";
+  const address =
+    raw?.address_short || raw?.address || raw?.area || raw?.city || "";
+  const thumb =
+    raw?.photo_url || raw?.thumb_url || (Array.isArray(raw?.bundles) && raw.bundles[0]?.thumb_url) || "./img/noimg.svg";
 
-function minPrice(shop) {
-  const xs = (shop?.bundles || [])
-    .map((b) => +b?.price_min ?? +b?.price ?? NaN)
-    .filter(Number.isFinite);
-  return xs.length ? Math.min(...xs) : +shop?.min_price || null;
-}
-
-function fmtYen(n) {
-  return Number.isFinite(+n) ? "¥" + Number(n).toLocaleString("ja-JP") : "";
-}
-
-function extractPhoto(shop) {
-  return (
-    shop?.photo_url ||
-    shop?.image ||
-    shop?.images?.[0] ||
-    (shop?.bundles || [])[0]?.thumb_url ||
-    NOIMG
-  );
-}
-
-/** 画面下のカードへ反映＆表示 */
-function showCard(shop) {
-  const card = document.getElementById("map-card");
-  const img = document.getElementById("mc-img");
-  const title = document.getElementById("mc-title");
-  const note = document.getElementById("mc-note");
-  const meta = document.getElementById("mc-meta");
-  const link = document.getElementById("mc-link");
-
-  img.src = extractPhoto(shop);
-  img.alt = shop?.name || "店舗";
-  title.textContent = shop?.name || "店舗";
-
-  // NOTE: bundles が無ければ “現在のレスキュー依頼はありません。”
-  const hasItems = Array.isArray(shop.bundles) && shop.bundles.length > 0;
-  if (hasItems) {
-    const p = minPrice(shop);
-    note.textContent = p != null ? `最安 ${fmtYen(p)}〜` : "販売中のセットがあります";
-  } else {
-    note.textContent = "現在のレスキュー依頼はありません。";
+  // distance_m (サーバ返却が無ければ簡易に補完：haversine）
+  let dist = num(raw?.distance_m);
+  if (!Number.isFinite(dist) && userCenter && Number.isFinite(lat) && Number.isFinite(lng)) {
+    dist = haversineMeters(userCenter.lat, userCenter.lng, lat, lng);
   }
-
-  // 簡易メタ（カテゴリ / 距離 / エリア）
-  const cat =
-    shop.category || shop.category_name || shop.tags?.[0] || shop.genres?.[0] || "カテゴリ";
-  const place =
-    shop.area || shop.city || shop.station || shop.address_short || shop.address || "";
-  const dist =
-    Number.isFinite(+shop.distance_km) ? `${(+shop.distance_km).toFixed(1)} km` : "";
-
-  meta.innerHTML = `
-    ${cat ? `<span class="chip">${cat}</span>` : ""}
-    ${dist ? `<span class="chip">${dist}</span>` : ""}
-    ${place ? `<span class="meta-place">${place}</span>` : ""}
-  `;
-
-  link.href = `/shop.html?id=${encodeURIComponent(shop.id)}`;
-  card.hidden = false;
-  card.classList.add("is-open");
+  return { id: raw?.id, title, address, lat, lng, thumb, distance_m: dist };
+}
+function haversineMeters(lat1, lng1, lat2, lng2) {
+  const toRad = (v) => (v * Math.PI) / 180;
+  const R = 6371000;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat/2)**2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2;
+  return Math.round(2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
 
-function hideCard() {
-  const card = document.getElementById("map-card");
-  card.classList.remove("is-open");
-  // CSSのトランジション後に hidden
-  setTimeout(() => (card.hidden = true), 180);
+/* ===== Bottom sheet UI (地図エンジン非依存) ===== */
+function openBottomSheet(shop) {
+  const s = document.getElementById("sheet");
+  if (!s) return;
+  s.querySelector(".title") && (s.querySelector(".title").textContent = shop.title || "");
+  s.querySelector(".addr") && (s.querySelector(".addr").textContent = shop.address || "");
+  s.querySelector(".dist") && (s.querySelector(".dist").textContent = metersToHuman(shop.distance_m));
+  const img = s.querySelector("img");
+  if (img) img.src = shop.thumb || "./img/noimg.svg";
+  s.classList.add("is-open");
+}
+function closeBottomSheet() {
+  document.getElementById("sheet")?.classList.remove("is-open");
 }
 
-/** マーカーを全部消す */
-function clearMarkers() {
-  markers.forEach((m) => m.setMap(null));
-  markers = [];
-}
+/* ===== Entry ===== */
+export async function initShopsMap() {
+  const mapEl = document.getElementById("map");
+  if (!mapEl) return;
 
-/** 中心周辺を取得してマーカー描画 */
-async function fetchAndRender(radius = 2500, hard = false) {
-  if (!map || fetching) return;
-  const c = map.getCenter();
-  if (!hard && lastCenter && google.maps.geometry) {
-    const dx = Math.abs(c.lat() - lastCenter.lat());
-    const dy = Math.abs(c.lng() - lastCenter.lng());
-    if (dx < 0.001 && dy < 0.001) return; // ごく近い移動は無視
-  }
+  const center = await getCenterFromGeolocation();
+  await mapAdp.init(mapEl, { center, zoom: 14 });
 
-  fetching = true;
-  lastCenter = { lat: c.lat(), lng: c.lng() };
-
-  // API
-  const qs = new URLSearchParams({
-    lat: String(lastCenter.lat),
-    lng: String(lastCenter.lng),
-    radius: String(radius),
-    limit: "60",
-  });
+  let shops = [];
   try {
-    const data = await apiJSON(`/api/nearby?${qs.toString()}`);
-    const items = data?.items || [];
-
-    clearMarkers();
-    const bounds = new google.maps.LatLngBounds();
-
-    items.forEach((s) => {
-      const lat = Number(s.lat ?? s.latitude ?? s.location?.lat);
-      const lng = Number(s.lng ?? s.lon ?? s.longitude ?? s.location?.lng ?? s.location?.lon);
-      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-
-      const marker = new google.maps.Marker({
-        position: { lat, lng },
-        map,
-        title: s.name || "",
-        // ブランド寄りの色
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 8,
-          fillColor: "#1a3a2d",
-          fillOpacity: 0.95,
-          strokeColor: "#ffffff",
-          strokeWeight: 2,
-        },
-      });
-      marker.addListener("click", () => showCard(s));
-      markers.push(marker);
-      bounds.extend(marker.getPosition());
+    const qs = new URLSearchParams({
+      lat: String(center.lat),
+      lng: String(center.lng),
+      radius: "5000",
+      limit: "60",
     });
-
-    if (items.length) {
-      // 初回など、極端にズームが広い場合は程よく調整
-      if (!map.getBounds() || !map.getBounds().contains(bounds.getNorthEast())) {
-        map.fitBounds(bounds, 48);
-        const z = clamp(map.getZoom(), 11, 17);
-        map.setZoom(z);
-      }
-    }
-  } catch (e) {
-    console.warn("[shops-map] fetch failed", e?.status, e?.body || e);
-  } finally {
-    fetching = false;
+    const res = await apiJSON(`/api/nearby?${qs}`);
+    shops = (res.items || [])
+      .map((r) => normalizeShop(r, center))
+      .filter((s) => Number.isFinite(s.lat) && Number.isFinite(s.lng));
+  } catch {
+    // fallback: 最近追加
+    const res = await apiJSON(`/api/shops-recent?limit=40`);
+    shops = (res.items || [])
+      .map((r) => normalizeShop(r, center))
+      .filter((s) => Number.isFinite(s.lat) && Number.isFinite(s.lng));
   }
+
+  mapAdp.addMarkers(shops, { onClick: (s) => openBottomSheet(s) });
+  mapAdp.fitBounds(shops);
+
+  // 下部シートの閉じる動作（任意）
+  document.getElementById("sheet-close")?.addEventListener("click", closeBottomSheet);
 }
 
-/** Maps のコールバック（shops.html から呼ばれる） */
-async function initShopsMap() {
-  const start = await getInitialLatLng();
-
-  map = new google.maps.Map(document.getElementById("gmap"), {
-    center: start,
-    zoom: 14,
-    clickableIcons: false,
-    disableDefaultUI: true,
-  });
-
-  // 動いたら再取得（idle を軽くデバウンス）
-  let idleTimer;
-  map.addListener("idle", () => {
-    clearTimeout(idleTimer);
-    idleTimer = setTimeout(() => fetchAndRender(), 250);
-  });
-
-  // すぐ描画
-  fetchAndRender(2500, true);
-
-  // UI: 現在地へ
-  document.getElementById("btnLocate")?.addEventListener("click", async () => {
-    const p = await getInitialLatLng();
-    map.panTo(p);
-    map.setZoom(15);
-    await sleep(150);
-    fetchAndRender(2500, true);
-  });
-
-  // UI: 検索ボックス（簡易、Enterで geocode→中心移動）
-  const q = document.getElementById("q");
-  q?.addEventListener("keydown", async (e) => {
-    if (e.key !== "Enter") return;
-    const text = q.value.trim();
-    if (!text) return;
-    try {
-      const r = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
-          text
-        )}&key=YOUR_GOOGLE_MAPS_API_KEY`
-      ).then((r) => r.json());
-      const loc = r?.results?.[0]?.geometry?.location;
-      if (loc) {
-        map.panTo(loc);
-        map.setZoom(15);
-      }
-    } catch {}
-  });
-
-  // カードの閉じる
-  document.getElementById("mc-close")?.addEventListener("click", hideCard);
-  // 地図をタップしたらカードを閉じる
-  map.addListener("click", hideCard);
-}
-
-// グローバルに公開（Mapsのcallbackが呼ぶ）
-window.initShopsMap = initShopsMap;
+document.addEventListener("DOMContentLoaded", () =>
+  initShopsMap().catch((e) => console.warn("[shops-map] fatal", e))
+);
