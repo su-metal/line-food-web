@@ -128,7 +128,7 @@ class LeafletAdapter {
     const L = window.L;
     if (!this.currentDot) {
       this.currentDot = L.circleMarker([lat, lng], {
-        radius: 9,
+        radius: 7,
         color: "#2a6ef0",
         weight: 2,
         fillColor: "#2a6ef0",
