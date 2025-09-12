@@ -2729,5 +2729,5 @@ body {
   color: var(--brand) !important;
 }
 .hero-spotlight{
-  border: 1px solid var(--brand);
+  border: 5px solid var(--brand);
 }
