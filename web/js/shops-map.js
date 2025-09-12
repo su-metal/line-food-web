@@ -120,6 +120,50 @@ document.getElementById("mc-close")?.addEventListener("click", () => {
     // マップ起動
     await mapAdp.init("map", { center, zoom: 14 });
 
+    // ===== 「現在地へ」ボタン（コンパス） =====
+    (() => {
+      const btn = document.getElementById("btnLocate");
+      if (!btn) return;
+
+      const initCenter = { lat: center[0], lng: center[1] };
+
+      const recenter = async () => {
+        btn.disabled = true;
+        try {
+          const pos = await new Promise((res, rej) => {
+            if (!navigator.geolocation) return rej(new Error("no_geolocation"));
+            navigator.geolocation.getCurrentPosition(res, rej, {
+              enableHighAccuracy: true,
+              timeout: 10000,
+              maximumAge: 60000,
+            });
+          });
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+
+          if (typeof mapAdp.setCenter === "function") {
+            mapAdp.setCenter(lat, lng, 16);
+          } else if (typeof mapAdp.fitToMarkers === "function") {
+            mapAdp.fitToMarkers([{ lat, lng }], { padding: 32, maxZoom: 16 });
+          }
+          mapAdp.setUserLocation?.(lat, lng);
+        } catch (e) {
+          // 失敗したら初期中心へ
+          if (typeof mapAdp.setCenter === "function") {
+            mapAdp.setCenter(initCenter.lat, initCenter.lng, 14);
+          } else if (typeof mapAdp.fitToMarkers === "function") {
+            mapAdp.fitToMarkers([initCenter], { padding: 32, maxZoom: 14 });
+          }
+          console.warn("[locate] failed", e);
+        } finally {
+          btn.disabled = false;
+        }
+      };
+
+      btn.addEventListener("click", recenter);
+    })();
+    // ===== /現在地へ =====
+
     // 現在地ピン（取得できた場合のみ）
     if (gotGeo && window.L) {
       // 目立つ青丸
@@ -165,28 +209,10 @@ document.getElementById("mc-close")?.addEventListener("click", () => {
 
     // 1件以上あれば全体にフィット、なければ中心据え置き
     if (markers.length) {
-      mapAdp.fitToMarkers({ padding: 60 });
+      mapAdp.fitToMarkers({ padding: 60, maxZoom: 16 });
     } else {
       console.warn("[shops-map] no items with coordinates");
     }
-
-    // 「現在地へ」ボタン
-    document.getElementById("btnLocate")?.addEventListener("click", async () => {
-      try {
-        const pos = await new Promise((res, rej) => {
-          if (!navigator.geolocation) return rej(new Error("no_geolocation"));
-          navigator.geolocation.getCurrentPosition(res, rej, {
-            enableHighAccuracy: true,
-            timeout: 8000,
-            maximumAge: 0,
-          });
-        });
-        const c = [pos.coords.latitude, pos.coords.longitude];
-        mapAdp.setCenter(c[0], c[1], 15);
-      } catch {
-        // 何もしない（権限NG等）
-      }
-    });
   } catch (e) {
     console.error("[shops-map] fatal", e);
   }
