@@ -20,6 +20,7 @@ class LeafletAdapter {
   /* サイトカラーのショップアイコン（明示サイズ） */
   // === カスタム：ショップピン（DPR対応・サイトカラー） ===
   // === Shop pin (DPR対応・サイトカラー) ===
+  _; // === Shop pin (PC: divIcon / Mobile: data-URL image) ===
   _mkShopIcon() {
     if (this._iconShop) return this._iconShop;
 
@@ -29,6 +30,13 @@ class LeafletAdapter {
       css.getPropertyValue("--brand") ||
       "#0B5C3D"
     ).trim();
+
+    // 端末判定：iOS / Android WebView では data-URL image にフォールバック
+    const ua = navigator.userAgent || "";
+    const isIOS = /iP(hone|ad|od)/.test(ua);
+    const isAndroidWV =
+      /\bwv\b/.test(ua) || /Version\/\d+\.\d+ Chrome\/\d+\.\d+ Mobile/.test(ua);
+    const forceImage = isIOS || isAndroidWV;
 
     const DPR = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
     const W = Math.round(34 * DPR);
@@ -41,14 +49,31 @@ class LeafletAdapter {
        <rect x="18" y="13" width="4" height="7" rx="1" fill="${brand}"/>
      </svg>`;
 
-    this._iconShop = window.L.divIcon({
-      className: "lf-pin-shop",
-      html: svg,
-      iconSize: [W, H],
-      iconAnchor: [W / 2, H - 2],
-      popupAnchor: [0, -H],
-    });
+    if (forceImage) {
+      // ✅ モバイル安全：画像アイコン（SVG を data: URL 化）
+      const url = "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg);
+      this._iconShop = window.L.icon({
+        iconUrl: url,
+        iconSize: [W, H],
+        iconAnchor: [W / 2, H - 2],
+        popupAnchor: [0, -H],
+      });
+    } else {
+      // PC向け：divIcon（HTML/SVG そのまま）
+      this._iconShop = window.L.divIcon({
+        className: "lf-pin-shop",
+        html: svg,
+        iconSize: [W, H],
+        iconAnchor: [W / 2, H - 2],
+        popupAnchor: [0, -H],
+      });
+    }
     return this._iconShop;
+  }
+
+  // 互換：古い呼び出し名に対応
+  _makeShopIcon() {
+    return this._mkShopIcon();
   }
 
   // 互換：既存コードが _makeShopIcon を呼んでも動くように
@@ -128,7 +153,7 @@ class LeafletAdapter {
     const L = window.L;
     if (!this.currentDot) {
       this.currentDot = L.circleMarker([lat, lng], {
-        radius: 5,
+        radius: 6,
         color: "#2a6ef0",
         weight: 2,
         fillColor: "#2a6ef0",
