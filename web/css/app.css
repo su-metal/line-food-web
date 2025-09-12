@@ -1203,37 +1203,48 @@ section.price {
   color: var(--brand) !important;
 }
 
-/* === Card outside shadows (subtle but clear) === */
+/* ===== Subtle outset shadow for cards (hero & shop list) ===== */
+/* 対象: <section class="hero-spotlight"> 内の .spotlight-card と
+         <article class="shop-card card-v3">（テンプレ由来） */
 .hero-spotlight .spotlight-card,
 .shop-card.card-v3 {
-  /* ふわっと外側に広がる影（やりすぎない強さ） */
+  /* 角の切り欠けが見えるように外枠をほんの少しだけ足す */
+  background: var(--surface, #fff);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 16px;
+
+  /* “やりすぎない”外側シャドウ（例画像くらいの強さ） */
   box-shadow:
-    0 6px 16px rgba(0, 0, 0, 0.14),
-    0 1px 3px  rgba(0, 0, 0, 0.08) !important;
-  filter: none !important;              /* 以前の drop-shadow を無効化 */
-  background-clip: padding-box !important;
-  transition: transform .16s ease, box-shadow .16s ease !important;
+    0 1px 2px rgba(0, 0, 0, 0.05),
+    0 8px 18px rgba(0, 0, 0, 0.10);
+
+  /* 画像の角をカードに合わせて切る（既に指定があれば不要） */
+  overflow: hidden;
 }
 
-/* hover/press でごく控えめに持ち上げ */
-.hero-spotlight .spotlight-card:hover,
-.shop-card.card-v3:hover {
-  transform: translateY(-1px);
-  box-shadow:
-    0 8px 22px rgba(0, 0, 0, 0.16),
-    0 2px 6px  rgba(0, 0, 0, 0.08) !important;
-}
-
-/* ダークモードは少し深め */
-@media (prefers-color-scheme: dark) {
-  .hero-spotlight .spotlight-card,
-  .shop-card.card-v3 {
+/* ホバー時も控えめ（PCだけ微妙に持ち上げ） */
+@media (hover: hover) and (pointer: fine) {
+  .hero-spotlight .spotlight-card:hover,
+  .shop-card.card-v3:hover {
     box-shadow:
-      0 10px 24px rgba(0, 0, 0, 0.34),
-      0 2px 8px  rgba(0, 0, 0, 0.24) !important;
+      0 2px 4px rgba(0, 0, 0, 0.06),
+      0 10px 22px rgba(0, 0, 0, 0.12);
+    transform: translateY(-1px);
+    transition: box-shadow .18s ease, transform .18s ease;
   }
 }
 
-/* 影が切れる場合の保険（必要な時だけ uncomment）
-.card-row { overflow: visible !important; }
+/* ダークモードはコントラスト調整（少し深めだが面は保つ） */
+@media (prefers-color-scheme: dark) {
+  .hero-spotlight .spotlight-card,
+  .shop-card.card-v3 {
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 2px 6px rgba(0, 0, 0, 0.32),
+      0 12px 28px rgba(0, 0, 0, 0.36);
+  }
+}
+
+/* 影が切れて見える場合の保険（必要時のみ有効化）
+.card-row { overflow: visible; }
 */
