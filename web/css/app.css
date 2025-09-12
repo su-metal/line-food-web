@@ -386,3 +386,16 @@ main, .home-main, .page, .container {
   padding: 4px 8px; font-size: 12px; line-height: 1;
   border-radius: 999px; background: #fff; border: 1px solid var(--line); color: var(--ink);
 }
+/* === Loading placeholder (nearby / recent) ============================= */
+/* JSが入れる <article class="shop-card"><div class="body">…</div></article> 用 */
+.card-row > .shop-card .body {
+  padding: 14px 18px;        /* ← 左右の余白をしっかり確保（左寄り解消） */
+}
+
+.card-row > .shop-card .body .title-line h4 {
+  margin: 0;
+  font-size: 13.5px;         /* ← 少し小さめに */
+  font-weight: 700;
+  letter-spacing: .01em;
+  color: var(--muted);
+}
