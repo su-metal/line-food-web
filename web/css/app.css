@@ -1044,3 +1044,15 @@ section.price {
 .map-topbar > * {
   pointer-events: auto; /* 子要素は操作可能 */
 }
+/* ===== Map pins (Leaflet DivIcon) ===== */
+.leaflet-div-icon.lfw-pin {
+  background: transparent;
+  border: 0;
+}
+.map-pin {
+  width: 28px;
+  height: 36px;
+  display: block;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.25));
+  pointer-events: none; /* アイコン自体は透過、クリックはマーカーに届く */
+}
