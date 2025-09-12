@@ -1,20 +1,16 @@
 // web/js/map-adapter.js
-// Leaflet専用の薄いアダプタ（ESM）。Google等へ差し替えやすいAPIを統一。
-// すでに HTML 側でこのファイルを <script type="module"> 直読みしないこと
-// （shops-map.js から import するだけにすること）
+// Leaflet 用アダプタ（ESM）。Google 等に差し替えやすい共通APIを提供。
 
-const LCSS =
-  "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-const LJS =
-  "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+const LCSS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+const LJS  = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
 
 /** LeafletのCSS/JSを未ロードなら動的ロード */
 function ensureLeafletLoaded() {
   return new Promise((resolve, reject) => {
     if (window.L && window.L.map) return resolve(window.L);
 
-    // CSS
-    const hasCss = [...document.styleSheets].some((s) =>
+    // CSS（未挿入なら追加）
+    const hasCss = [...document.styleSheets].some(s =>
       (s.href || "").includes("/leaflet.css")
     );
     if (!hasCss) {
@@ -28,32 +24,43 @@ function ensureLeafletLoaded() {
     const s = document.createElement("script");
     s.src = LJS;
     s.async = true;
-    s.onload = () => (window.L && window.L.map ? resolve(window.L) : reject(new Error("Leaflet load failed")));
+    s.onload = () =>
+      (window.L && window.L.map)
+        ? resolve(window.L)
+        : reject(new Error("Leaflet load failed"));
     s.onerror = () => reject(new Error("Leaflet script error"));
     document.head.appendChild(s);
   });
 }
 
-/** 座標を色々なキー名から安全に取り出す */
+/** 数値化（失敗時は null） */
+const num = (v) => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+};
+
+/** 座標を多様なキー名から抽出 */
 function pickLatLng(item) {
-  const num = (v) => {
-    const n = Number(v);
-    return Number.isFinite(n) ? n : null;
-  };
   const lat =
     num(item?.lat) ??
     num(item?.latitude) ??
+    num(item?.lat_deg) ??
     num(item?.location?.lat) ??
     num(item?.coords?.lat) ??
+    num(item?.geo?.lat) ??
     null;
+
   const lng =
     num(item?.lng) ??
     num(item?.lon) ??
     num(item?.longitude) ??
+    num(item?.lng_deg) ??
     num(item?.location?.lng) ??
     num(item?.location?.lon) ??
     num(item?.coords?.lng) ??
+    num(item?.geo?.lng) ??
     null;
+
   return [lat, lng];
 }
 
@@ -67,14 +74,10 @@ export class LeafletAdapter {
 
   /** @param {string|HTMLElement} elOrId */
   async init(elOrId, { center = [35.681236, 139.767125], zoom = 14 } = {}) {
-    const el =
-      typeof elOrId === "string"
-        ? document.getElementById(elOrId)
-        : elOrId;
+    const el = typeof elOrId === "string" ? document.getElementById(elOrId) : elOrId;
     if (!el) throw new Error("map container not found");
 
     const L = await ensureLeafletLoaded();
-
     this.map = L.map(el, { zoomControl: false }).setView(center, zoom);
 
     // OSM タイル
@@ -93,25 +96,21 @@ export class LeafletAdapter {
     this.map.setView([lat, lng], zoom ?? this.map.getZoom());
   }
 
-  /** 1つのピンを追加 */
+  /** 単体マーカー */
   addMarker(item, { icon } = {}) {
     if (!this.map || !window.L) return null;
     const [lat, lng] = pickLatLng(item);
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
 
-    const m = window.L
-      .marker([lat, lng], icon ? { icon } : undefined)
-      .addTo(this.layer);
+    const m = window.L.marker([lat, lng], icon ? { icon } : undefined).addTo(this.layer);
     m.__payload = item;
 
-    // 既にハンドラが設定されていればバインド
     if (this._onClick) m.on("click", () => this._onClick(item, m));
-
     this.markers.push(m);
     return m;
   }
 
-  /** 複数ピンを一括追加（← shops-map.js が呼んでいる想定のAPI） */
+  /** 複数マーカー（shops-map.js が使う想定API） */
   addMarkers(items = [], opts) {
     const created = [];
     for (const it of items) {
@@ -121,7 +120,7 @@ export class LeafletAdapter {
     return created;
   }
 
-  /** クリックハンドラを後付け（既存ピンにも付け直す） */
+  /** クリックハンドラ（後からでも既存マーカーへ付け替え） */
   onMarkerClick(handler) {
     this._onClick = typeof handler === "function" ? handler : null;
     for (const m of this.markers) {
@@ -130,7 +129,7 @@ export class LeafletAdapter {
     }
   }
 
-  /** 追加済みピンで地図をフィット */
+  /** すべてのマーカーが入るようにフィット */
   fitToMarkers({ padding = 40 } = {}) {
     if (!this.map || !this.markers.length || !window.L) return;
     const group = window.L.featureGroup(this.markers);
@@ -140,17 +139,35 @@ export class LeafletAdapter {
     });
   }
 
-  /** 全ピン削除 */
+  /** Leaflet ネイティブの fitBounds またはエイリアス動作 */
+  fitBounds(boundsOrOpts, maybeOpts) {
+    // 引数があればネイティブに委譲（[ [lat,lng], [lat,lng] ] 等）
+    if (boundsOrOpts && this.map && window.L) {
+      const L = window.L;
+      const b =
+        Array.isArray(boundsOrOpts) ? L.latLngBounds(boundsOrOpts) : boundsOrOpts;
+      this.map.fitBounds(b, maybeOpts || {});
+      return;
+    }
+    // 引数が無ければ全マーカーにフィット（shops-map.js 互換）
+    this.fitToMarkers(
+      typeof boundsOrOpts === "object" && !Array.isArray(boundsOrOpts)
+        ? boundsOrOpts
+        : {}
+    );
+  }
+
   clearMarkers() {
     if (this.layer) this.layer.clearLayers();
     this.markers.length = 0;
   }
 }
 
-/** 将来 Google などに差し替える入口 */
+/** 将来の差し替え入口（Google等） */
 export function createMapAdapter(kind = "leaflet") {
-  if (kind !== "leaflet") {
-    throw new Error("Only 'leaflet' is supported for now");
-  }
+  if (kind !== "leaflet") throw new Error("Only 'leaflet' is supported for now");
   return new LeafletAdapter();
 }
+
+/** 互換エイリアス（過去の import 名対策） */
+export const createAdapter = createMapAdapter;
