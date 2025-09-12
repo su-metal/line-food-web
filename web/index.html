@@ -275,7 +275,14 @@
   <a class="active" href="./index.html">
     <span class="icon" aria-hidden="true">
       <svg viewBox="0 0 24 24">
-        <path d="M4 10v10h16V10M2 11l10-7 10 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <path
+          d="M4 10v10h16V10M2 11l10-7 10 7"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
       </svg>
     </span>
     <span class="label">ホーム</span>
@@ -285,8 +292,21 @@
   <a href="./shops.html">
     <span class="icon" aria-hidden="true">
       <svg viewBox="0 0 24 24">
-        <circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="1.8"/>
-        <path d="M20 20l-3.8-3.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        <circle
+          cx="11"
+          cy="11"
+          r="6"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+        />
+        <path
+          d="M20 20l-3.8-3.8"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+        />
       </svg>
     </span>
     <span class="label">お店を探す</span>
@@ -296,7 +316,12 @@
   <a href="#">
     <span class="icon" aria-hidden="true">
       <svg viewBox="0 0 24 24">
-        <path d="M12 21s-6.7-4.2-9.2-8C1.2 10 2.1 7.2 4.6 6c1.9-1 4.3-.5 5.6 1.2C11.5 5.5 13.9 5 15.8 6c2.5 1.2 3.4 4 1.8 7-2.5 3.8-9.6 8-9.6 8Z" fill="none" stroke="currentColor" stroke-width="1.8"/>
+        <path
+          d="M12 21s-6.7-4.2-9.2-8C1.2 10 2.1 7.2 4.6 6c1.9-1 4.3-.5 5.6 1.2C11.5 5.5 13.9 5 15.8 6c2.5 1.2 3.4 4 1.8 7-2.5 3.8-9.6 8-9.6 8Z"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+        />
       </svg>
     </span>
     <span class="label">お気に入り</span>
@@ -305,9 +330,29 @@
   <a href="#">
     <span class="icon" aria-hidden="true">
       <svg viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/>
-        <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/>
-        <path d="M5.6 5.6l2.2 2.2M16.2 5.6l2.2 2.2M5.6 16.2l2.2 2.2M16.2 16.2l2.2 2.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        <circle
+          cx="12"
+          cy="12"
+          r="9"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+        />
+        <circle
+          cx="12"
+          cy="12"
+          r="4"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+        />
+        <path
+          d="M5.6 5.6l2.2 2.2M16.2 5.6l2.2 2.2M5.6 16.2l2.2 2.2M16.2 16.2l2.2 2.2"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+        />
       </svg>
     </span>
     <span class="label">レスキュー</span>
@@ -316,14 +361,26 @@
   <a href="#">
     <span class="icon" aria-hidden="true">
       <svg viewBox="0 0 24 24">
-        <circle cx="12" cy="8" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/>
-        <path d="M5 19a7 7 0 0 1 14 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        <circle
+          cx="12"
+          cy="8"
+          r="3.2"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+        />
+        <path
+          d="M5 19a7 7 0 0 1 14 0"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+        />
       </svg>
     </span>
     <span class="label">マイページ</span>
   </a>
 </nav>
-
 
 <script type="module">
   const cta = document.getElementById("home-cta");
@@ -587,6 +644,25 @@
       tiles.forEach((t) => io.observe(t));
     }
   })();
+</script>
+<script type="module">
+  // ホームのヘッダー検索 → shops.html に遷移
+  const homeSearch = document.querySelector(
+    '.app-header .search-wrap input[type="search"]'
+  );
+  if (homeSearch) {
+    const go = () => {
+      const q = (homeSearch.value || "").trim();
+      if (!q) return;
+      location.href = `./shops.html?q=${encodeURIComponent(q)}`;
+    };
+    homeSearch.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        go();
+      }
+    });
+  }
 </script>
 
 <script type="module">
