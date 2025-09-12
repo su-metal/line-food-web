@@ -1,38 +1,99 @@
 // web/js/map-adapter.js
+// Leaflet / Google を差し替え可能なアダプタ（今回は Leaflet 実装のみ）
+
 export function createMapAdapter(kind = "leaflet") {
-  if (kind !== "leaflet") {
-    throw new Error("Only Leaflet adapter is implemented in this build.");
-  }
+  if (kind !== "leaflet") kind = "leaflet";
   return new LeafletAdapter();
 }
 
 class LeafletAdapter {
-  map = null;
+  constructor() {
+    this.map = null;
+    this.layer = null;        // FeatureGroup (markers 用)
+    this._clickCb = null;
+    this._markers = [];
+    this.currentDot = null;
+    this.searchMarker = null;
+    this._shopIcon = null;    // ← 明示サイズの DivIcon を用意
+  }
 
-  // レイヤ分離：店舗とUI（検索ピン/現在地）
-  layerShops = null;
-  layerUI = null;
+  /* サイトカラーのショップアイコン（明示サイズ） */
+  _makeShopIcon() {
+    if (!this._shopIcon) {
+      const SVG =
+        `<svg viewBox="0 0 24 24" aria-hidden="true" style="display:block;width:100%;height:100%;color:var(--accent,#0e5d45)">
+           <g fill="currentColor">
+             <path d="M12 2c-3.9 0-7 2.9-7 6.5 0 4.7 6.2 11.8 6.5 12.1a.9.9 0 0 0 1 .0C12.8 20.3 19 13.2 19 8.5 19 4.9 15.9 2 12 2zM9 7h6a1 1 0 0 1 1 1v5h-2v-2H10v2H8V8a1 1 0 0 1 1-1zM10 9v1h4V9h-4z"/>
+           </g>
+         </svg>`;
+      // 明示サイズ・アンカーを指定（CSS無しでも必ず表示）
+      this._shopIcon = window.L.divIcon({
+        className: "shop-marker",
+        html: SVG,
+        iconSize: [30, 30],
+        iconAnchor: [15, 30],   // 底辺中央
+        popupAnchor: [0, -30]
+      });
+    }
+    return this._shopIcon;
+  }
 
-  markers = []; // 店舗マーカー
-  meDot = null; // 現在地ドット
-  searchMarker = null; // 検索地点ピン
-  clickHandler = null; // 店舗マーカークリック時
+  async init(containerId, { center = [35.681236, 139.767125], zoom = 13 } = {}) {
+    if (!window.L) throw new Error("Leaflet not loaded");
+    // ベースマップ
+    this.map = window.L.map(containerId, {
+      zoomControl: false,
+      attributionControl: true
+    }).setView(center, zoom);
 
-  async init(domId, { center = [35.681236, 139.767125], zoom = 13 } = {}) {
-    await ensureLeaflet();
+    window.L.tileLayer(
+      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }
+    ).addTo(this.map);
 
-    this.map = L.map(domId, { zoomControl: false });
+    this.layer = window.L.featureGroup().addTo(this.map);
+  }
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: "&copy; OpenStreetMap contributors",
-    }).addTo(this.map);
+  /* マーカーを差し替え（高速化のため分割追加に対応） */
+  async setMarkers(items = [], { chunk = 80, delay = 8 } = {}) {
+    if (!this.map) return;
+    const L = window.L;
+    const icon = this._makeShopIcon();
 
-    // 追加順で上に描かれる → UIを後から追加して前面へ
-    this.layerShops = L.layerGroup().addTo(this.map);
-    this.layerUI = L.layerGroup().addTo(this.map);
+    // 既存マーカー削除
+    this._markers.forEach(m => m.remove());
+    this._markers = [];
 
-    this.map.setView(center, zoom);
+    // 追加
+    for (let i = 0; i < items.length; i += chunk) {
+      const part = items.slice(i, i + chunk);
+      for (const it of part) {
+        const lat = Number(it.__lat), lng = Number(it.__lng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+
+        const m = L.marker([lat, lng], {
+          icon,
+          keyboard: false,
+          riseOnHover: true,
+          zIndexOffset: 100   // タイルより前面に
+        }).addTo(this.layer);
+
+        m._shop = it;
+        m.on("click", () => this._clickCb?.(it));
+        this._markers.push(m);
+      }
+      if (delay) await new Promise(r => setTimeout(r, delay));
+    }
+    return this._markers;
+  }
+
+  onMarkerClick(cb) { this._clickCb = cb; }
+
+  fitToMarkers({ padding = 56, maxZoom = 16 } = {}) {
+    if (!this._markers.length) return;
+    const L = window.L;
+    const b = L.latLngBounds(this._markers.map(m => m.getLatLng()));
+    if (b.isValid()) this.map.fitBounds(b, { padding: [padding, padding], maxZoom });
   }
 
   setCenter(lat, lng, zoom) {
@@ -41,175 +102,26 @@ class LeafletAdapter {
     else this.map.panTo([lat, lng]);
   }
 
-  /* ===== 現在地ドット（UIレイヤー） ===== */
   addCurrentDot(lat, lng) {
-    if (!this.map) return null;
-    if (!this.layerUI) this.layerUI = L.layerGroup().addTo(this.map);
-
-    if (this.meDot) {
-      this.meDot.setLatLng([lat, lng]);
-      return this.meDot;
-    }
-    this.meDot = L.circleMarker([lat, lng], {
-      radius: 6,
-      color: "#2a6ef0",
-      weight: 2,
-      fillColor: "#2a6ef0",
-      fillOpacity: 1,
-    }).addTo(this.layerUI);
-    this.meDot.bindTooltip("現在地", { permanent: false });
-    return this.meDot;
-  }
-
-  /* ===== 検索地点ピン（UIレイヤー） ===== */
-  // 検索地点ピン（UIレイヤに1つだけ保持）
-  setSearchMarker(lat, lng) {
-    if (!this.map) return null;
-
-    // UIレイヤ（最前面相当の pane を用意）
-    if (!this.layerUI) {
-      if (this.map.createPane && !this.map.getPane("uiPin")) {
-        const pane = this.map.createPane("uiPin");
-        // markerPane(600) より上、tooltip(650)未満あたり
-        pane.style.zIndex = 640;
-      }
-      // pane 指定で “前面に出す”
-      this.layerUI = L.layerGroup([], { pane: "uiPin" }).addTo(this.map);
-    }
-
-    // 既存の検索ピンがあれば位置だけ更新（bringToFrontは使わない）
-    if (this.searchMarker) {
-      this.searchMarker.setLatLng([lat, lng]);
-      // Marker は bringToFront が無いので、ZIndexで前面に
-      if (typeof this.searchMarker.setZIndexOffset === "function") {
-        this.searchMarker.setZIndexOffset(10000);
-      }
-      return this.searchMarker;
-    }
-
-    // 新規作成（サイトカラーは CSS の .search-pin で制御）
-    const icon = L.divIcon({
-      className: "search-pin",
-      html: `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="46" viewBox="0 0 48 64" aria-hidden="true">
-      <path d="M24 2C12.3 2 3 11.2 3 22.8c0 12.5 13 26 19.2 37 .9 1.6 3.7 1.6 4.6 0C32 48.8 45 35.3 45 22.8 45 11.2 35.7 2 24 2z" fill="currentColor"/>
-      <circle cx="24" cy="22.5" r="9" fill="#fff"/>
-      <path d="M21 20h6v6h-6z" fill="currentColor"/>
-    </svg>`,
-      iconSize: [34, 46],
-      iconAnchor: [17, 44],
-    });
-
-    this.searchMarker = L.marker([lat, lng], {
-      icon,
-      zIndexOffset: 10000, // 前面に
-      keyboard: false,
-    }).addTo(this.layerUI);
-
-    return this.searchMarker;
-  }
-
-  clearSearchMarker() {
-    if (this.searchMarker) {
-      this.layerUI?.removeLayer(this.searchMarker);
-      this.searchMarker = null;
-    }
-  }
-
-  /* ===== 店舗マーカー（店舗レイヤー） ===== */
-  async setMarkers(items, { chunk = 100, delay = 0 } = {}) {
-    if (!this.map) return [];
-    if (!this.layerShops) this.layerShops = L.layerGroup().addTo(this.map);
-
-    // 店舗レイヤのみクリア（UIは保持する）
-    this.layerShops.clearLayers();
-    this.markers = [];
-
-    const icon = this.#makeShopDivIcon();
-
-    const addBatch = (batch) => {
-      for (const it of batch) {
-        const lat = it.__lat ?? it.lat;
-        const lng = it.__lng ?? it.lng ?? it.lon;
-        if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
-
-        const m = L.marker([lat, lng], {
-          icon,
-          riseOnHover: true,
-          keyboard: false,
-        });
-        m.__data = it;
-        m.on("click", () => this.clickHandler?.(it));
-        m.addTo(this.layerShops);
-        this.markers.push(m);
-      }
-    };
-
-    if (!delay || chunk >= items.length) {
-      addBatch(items);
+    const L = window.L;
+    if (!this.currentDot) {
+      this.currentDot = L.circleMarker([lat, lng], {
+        radius: 6, color: "#2a6ef0", weight: 2, fillColor: "#2a6ef0", fillOpacity: 1
+      }).addTo(this.layer);
     } else {
-      for (let i = 0; i < items.length; i += chunk) {
-        addBatch(items.slice(i, i + chunk));
-        if (delay) await sleep(delay);
-      }
+      this.currentDot.setLatLng([lat, lng]);
     }
-    return this.markers;
   }
 
-  onMarkerClick(fn) {
-    this.clickHandler = fn;
+  /* 検索地点の単発マーカー（更新可能） */
+  setSearchMarker(lat, lng) {
+    const L = window.L;
+    if (!this.searchMarker) {
+      this.searchMarker = L.circleMarker([lat, lng], {
+        radius: 6, color: "#0e5d45", weight: 2, fillColor: "#0e5d45", fillOpacity: 1
+      }).addTo(this.layer);
+    } else {
+      this.searchMarker.setLatLng([lat, lng]); // bringToFront は不要（モバイル互換）
+    }
   }
-
-  fitToMarkers({ padding = 56, maxZoom = 16 } = {}) {
-    if (!this.map) return;
-    const bounds = L.latLngBounds([]);
-    for (const m of this.markers) bounds.extend(m.getLatLng());
-    if (!bounds.isValid()) return;
-    this.map.fitBounds(bounds, { padding: [padding, padding], maxZoom });
-  }
-
-  /* ====== Pins (DivIcon SVG) ====== */
-
-  // サイトカラーに追従する店舗ピン
-  #makeShopDivIcon() {
-    const svg = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="36" height="48" viewBox="0 0 48 64" aria-hidden="true">
-        <path d="M24 2C12.3 2 3 11.2 3 22.8c0 12.5 13 26 19.2 37 .9 1.6 3.7 1.6 4.6 0C32 48.8 45 35.3 45 22.8 45 11.2 35.7 2 24 2z" fill="currentColor"/>
-        <circle cx="24" cy="22.5" r="13" fill="#fff"/>
-        <g fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="15" y="18" width="18" height="10" rx="1.6"/>
-          <path d="M15 18l2.5-4h13l2.5 4M24 18v10M19 28v-4M29 28v-4"/>
-        </g>
-      </svg>`;
-    return L.divIcon({
-      className: "shop-pin",
-      html: svg,
-      iconSize: [36, 48],
-      iconAnchor: [18, 46],
-    });
-  }
-
-  // 検索結果ピン（アクセント色）
-  #makeSearchDivIcon() {
-    const svg = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="34" height="46" viewBox="0 0 48 64" aria-hidden="true">
-        <path d="M24 2C12.3 2 3 11.2 3 22.8c0 12.5 13 26 19.2 37 .9 1.6 3.7 1.6 4.6 0C32 48.8 45 35.3 45 22.8 45 11.2 35.7 2 24 2z" fill="currentColor"/>
-        <circle cx="24" cy="22.5" r="9" fill="#fff"/>
-        <path d="M21 20h6v6h-6z" fill="currentColor"/>
-      </svg>`;
-    return L.divIcon({
-      className: "search-pin",
-      html: svg,
-      iconSize: [34, 46],
-      iconAnchor: [17, 44],
-    });
-  }
-}
-
-/* ---- Helpers ---- */
-function sleep(ms) {
-  return new Promise((r) => setTimeout(r, ms));
-}
-async function ensureLeaflet() {
-  if (window.L) return;
-  throw new Error("Leaflet not loaded. Include leaflet.js before this module.");
 }

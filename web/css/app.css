@@ -1365,4 +1365,13 @@ section.price {
       0 10px 20px rgba(0, 0, 0, 0.34);
   }
 }
+/* マーカーのサイズは JS 側で指定済み。ここでは描画の安定化だけ */
+.leaflet-marker-icon.shop-marker {
+  display: block;
+  /* 幅・高さは JS の iconSize が優先されるが、念のため */
+  width: 30px; height: 30px;
+}
+.leaflet-marker-icon.shop-marker svg {
+  width: 100%; height: 100%; display: block;
+}
 
