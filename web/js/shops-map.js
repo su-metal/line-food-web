@@ -2,7 +2,7 @@
 import { apiJSON } from "./http.js";
 import { createMapAdapter } from "./map-adapter.js";
 
-/* ===== 小ユーティリティ ===== */
+/* ===== Utils ===== */
 const NOIMG = "./img/noimg.svg";
 const yen = (v) => (Number.isFinite(+v) ? "¥" + Number(v).toLocaleString("ja-JP") : "");
 const km = (m) =>
@@ -17,6 +17,9 @@ function pickLatLng(obj) {
               num(obj?.coords?.lng) ?? num(obj?.geo?.lng);
   return [lat, lng];
 }
+const debounce = (fn, ms=250) => {
+  let t; return (...a) => { clearTimeout(t); t = setTimeout(()=>fn(...a), ms); };
+};
 
 /* ===== Bottom sheet ===== */
 function fillMapCard(shop = {}) {
@@ -60,9 +63,9 @@ document.getElementById("mc-close")?.addEventListener("click", () => {
   if (card) { card.classList.remove("is-open"); card.hidden = true; }
 });
 
-/* ===== キャッシュ（楽観レンダ用） ===== */
+/* ===== Cache (optimistic) ===== */
 const LS_LAST_CENTER = "map:lastCenter";     // {lat,lng,ts}
-const SS_LAST_ITEMS  = "map:lastItems";      // JSON: items[]
+const SS_LAST_ITEMS  = "map:lastItems";      // items[]
 
 const getLastCenter = () => {
   try {
@@ -83,7 +86,7 @@ const setCachedItems = (items) => {
   try { sessionStorage.setItem(SS_LAST_ITEMS, JSON.stringify(items || [])); } catch {}
 };
 
-/* ===== ジオコーディング（Nominatim / OSM） ===== */
+/* ===== Geocoding (Nominatim / OSM) ===== */
 async function geocodeJP(q) {
   if (!q) return null;
   const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=jp&accept-language=ja&q=${encodeURIComponent(q)}`;
@@ -96,22 +99,62 @@ async function geocodeJP(q) {
   return Number.isFinite(la) && Number.isFinite(lo) ? [la, lo, display_name] : null;
 }
 
-/* ===== メイン ===== */
+/* ---- Autocomplete (lightweight, Nominatim) ---- */
+async function suggestJP(q) {
+  if (!q) return [];
+  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6&countrycodes=jp&accept-language=ja&q=${encodeURIComponent(q)}`;
+  const r = await fetch(url, { headers: { "Accept": "application/json" } });
+  if (!r.ok) return [];
+  const arr = await r.json();
+  if (!Array.isArray(arr)) return [];
+  // 駅/ランドマーク/行政区などを優先
+  const score = (it) => {
+    const cls = it.class, typ = it.type;
+    if (cls === "railway" && (typ === "station" || typ === "halt")) return 100;
+    if (cls === "amenity") return 80;
+    if (cls === "tourism") return 75;
+    if (cls === "place") return 70;
+    return 50;
+  };
+  return arr
+    .map((it) => {
+      const la = Number(it.lat), lo = Number(it.lon);
+      if (!Number.isFinite(la) || !Number.isFinite(lo)) return null;
+      const a = it.address || {};
+      const name = it.name || it.display_name || "";
+      const sub =
+        a.station || a.neighbourhood || a.suburb || a.city || a.town || a.village ||
+        a.county || a.state || a.province || "";
+      const icon =
+        (it.class === "railway" ? "🚉" :
+         it.class === "tourism" ? "📍" :
+         it.class === "amenity" ? "🏢" :
+         it.class === "place"   ? "🗺️" : "📍");
+      return { name, sub, lat: la, lng: lo, icon, _score: score(it) };
+    })
+    .filter(Boolean)
+    .sort((a,b)=>b._score-a._score)
+    .slice(0, 6);
+}
+
+/* ===== Main ===== */
 (async function initShopsMap() {
   try {
     const mapAdp = createMapAdapter("leaflet");
 
-    // 0) URLパラメータ
+    // URL param
     const params = new URLSearchParams(location.search);
     const qParam = (params.get("q") || "").trim();
-    const searchInput = document.getElementById("q");
-    if (searchInput && qParam) searchInput.value = qParam;
 
-    // 1) 楽観的センター（前回 or 東京駅）でまず地図を出す
+    const searchInput = document.getElementById("q");
+    const searchWrap  = searchInput?.closest(".map-search");
+    let lastData = []; // 直近に setMarkers したデータを保持（locate用）
+
+    // 1) まず地図
     let center = getLastCenter() || [35.681236, 139.767125];
     await mapAdp.init("map", { center, zoom: 13 });
 
-    // 2) キャッシュで即マーカー（体感高速化）
+    // 2) キャッシュ即描画
     const cached = getCachedItems().map((it) => {
       const [lat, lng] = pickLatLng(it);
       return Number.isFinite(lat) && Number.isFinite(lng) ? { ...it, __lat: lat, __lng: lng } : null;
@@ -119,13 +162,15 @@ async function geocodeJP(q) {
     if (cached.length) {
       await mapAdp.setMarkers(cached, { chunk: 80, delay: 8 });
       mapAdp.fitToMarkers({ padding: 56 });
+      lastData = cached;
     }
 
-    // 3) 検索（q=）が指定されていればジオコーディング → その座標で読み込み
+    // 3) 店舗読込（共通）
     const reloadAt = async (lat, lng) => {
       center = [lat, lng];
       setLastCenter(lat, lng);
-      // 近隣店舗を取得
+
+      // 近隣店舗
       let items = [];
       try {
         const qs = new URLSearchParams({ lat: String(lat), lng: String(lng), radius: "3000", limit: "60" });
@@ -143,28 +188,25 @@ async function geocodeJP(q) {
       }).filter(Boolean);
 
       await mapAdp.setMarkers(withCoords, { chunk: 80, delay: 8 });
+      lastData = withCoords;
       setCachedItems(items);
 
       if (withCoords.length) {
         mapAdp.fitToMarkers({ padding: 56 });
       } else {
-        mapAdp.setCenter(lat, lng, 14);
+        // 店舗が無くても検索地点へ寄せる
+        mapAdp.setCenter(lat, lng, 15);
       }
+      mapAdp.addCurrentDot?.(lat, lng); // 検索地点を見失わないようドット
     };
 
+    // 4) 初回：q= があればジオコード, なければ位置情報
     if (qParam) {
       try {
         const hit = await geocodeJP(qParam);
-        if (hit) {
-          const [la, lo] = hit;
-          await reloadAt(la, lo);
-          mapAdp.addCurrentDot?.(la, lo); // 検索地点を見失わないよう表示
-        }
-      } catch (e) {
-        console.warn("[shops-map] geocode failed", e);
-      }
+        if (hit) await reloadAt(hit[0], hit[1]);
+      } catch (e) { console.warn("[shops-map] geocode failed", e); }
     } else {
-      // 4) 位置情報は並列で取得（成功時は現在地で上書き）
       (async () => {
         try {
           const pos = await new Promise((res, rej) => {
@@ -173,36 +215,99 @@ async function geocodeJP(q) {
               enableHighAccuracy: false, timeout: 8000, maximumAge: 60000
             });
           });
-          const la = pos.coords.latitude, lo = pos.coords.longitude;
-          mapAdp.addCurrentDot?.(la, lo);
-          await reloadAt(la, lo);
+          await reloadAt(pos.coords.latitude, pos.coords.longitude);
         } catch {/* noop */}
       })();
     }
 
-    // 5) マーカークリック → カード
+    // 5) マーカークリック
     mapAdp.onMarkerClick((shop) => fillMapCard(shop));
 
-    // 6) 検索ボックス（マップ上）でも Enter で検索
+    /* ====== サジェスト UI ====== */
+    let suggIdx = -1;
+    let suggItems = [];
+    let box;
+    function ensureBox() {
+      if (box) return box;
+      if (!searchWrap) return null;
+      box = document.createElement("div");
+      box.className = "suggest-box";
+      box.hidden = true;
+      searchWrap.appendChild(box);
+      return box;
+    }
+    function renderSuggest(list) {
+      const el = ensureBox();
+      if (!el) return;
+      suggItems = list || [];
+      suggIdx = -1;
+      if (!suggItems.length) { el.hidden = true; el.innerHTML = ""; return; }
+      el.innerHTML = `
+        <ul class="suggest-list">
+          ${suggItems.map((s,i)=>`
+            <li class="sugg" data-i="${i}">
+              <span class="ic">${s.icon}</span>
+              <span class="main">${s.name}</span>
+              ${s.sub ? `<span class="sub">${s.sub}</span>` : ""}
+            </li>
+          `).join("")}
+        </ul>
+      `;
+      el.hidden = false;
+      el.querySelectorAll(".sugg").forEach(li=>{
+        li.addEventListener("click", ()=>{
+          const i = Number(li.dataset.i); chooseSuggest(i);
+        });
+      });
+    }
+    function highlight(delta) {
+      const el = ensureBox(); if (!el || el.hidden) return;
+      const ns = [...el.querySelectorAll(".sugg")];
+      if (!ns.length) return;
+      suggIdx = (suggIdx + delta + ns.length) % ns.length;
+      ns.forEach((n,i)=>n.classList.toggle("is-active", i===suggIdx));
+      ns[suggIdx]?.scrollIntoView?.({ block:"nearest" });
+    }
+    async function chooseSuggest(i) {
+      const s = suggItems[i];
+      if (!s) return;
+      if (searchInput) searchInput.value = s.name;
+      renderSuggest([]);
+      await reloadAt(s.lat, s.lng);
+    }
+
+    // 入力でサジェスト
     if (searchInput) {
-      const doSearch = async () => {
+      const runSuggest = debounce(async () => {
         const q = searchInput.value.trim();
-        if (!q) return;
-        try {
-          const hit = await geocodeJP(q);
-          if (hit) {
-            const [la, lo] = hit;
-            await reloadAt(la, lo);
-            mapAdp.addCurrentDot?.(la, lo);
-          }
-        } catch (e) { console.warn("[shops-map] geocode failed", e); }
-      };
+        if (!q) { renderSuggest([]); return; }
+        try { renderSuggest(await suggestJP(q)); }
+        catch { renderSuggest([]); }
+      }, 200);
+
+      searchInput.addEventListener("input", runSuggest);
       searchInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") { e.preventDefault(); doSearch(); }
+        if (e.key === "ArrowDown") { e.preventDefault(); highlight(+1); }
+        else if (e.key === "ArrowUp") { e.preventDefault(); highlight(-1); }
+        else if (e.key === "Enter") {
+          e.preventDefault();
+          if (suggIdx >= 0) chooseSuggest(suggIdx);
+          else {
+            const q = searchInput.value.trim();
+            if (!q) return;
+            geocodeJP(q).then(hit => { if (hit) reloadAt(hit[0], hit[1]); });
+          }
+        } else if (e.key === "Escape") {
+          renderSuggest([]);
+        }
+      });
+      // フォーカス外れたら少し待って閉じる（クリック選択を拾うため）
+      document.addEventListener("click", (ev) => {
+        if (!searchWrap?.contains(ev.target)) renderSuggest([]);
       });
     }
 
-    // 7) 「現在地へ」：現在地 + 最寄り1件が同画面に入るようフィット
+    // 6) 現在地へ（現在地 + 最寄り1件にフィット）
     document.getElementById("btnLocate")?.addEventListener("click", async () => {
       let me = center;
       try {
@@ -217,9 +322,8 @@ async function geocodeJP(q) {
         mapAdp.addCurrentDot?.(me[0], me[1]);
       } catch {/* 権限NGでも last center を使用 */}
 
-      // 現在のマーカー群から最寄り1件を計算（adapter が保持する lastMarkers を参照）
-      const items = (mapAdp.getMarkerData?.() || []);
       let nearest = null, best = Infinity;
+      const items = lastData || [];
       for (const it of items) {
         const dLat = (it.__lat - me[0]) * Math.PI / 180;
         const dLng = (it.__lng - me[1]) * Math.PI / 180;

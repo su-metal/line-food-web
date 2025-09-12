@@ -1133,4 +1133,20 @@ section.price {
     margin-top: 12px !important;
   }
 }
+/* ====== Map search suggest ====== */
+.map-search{ position: relative; }
+.suggest-box{ position:absolute; left:0; right:0; top:100%; margin-top:6px;
+  background:#fff; border:1px solid var(--line,#e5e5e5); border-radius:14px;
+  box-shadow:0 8px 24px rgba(0,0,0,.08); z-index:10; max-height:40vh; overflow:auto;
+}
+.suggest-box[hidden]{ display:none !important; }
+.suggest-list{ list-style:none; margin:0; padding:6px; }
+.suggest-list .sugg{ display:grid; grid-template-columns:auto 1fr; grid-template-rows:auto auto;
+  grid-column-gap:10px; padding:10px 12px; border-radius:12px; cursor:pointer;
+}
+.suggest-list .sugg:hover,
+.suggest-list .sugg.is-active{ background:#f4f6f8; }
+.suggest-list .ic{ grid-row:1 / span 2; align-self:center; font-size:18px; }
+.suggest-list .main{ font-weight:600; font-size:14px; line-height:1.2; color:#111; }
+.suggest-list .sub{ font-size:12px; color:#666; margin-top:2px; }
 
