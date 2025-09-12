@@ -1248,3 +1248,69 @@ section.price {
 /* 影が切れて見える場合の保険（必要時のみ有効化）
 .card-row { overflow: visible; }
 */
+
+/* ================================
+   Card shadows with rounded corners
+   対象: ヒーロー .spotlight-card / 一覧カード .shop-card.card-v3
+   ポイント: 影は親、角丸でのクリップは内側要素に持たせる
+=================================== */
+
+/* 共通：カード本体にだけ影を当てる（控えめ・丸影） */
+.hero-spotlight .spotlight-card,
+.shop-card.card-v3 {
+  position: relative;
+  border-radius: 16px;
+  background: var(--surface, #fff);
+  /* 薄い外枠 + ふわっとした丸い影（例画像程度） */
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.05),
+    0 8px 18px rgba(0, 0, 0, 0.10);
+  /* 影を切らない：ここでは overflow を付けない */
+  overflow: visible;
+  background-clip: padding-box;
+}
+
+/* ── ヒーロー：画像側だけを角丸でクリップ ───────── */
+.hero-spotlight .spotlight-card .spotlight-media {
+  display: block;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  overflow: hidden;            /* 画像やバッジを角に沿って切る */
+}
+.hero-spotlight .spotlight-card img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* ── 一覧カード：ヘッダー画像ブロックを角丸でクリップ ───── */
+.shop-card.card-v3 .card-head {
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  overflow: hidden;            /* 背景画像・サムネを角に沿って切る */
+}
+
+/* （任意）PCホバーはほんの少しだけ強調 */
+@media (hover: hover) and (pointer: fine) {
+  .hero-spotlight .spotlight-card:hover,
+  .shop-card.card-v3:hover {
+    box-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.06),
+      0 10px 22px rgba(0, 0, 0, 0.12);
+    transform: translateY(-1px);
+    transition: box-shadow .18s ease, transform .18s ease;
+  }
+}
+
+/* ダークモードはコントラスト調整（丸影は維持） */
+@media (prefers-color-scheme: dark) {
+  .hero-spotlight .spotlight-card,
+  .shop-card.card-v3 {
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 2px 6px rgba(0, 0, 0, 0.32),
+      0 12px 28px rgba(0, 0, 0, 0.36);
+  }
+}
+
