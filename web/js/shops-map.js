@@ -19,9 +19,34 @@ function pickLatLng(obj) {
   return [lat, lng];
 }
 
+/* ---- ローカル・フォールバック（主要都市/駅） ---- */
+const LOCAL_FALLBACK = [
+  { name:"東京",     sub:"千代田区", lat:35.6895,   lng:139.6917,  icon:"🗺️" },
+  { name:"東京駅",   sub:"千代田区", lat:35.681236, lng:139.767125, icon:"🚉" },
+  { name:"新宿駅",   sub:"新宿区",   lat:35.690921, lng:139.700257, icon:"🚉" },
+  { name:"渋谷駅",   sub:"渋谷区",   lat:35.658034, lng:139.701636, icon:"🚉" },
+  { name:"横浜",     sub:"西区",     lat:35.466,    lng:139.622,    icon:"🗺️" },
+  { name:"横浜駅",   sub:"西区",     lat:35.46583,  lng:139.622,    icon:"🚉" },
+  { name:"名古屋",   sub:"中区",     lat:35.1815,   lng:136.9066,   icon:"🗺️" },
+  { name:"名古屋駅", sub:"中村区",   lat:35.170694, lng:136.881637, icon:"🚉" },
+  { name:"大阪",     sub:"北区",     lat:34.6937,   lng:135.5023,   icon:"🗺️" },
+  { name:"大阪駅",   sub:"北区",     lat:34.702485, lng:135.495951, icon:"🚉" },
+  { name:"京都",     sub:"中京区",   lat:35.0116,   lng:135.7681,   icon:"🗺️" },
+  { name:"京都駅",   sub:"下京区",   lat:34.985849, lng:135.758766, icon:"🚉" },
+  { name:"札幌",     sub:"中央区",   lat:43.0618,   lng:141.3545,   icon:"🗺️" },
+  { name:"札幌駅",   sub:"北区",     lat:43.06866,  lng:141.35076,  icon:"🚉" },
+  { name:"豊橋",     sub:"",         lat:34.7692,   lng:137.3914,   icon:"🗺️" },
+  { name:"豊橋駅",   sub:"",         lat:34.7629,   lng:137.3831,   icon:"🚉" },
+];
+const localFind = (q) => {
+  const s = (q || "").trim().normalize("NFKC");
+  if (!s) return null;
+  return LOCAL_FALLBACK.find(x => s.includes(x.name) || x.name.includes(s)) || null;
+};
+
 /* =============== Cache =============== */
-const LS_LAST_CENTER = "map:lastCenter";     // {lat,lng,ts}
-const SS_LAST_ITEMS  = "map:lastItems";      // items[]
+const LS_LAST_CENTER = "map:lastCenter";
+const SS_LAST_ITEMS  = "map:lastItems";
 
 const getLastCenter = () => {
   try { const o = JSON.parse(localStorage.getItem(LS_LAST_CENTER) || "null");
@@ -37,38 +62,37 @@ const setCachedItems  = (items)=>{ try{sessionStorage.setItem(SS_LAST_ITEMS,JSON
 async function geocode(q) {
   if (!q) return null;
   try {
-    const params = new URLSearchParams({ op: "search", q, limit: "1", countrycodes: "jp" });
+    const params = new URLSearchParams({ op:"search", q, limit:"1", countrycodes:"jp" });
     const res = await apiJSON(`/api/geo-proxy?${params.toString()}`);
     const h = res?.hit;
     if (!h) return null;
-    const la = Number(h.lat);
-    const lo = Number(h.lng ?? h.lon);
-    return (Number.isFinite(la) && Number.isFinite(lo))
-      ? { lat: la, lng: lo, name: h.name, sub: h.sub }
-      : null;
-  } catch (e) {
-    console.warn("[geocode] failed:", e);
+    const la = Number(h.lat), lo = Number(h.lng ?? h.lon);
+    return (Number.isFinite(la) && Number.isFinite(lo)) ? { lat: la, lng: lo, name:h.name, sub:h.sub } : null;
+  } catch {
     return null;
   }
 }
+/** 駅・ランドマーク優先のサジェスト（空時はローカル候補で補完） */
 async function suggest(q) {
   if (!q) return [];
   try {
-    const params = new URLSearchParams({ op: "suggest", q, limit: "8", countrycodes: "jp" });
+    const params = new URLSearchParams({ op:"suggest", q, limit:"8", countrycodes:"jp" });
     const res = await apiJSON(`/api/geo-proxy?${params.toString()}`);
     const arr = Array.isArray(res?.items) ? res.items : [];
-    return arr.map((it) => {
-      const la = Number(it.lat), lo = Number(it.lng ?? it.lon);
-      if (!Number.isFinite(la) || !Number.isFinite(lo)) return null;
-      return { name: it.name || "", sub: it.sub || "", lat: la, lng: lo, icon: it.icon || "📍" };
-    }).filter(Boolean);
-  } catch (e) {
-    console.warn("[suggest] failed:", e);
-    return [];
-  }
+    if (arr.length) {
+      return arr.map(it => {
+        const la = Number(it.lat), lo = Number(it.lng ?? it.lon);
+        if (!Number.isFinite(la) || !Number.isFinite(lo)) return null;
+        return { name: it.name || "", sub: it.sub || "", lat: la, lng: lo, icon: it.icon || "📍" };
+      }).filter(Boolean);
+    }
+  } catch {/* fall through */}
+  // 失敗/空のときはローカル候補
+  const s = (q || "").trim().normalize("NFKC");
+  return LOCAL_FALLBACK.filter(x => x.name.includes(s) || s.includes(x.name)).slice(0,8);
 }
 
-/* =========== サジェスト：body直下へ絶対配置（クリップ対策） =========== */
+/* =========== サジェスト：body直下に絶対配置（クリップ対策） =========== */
 function ensureSuggestStyles() {
   if (document.getElementById("suggest-style")) return;
   const css = `
@@ -89,7 +113,7 @@ function ensureSuggestStyles() {
   document.head.appendChild(st);
 }
 
-/* =========== 検索 UI（地図の成否に依存しない） =========== */
+/* =========== 検索 UI =========== */
 function wireSearchUI({ onGo }) {
   ensureSuggestStyles();
 
@@ -120,10 +144,7 @@ function wireSearchUI({ onGo }) {
     box.style.top  = y + "px";
     box.style.minWidth = Math.max(240, w) + "px";
   };
-  const hideSuggest = () => {
-    box.hidden = true; box.innerHTML = "";
-    suggItems = []; suggIdx = -1;
-  };
+  const hideSuggest = () => { box.hidden = true; box.innerHTML = ""; suggItems = []; suggIdx = -1; };
   const renderSuggest = (list) => {
     suggItems = Array.isArray(list) ? list : [];
     suggIdx = -1;
@@ -152,28 +173,42 @@ function wireSearchUI({ onGo }) {
     ns[suggIdx]?.scrollIntoView?.({ block:"nearest" });
   };
 
-  const commitQuery = async () => {
-    const q = (searchInput.value || "").trim();
-    hideSuggest();
-    if (!q) return;
-    log("commit", q);
-    // まず geocode、だめなら suggest の先頭を利用
-    let hit = await geocode(q).catch(()=>null);
-    if (!hit) {
-      const list = await suggest(q).catch(()=>[]);
-      if (list && list[0]) hit = list[0];
-    }
-    if (hit && onGo) onGo(hit.lat, hit.lng, hit.name || q, { focusOnly: true });
-  };
   const chooseSuggest = async (i) => {
     const s = suggItems[i];
     if (!s) return;
     searchInput.value = s.name || "";
     hideSuggest();
     if (Number.isFinite(s.lat) && Number.isFinite(s.lng) && onGo) {
+      console.info("[search] go(suggest)", s);
       onGo(s.lat, s.lng, s.name, { focusOnly: true });
     } else {
       commitQuery();
+    }
+  };
+
+  const commitQuery = async () => {
+    const q = (searchInput.value || "").trim();
+    hideSuggest();
+    if (!q) return;
+    log("commit", q);
+
+    // 1) geocode
+    let hit = await geocode(q).catch(()=>null);
+
+    // 2) 取れなければ suggest 先頭
+    if (!hit) {
+      const list = await suggest(q).catch(()=>[]);
+      if (list && list[0]) hit = list[0];
+    }
+
+    // 3) それでも無ければローカル候補
+    if (!hit) hit = localFind(q);
+
+    if (hit && onGo) {
+      console.info("[search] go(commit)", hit);
+      onGo(hit.lat, hit.lng, hit.name || q, { focusOnly: true });
+    } else {
+      console.warn("[search] no hit for:", q);
     }
   };
 
@@ -192,15 +227,11 @@ function wireSearchUI({ onGo }) {
   searchInput.addEventListener("compositionstart", () => { composing = true; });
   searchInput.addEventListener("compositionend", () => {
     composing = false;
-    if (pendingEnterWhileComposing) {
-      pendingEnterWhileComposing = false;
-      commitQuery();
-    } else {
-      runSuggest(); // 変換確定時にも候補更新
-    }
+    if (pendingEnterWhileComposing) { pendingEnterWhileComposing = false; commitQuery(); }
+    else { runSuggest(); }
   });
 
-  // Enter 系（keydown 最優先）
+  // Enter 系
   const handleEnterNow = (e) => {
     if (e?.cancelable) e.preventDefault();
     if (suggIdx >= 0) chooseSuggest(suggIdx);
@@ -215,29 +246,20 @@ function wireSearchUI({ onGo }) {
     }
   });
   searchInput.addEventListener("keyup", (e) => {
-    if (e.key === "Enter" && pendingEnterWhileComposing) {
-      pendingEnterWhileComposing = false;
-      handleEnterNow(e);
-    }
+    if (e.key === "Enter" && pendingEnterWhileComposing) { pendingEnterWhileComposing = false; handleEnterNow(e); }
   });
   searchInput.addEventListener("keypress", (e) => {
     if (e.key === "Enter" && !composing && !e.isComposing) handleEnterNow(e);
   });
-  searchInput.addEventListener("search", () => commitQuery()); // iOS の決定ボタン
-  searchInput.addEventListener("change", () => {/* 一応 */});
+  searchInput.addEventListener("search", () => commitQuery());
 
-  // 虫眼鏡や入力外側のクリックでも発火
-  wrap.addEventListener("click", (ev) => {
-    if (ev.target !== searchInput && (searchInput.value || "").trim()) {
-      commitQuery();
-    }
-  });
+  // 入力欄以外のクリック＝虫眼鏡タップでも実行
+  const stopIfInside = (el, t) => el.contains(t) && t.tagName === "INPUT";
+  wrap.addEventListener("click", (ev) => { if (!stopIfInside(wrap, ev.target) && (searchInput.value || "").trim()) commitQuery(); });
 
-  // スクロール / リサイズで追従
+  // 配置追従／外クリックで閉じる
   window.addEventListener("scroll", () => { if (!box.hidden) placeBox(); }, { passive:true });
   window.addEventListener("resize", () => { if (!box.hidden) placeBox(); });
-
-  // 外クリックで閉じる
   document.addEventListener("click", (ev) => { if (!wrap.contains(ev.target) && !box.contains(ev.target)) hideSuggest(); });
   searchInput.addEventListener("blur", () => setTimeout(hideSuggest, 120));
 }
@@ -286,9 +308,10 @@ document.getElementById("mc-close")?.addEventListener("click", () => {
 
 /* ===================== Main ===================== */
 (async function initShopsMap() {
-  // 検索 UI は真っ先に配線（地図に依存しない）
+  // 検索 UI は真っ先に配線
   wireSearchUI({
     onGo: (lat, lng, _q, { focusOnly } = {}) => {
+      console.info("[map] dispatch go-to", {lat, lng, focusOnly});
       document.dispatchEvent(new CustomEvent("map:go-to", { detail: { lat, lng, focusOnly: !!focusOnly }}));
     }
   });
@@ -383,7 +406,7 @@ document.getElementById("mc-close")?.addEventListener("click", () => {
     // 5) マーカー→カード
     mapAdp.onMarkerClick((shop) => fillMapCard(shop));
 
-    // 6) 「現在地へ」：現在地＋最寄り1件にフィット
+    // 6) 「現在地へ」
     document.getElementById("btnLocate")?.addEventListener("click", async () => {
       let me = center;
       try {
@@ -416,6 +439,7 @@ document.getElementById("mc-close")?.addEventListener("click", () => {
     // 7) 検索 UI → 地図へ
     document.addEventListener("map:go-to", (ev) => {
       const { lat, lng, focusOnly } = ev.detail || {};
+      console.info("[map] go-to received", ev.detail);
       if (Number.isFinite(lat) && Number.isFinite(lng)) {
         reloadAt(lat, lng, { focusOnly: !!focusOnly });
       }
