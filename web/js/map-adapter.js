@@ -21,36 +21,42 @@ class LeafletAdapter {
   // === カスタム：ショップピン（DPR対応・サイトカラー） ===
   // === Shop pin (DPR対応・サイトカラー) ===
   _; // === Shop pin (PC: divIcon / Mobile: data-URL image) ===
+  // === Shop pin (小さめ、--brand色) ==========================
   _mkShopIcon() {
     if (this._iconShop) return this._iconShop;
 
+    // サイトのブランド色を使用
     const css = getComputedStyle(document.documentElement);
-    const brand = (
-      css.getPropertyValue("--accent") ||
-      css.getPropertyValue("--brand") ||
-      "#0B5C3D"
-    ).trim();
+    const brand =
+      (css.getPropertyValue("--brand") || "#7a5a2d").trim() || "#7a5a2d";
 
-    // 端末判定：iOS / Android WebView では data-URL image にフォールバック
+    // iOS/Android WebView は data:URL 画像にフォールバック
     const ua = navigator.userAgent || "";
     const isIOS = /iP(hone|ad|od)/.test(ua);
     const isAndroidWV =
-      /\bwv\b/.test(ua) || /Version\/\d+\.\d+ Chrome\/\d+\.\d+ Mobile/.test(ua);
+      /\bwv\b/.test(ua) ||
+      (/Version\/\d+\.\d+/.test(ua) && /Chrome\/\d+\.\d+ Mobile/.test(ua));
     const forceImage = isIOS || isAndroidWV;
 
-    const DPR = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
-    const W = Math.round(34 * DPR);
-    const H = Math.round(44 * DPR);
+    // ← 大きさはここで調整（既存より小さめに）
+    const PIN_BASE_W = 22; // 幅（px）
+    const PIN_BASE_H = 30; // 高さ（px）
+    const isSmallScreen = window.matchMedia("(max-width: 480px)").matches;
+    const PIN_SCALE = isSmallScreen ? 0.85 : 1; // モバイルはやや小さく
+    const DPR = Math.min(1.3, Math.max(1, window.devicePixelRatio || 1)); // 高DPIの肥大化を抑制
 
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 34 44" aria-hidden="true">
-       <path d="M17 0c8.8 0 16 6.9 16 15.5 0 10.3-12.2 22.6-15.1 25.5a1.3 1.3 0 0 1-1.8 0C13.2 38.1 1 25.8 1 15.5 1 6.9 8.2 0 17 0Z" fill="${brand}"/>
-       <rect x="9" y="10" width="16" height="10" rx="2" ry="2" fill="#fff"/>
-       <rect x="12" y="13" width="4" height="7" rx="1" fill="${brand}"/>
-       <rect x="18" y="13" width="4" height="7" rx="1" fill="${brand}"/>
+    const W = Math.round(PIN_BASE_W * PIN_SCALE * DPR);
+    const H = Math.round(PIN_BASE_H * PIN_SCALE * DPR);
+
+    // ショップを表す簡易ストアフロント（角丸の看板） ※色は --brand
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 22 30" aria-hidden="true">
+       <path d="M11 0c6 0 11 4.7 11 10.5 0 7-8.4 15.3-10.4 17.3a1 1 0 0 1-1.2 0C8.4 25.8 0 17.5 0 10.5 0 4.7 5 0 11 0Z" fill="${brand}"/>
+       <rect x="5" y="9" width="12" height="8" rx="2" ry="2" fill="#fff"/>
+       <rect x="7.2" y="11" width="3.3" height="5" rx="1" fill="${brand}"/>
+       <rect x="11.5" y="11" width="3.3" height="5" rx="1" fill="${brand}"/>
      </svg>`;
 
     if (forceImage) {
-      // ✅ モバイル安全：画像アイコン（SVG を data: URL 化）
       const url = "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg);
       this._iconShop = window.L.icon({
         iconUrl: url,
@@ -59,7 +65,6 @@ class LeafletAdapter {
         popupAnchor: [0, -H],
       });
     } else {
-      // PC向け：divIcon（HTML/SVG そのまま）
       this._iconShop = window.L.divIcon({
         className: "lf-pin-shop",
         html: svg,
@@ -71,15 +76,11 @@ class LeafletAdapter {
     return this._iconShop;
   }
 
-  // 互換：古い呼び出し名に対応
+  // 互換（古い呼び名を使っている箇所があってもOK）
   _makeShopIcon() {
     return this._mkShopIcon();
   }
 
-  // 互換：既存コードが _makeShopIcon を呼んでも動くように
-  _makeShopIcon() {
-    return this._mkShopIcon();
-  }
 
   async init(
     containerId,
