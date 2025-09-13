@@ -1406,4 +1406,41 @@ section.price {
 .tabbar a.active .icon svg *{
   stroke-width: var(--tabbar-stroke-w-active) !important;
 }
+/* ===== Map search suggest ===== */
+.map-topbar { position: fixed; z-index: 40; pointer-events: none; }   /* ラッパは透過 */
+.map-topbar > * { pointer-events: auto; }
+
+.map-search { position: relative; z-index: 41; }                      /* 入力は前面 */
+.map-search .suggest-box {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0; right: 0;
+  max-height: min(50vh, 360px);
+  overflow: auto;
+  background: #fff;
+  border: 1px solid var(--line, #e5e5ea);
+  border-radius: 12px;
+  box-shadow:
+    0 2px 6px rgba(0,0,0,.06),
+    0 12px 24px rgba(0,0,0,.08);
+  z-index: 50;
+}
+
+.suggest-list { list-style: none; margin: 0; padding: 4px; }
+.suggest-list .sugg {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.suggest-list .sugg:hover,
+.suggest-list .sugg.is-active {
+  background: rgba(0,0,0,.05);
+}
+.suggest-list .sugg .ic { font-size: 14px; line-height: 1; }
+.suggest-list .sugg .main { font-size: 14px; font-weight: 600; }
+.suggest-list .sugg .sub  { font-size: 12px; color: #666; }
 

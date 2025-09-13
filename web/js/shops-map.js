@@ -154,90 +154,49 @@ async function geocodeJP(q) {
     : null;
 }
 
-/* ---- Autocomplete (Nominatim) — 駅名 & ランドマーク限定 ---- */
-/* ---- Autocomplete (Nominatim) — 駅/ランドマーク優先 + ゼロ件なら地名フォールバック ---- */
+/* ---- Autocomplete (Nominatim) — 駅/ランドマーク優先 + place フォールバック + ローカル最終フォールバック ---- */
 async function suggestJP(q) {
-  if (!q || q.trim().length < 2) return [];
+  if (!q || q.trim().length < 1) return [];
   const query = q.trim();
 
-  const base = "https://nominatim.openstreetmap.org/search";
-  const mkUrl = () => {
-    const p = new URLSearchParams({
-      format: "jsonv2",
-      addressdetails: "1",
-      limit: "10",
-      countrycodes: "jp",
-      "accept-language": "ja",
-      q: query,
-    });
-    return `${base}?${p.toString()}`;
-  };
+  // 最終フォールバック用（軽量・抜粋）
+  const LOCAL_FALLBACK = [
+    { name: "東京駅", sub: "千代田区", lat: 35.681236, lng: 139.767125, icon: "🚉" },
+    { name: "新宿駅", sub: "新宿区",   lat: 35.690921, lng: 139.700257, icon: "🚉" },
+    { name: "渋谷駅", sub: "渋谷区",   lat: 35.658034, lng: 139.701636, icon: "🚉" },
+    { name: "大阪駅", sub: "北区",     lat: 34.702485, lng: 135.495951, icon: "🚉" },
+    { name: "名古屋駅", sub:"中村区",  lat: 35.170694, lng: 136.881637, icon: "🚉" },
+  ];
 
+  const base = "https://nominatim.openstreetmap.org/search";
+  const params = new URLSearchParams({
+    format: "jsonv2",
+    addressdetails: "1",
+    limit: "10",
+    countrycodes: "jp",
+    "accept-language": "ja",
+    q: query,
+  });
   let arr = [];
   try {
-    const r = await fetch(mkUrl(), { headers: { Accept: "application/json" } });
-    if (!r.ok) return [];
+    const r = await fetch(`${base}?${params.toString()}`, { headers: { Accept: "application/json" } });
+    if (!r.ok) throw new Error("nominatim not ok");
     arr = await r.json();
+    if (!Array.isArray(arr)) arr = [];
   } catch {
-    return [];
+    // ネットワーク同時失敗時はローカル簡易
+    return LOCAL_FALLBACK.filter(s => s.name.includes(query)).slice(0, 6);
   }
-  if (!Array.isArray(arr)) return [];
 
-  // 許可クラス（駅＆ランドマーク）
   const ALLOW = {
     railway: new Set(["station", "halt", "subway_entrance", "tram_stop"]),
     tourism: "ANY",
     historic: "ANY",
     natural: new Set(["peak", "volcano", "waterfall"]),
     aeroway: new Set(["aerodrome", "terminal"]),
-    amenity: new Set([
-      "university",
-      "college",
-      "hospital",
-      "townhall",
-      "library",
-      "theatre",
-      "stadium",
-      "bus_station",
-    ]),
+    amenity: new Set(["university","college","hospital","townhall","library","theatre","stadium","bus_station"]),
   };
-  // フォールバック対象（地名のみ）
-  const PLACE_OK = new Set([
-    "city",
-    "town",
-    "suburb",
-    "neighbourhood",
-    "quarter",
-    "village",
-    "hamlet",
-  ]);
-
-  const isAllowed = (it) => {
-    const cls = it.class;
-    const typ = it.type;
-    const allow = ALLOW[cls];
-    if (!allow) return false;
-    return allow === "ANY" ? true : allow.has?.(typ);
-  };
-
-  const toItem = (it, icon = "📍") => {
-    const la = Number(it.lat),
-      lo = Number(it.lon);
-    if (!Number.isFinite(la) || !Number.isFinite(lo)) return null;
-    const a = it.address || {};
-    const name = it.name || it.display_name || "";
-    const sub =
-      a.station ||
-      a.railway ||
-      a.neighbourhood ||
-      a.suburb ||
-      a.city ||
-      a.town ||
-      a.village ||
-      a.state ||
-      "";
-    return { name, sub, lat: la, lng: lo, icon };
-  };
+  const PLACE_OK = new Set(["city","town","suburb","neighbourhood","quarter","village","hamlet","island","islet","locality"]);
 
   const iconOf = (it) => {
     const cls = it.class;
@@ -249,40 +208,58 @@ async function suggestJP(q) {
     if (cls === "amenity") return "🏟️";
     return "📍";
   };
+  const toItem = (it, icon) => {
+    const la = Number(it.lat), lo = Number(it.lon);
+    if (!Number.isFinite(la) || !Number.isFinite(lo)) return null;
+    const a = it.address || {};
+    const name = it.name || it.display_name || "";
+    const sub =
+      a.station || a.railway || a.neighbourhood || a.suburb ||
+      a.city || a.town || a.village || a.state || "";
+    return { name, sub, lat: la, lng: lo, icon };
+  };
 
-  // 1) 駅/ランドマーク優先
+  // 駅/ランドマーク優先
   const primary = arr
-    .filter(isAllowed)
-    .map((it) => toItem(it, iconOf(it)))
-    .filter(Boolean)
-    .slice(0, 8);
+    .filter(it => {
+      const allow = ALLOW[it.class];
+      return allow && (allow === "ANY" || allow.has?.(it.type));
+    })
+    .map(it => toItem(it, iconOf(it)))
+    .filter(Boolean);
 
-  if (primary.length) return primary;
-
-  // 2) ゼロ件なら地名(place)にフォールバック
+  // 地名フォールバック
   const places = arr
-    .filter((it) => it.class === "place" && PLACE_OK.has(it.type))
-    .map((it) => {
-      const la = Number(it.lat),
-        lo = Number(it.lon);
+    .filter(it => it.class === "place" && PLACE_OK.has(it.type))
+    .map(it => {
+      const la = Number(it.lat), lo = Number(it.lon);
       if (!Number.isFinite(la) || !Number.isFinite(lo)) return null;
       const a = it.address || {};
       const name = it.name || it.display_name || "";
-      const sub =
-        a.prefecture ||
-        a.state ||
-        a.city ||
-        a.town ||
-        a.village ||
-        a.suburb ||
-        "";
+      const sub = a.prefecture || a.state || a.city || a.town || a.village || a.suburb || "";
       return { name, sub, lat: la, lng: lo, icon: "🗺️" };
     })
-    .filter(Boolean)
-    .slice(0, 8);
+    .filter(Boolean);
 
-  return places;
+  const merged = [...primary, ...places];
+  if (merged.length) return merged.slice(0, 8);
+
+  // すべてゼロ件 → ローカル簡易
+  return LOCAL_FALLBACK.filter(s => s.name.includes(query)).slice(0, 6);
 }
+
+/* 入力ハンドラ：1文字から候補を出す（通信負荷を抑えつつ体感UP） */
+const runSuggest = debounce(async () => {
+  const q = (searchInput?.value || "").trim();
+  if (!q) { renderSuggest([]); return; }
+  try {
+    const list = await suggestJP(q);
+    renderSuggest(list);
+  } catch {
+    renderSuggest([]);
+  }
+}, 200);
+
 
 /* ===== Main ===== */
 (async function initShopsMap() {
