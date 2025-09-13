@@ -127,17 +127,19 @@ class LeafletAdapter {
     }
   }
 
-  /* --- 店舗ピン SVG（“白い長方形”を廃止。線画グリフで塗りつぶし無し） --- */
+   /* --- シンプルピン（ブランド色のしずく形＋白い芯） --- */
   _makeShopIcon(size = 32, color) {
     const col = color || brandColor();
-    const S = Math.round(Math.max(24, Math.min(72, Number(size) || 32))); // 幅
-    const H = Math.round(S * 1.42);                                       // 高さ
+
+    // 横幅 S を入力、縦比は 44:32（一般的なピン比率）
+    const S = Math.round(Math.max(20, Math.min(72, Number(size) || 32))); // 幅
+    const H = Math.round(S * 44 / 32);                                     // 高さ
     const stroke = "#ffffff";
 
     const svg = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 88" aria-hidden="true">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 44" aria-hidden="true">
   <defs>
-    <filter id="pinDrop" x="-50%" y="-50%" width="200%" height="200%">
+    <filter id="pinShadow" x="-50%" y="-50%" width="200%" height="200%">
       <feGaussianBlur in="SourceAlpha" stdDeviation="1.2"/>
       <feOffset dy="0.8"/>
       <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .22 0"/>
@@ -145,33 +147,21 @@ class LeafletAdapter {
     </filter>
   </defs>
 
-  <!-- ピン本体 -->
-  <path d="M32 4C19.8 4 9.9 13.9 9.9 26.1c0 18 22.1 36.9 22.1 36.9S54.1 44.1 54.1 26.1C54.1 13.9 44.2 4 32 4Z"
-        fill="${col}" stroke="${stroke}" stroke-width="3" filter="url(#pinDrop)"/>
+  <!-- しずく形のピン（塗り＝ブランド色／白縁あり） -->
+  <path d="M16 2C8.82 2 3 7.82 3 15c0 9.6 13 19 13 19s13-9.4 13-19C29 7.82 23.18 2 16 2Z"
+        fill="${col}" stroke="${stroke}" stroke-width="3" filter="url(#pinShadow)"/>
 
-  <!-- 店舗グリフ（線画） -->
-  <g transform="translate(12,18)" fill="none" stroke="${stroke}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-    <!-- ひさし -->
-    <path d="M0 14c7-8 33-8 40 0"/>
-    <path d="M0 14h40"/>
-    <!-- 本体枠 -->
-    <rect x="1.5" y="16" width="37" height="22" rx="3"/>
-    <!-- ドア＋窓 -->
-    <rect x="7" y="20" width="8" height="12" rx="1.5"/>
-    <rect x="22" y="20" width="10" height="6" rx="1.5"/>
-    <!-- 小窓（丸） -->
-    <circle cx="10.5" cy="28" r="1.8"/>
-    <circle cx="20.0" cy="28" r="1.8"/>
-    <circle cx="29.5" cy="28" r="1.8"/>
-  </g>
+  <!-- 中央の白い芯（控えめ） -->
+  <circle cx="16" cy="15" r="5.2" fill="#ffffff" opacity="0.95"/>
 </svg>`.trim();
 
     const url = "data:image/svg+xml;utf8," + encodeURIComponent(svg);
     return window.L.icon({
       iconUrl: url,
       iconSize: [S, H],
-      iconAnchor: [Math.round(S / 2), H - 2],
+      iconAnchor: [Math.round(S / 2), H - 2], // 先端が指すように下端へ
       className: "pin-shop",
     });
   }
+
 }
