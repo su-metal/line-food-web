@@ -154,58 +154,102 @@ async function geocodeJP(q) {
     : null;
 }
 
-/* ---- Autocomplete (Nominatim) ---- */
+/* ---- Autocomplete (Nominatim) — 駅名 & ランドマーク限定 ---- */
 async function suggestJP(q) {
   if (!q) return [];
-  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6&countrycodes=jp&accept-language=ja&q=${encodeURIComponent(
-    q
-  )}`;
-  const r = await fetch(url, { headers: { Accept: "application/json" } });
-  if (!r.ok) return [];
-  const arr = await r.json();
+  const url =
+    `https://nominatim.openstreetmap.org/search?` +
+    `format=jsonv2&addressdetails=1&limit=8&countrycodes=jp&accept-language=ja&` +
+    `q=${encodeURIComponent(q)}`;
+
+  let arr = [];
+  try {
+    const r = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!r.ok) return [];
+    arr = await r.json();
+  } catch {
+    return [];
+  }
   if (!Array.isArray(arr)) return [];
+
+  // フィルタ条件：駅 or ランドマーク（厳しめ）
+  const ALLOW = {
+    railway: new Set(["station", "halt", "subway_entrance", "tram_stop"]),
+    tourism: new Set([
+      "attraction",
+      "viewpoint",
+      "museum",
+      "gallery",
+      "zoo",
+      "aquarium",
+      "theme_park",
+      "artwork",
+      "hotel" // 必要なら外してください
+    ]),
+    historic: "ANY", // 史跡系は広く許可（castle, monument, memorial など）
+    natural: new Set(["peak", "volcano", "waterfall"]),
+    aeroway: new Set(["aerodrome", "terminal"]),
+    amenity: new Set([
+      "university",
+      "college",
+      "hospital",
+      "townhall",
+      "library",
+      "theatre",
+      "stadium",
+      "bus_station"
+    ]),
+  };
+
+  const isAllowed = (it) => {
+    const cls = it.class, typ = it.type;
+    if (!cls) return false;
+    const allow = ALLOW[cls];
+    if (!allow) return false;
+    if (allow === "ANY") return true;
+    return allow.has?.(typ);
+  };
+
+  // スコア付け（駅を最優先）
   const score = (it) => {
-    const cls = it.class,
-      typ = it.type;
-    if (cls === "railway" && (typ === "station" || typ === "halt")) return 100;
-    if (cls === "amenity") return 80;
-    if (cls === "tourism") return 75;
-    if (cls === "place") return 70;
+    const { class: cls, type: typ } = it;
+    if (cls === "railway" && (typ === "station" || typ === "halt" || typ === "subway_entrance")) return 100;
+    if (cls === "tourism") return 90;
+    if (cls === "historic") return 85;
+    if (cls === "natural") return 80;
+    if (cls === "aeroway") return 75;
+    if (cls === "amenity") return 70;
     return 50;
   };
+
+  const iconOf = (it) => {
+    const cls = it.class, typ = it.type;
+    if (cls === "railway") return "🚉";
+    if (cls === "tourism") return "⭐";
+    if (cls === "historic") return "🏰";
+    if (cls === "natural") return "⛰️";
+    if (cls === "aeroway") return "✈️";
+    if (cls === "amenity") return "🏟️";
+    return "📍";
+  };
+
   return arr
+    .filter(isAllowed)
     .map((it) => {
-      const la = Number(it.lat),
-        lo = Number(it.lon);
+      const la = Number(it.lat), lo = Number(it.lon);
       if (!Number.isFinite(la) || !Number.isFinite(lo)) return null;
       const a = it.address || {};
       const name = it.name || it.display_name || "";
+      // 駅は路線や市区名をサブに
       const sub =
-        a.station ||
-        a.neighbourhood ||
-        a.suburb ||
-        a.city ||
-        a.town ||
-        a.village ||
-        a.county ||
-        a.state ||
-        "";
-      const icon =
-        it.class === "railway"
-          ? "🚉"
-          : it.class === "tourism"
-          ? "📍"
-          : it.class === "amenity"
-          ? "🏢"
-          : it.class === "place"
-          ? "🗺️"
-          : "📍";
-      return { name, sub, lat: la, lng: lo, icon, _score: score(it) };
+        a.railway || a.station || a.suburb || a.city || a.town || a.village || a.state || "";
+      return { name, sub, lat: la, lng: lo, icon: iconOf(it), _score: score(it) };
     })
     .filter(Boolean)
     .sort((a, b) => b._score - a._score)
-    .slice(0, 6);
+    .slice(0, 8);
 }
+
 
 /* ===== Main ===== */
 (async function initShopsMap() {
