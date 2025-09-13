@@ -23,11 +23,12 @@ class LeafletAdapter {
   _; // === Shop pin (PC: divIcon / Mobile: data-URL image) ===
   // === Shop pin (小さめ、--brand色) ==========================
   // LeafletAdapter 内
+  // LeafletAdapter 内
   _makeShopIcon(opts = {}) {
     const L = window.L;
     if (!L) return null;
 
-    // サイト色
+    // サイト色（--brand 優先、無ければ --accent → 既定色）
     const css = getComputedStyle(document.documentElement);
     const brand =
       (
@@ -36,23 +37,20 @@ class LeafletAdapter {
         "#A67C52"
       ).trim() || "#A67C52";
     const pinFill = opts.fill || brand;
-    const pinStroke = "rgba(0,0,0,.25)"; // わずかな外枠で視認性
+    const pinStroke = "rgba(0,0,0,.25)";
 
-    // ★ ここがサイズ。ひと回り大きく（PC:28 / SP:30）。opts.size で上書き可
+    // ひと回り大きい既定サイズ（SP:30 / PC:28）※ opts.size で上書き可
     const isSmall = window.matchMedia("(max-width: 480px)").matches;
     const SIZE = Math.max(
       20,
       Math.min(48, Number(opts.size) || (isSmall ? 30 : 28))
     );
 
-    // 24px ベースの SVG を width/height で等倍スケール
     const html = `
   <div class="shop-pin" style="width:${SIZE}px;height:${SIZE}px;transform:translate(-50%,-100%);">
     <svg viewBox="0 0 24 24" width="${SIZE}" height="${SIZE}" aria-hidden="true">
-      <!-- ピン本体 -->
       <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"
         fill="${pinFill}" stroke="${pinStroke}" stroke-width="1"/>
-      <!-- 中央の店アイコン（mのロゴ風） -->
       <rect x="7" y="9" width="10" height="7" rx="2" ry="2" fill="white"/>
       <path d="M9.2 13.7v-2.4h1.8c.5 0 .9.4.9.9v1.5h1v-1.5c0-.5.4-.9.9-.9h1.8v2.4"
         fill="${pinFill}"/>
@@ -63,7 +61,7 @@ class LeafletAdapter {
       className: "shop-pin-wrap",
       html,
       iconSize: [SIZE, SIZE],
-      iconAnchor: [SIZE / 2, SIZE], // 先端を地物に合わせる
+      iconAnchor: [SIZE / 2, SIZE],
       popupAnchor: [0, -SIZE],
     });
   }
@@ -182,16 +180,21 @@ class LeafletAdapter {
   /* 検索地点の単発マーカー（更新可能） */
   setSearchMarker(lat, lng) {
     const L = window.L;
+    if (!L || !this.map) return;
+    const layer = this.layer || (this.layer = L.layerGroup().addTo(this.map));
+
     if (!this.searchMarker) {
       this.searchMarker = L.circleMarker([lat, lng], {
-        radius: 6,
-        color: "#0e5d45",
+        radius: 7,
+        color: "#2a6ef0",
         weight: 2,
-        fillColor: "#0e5d45",
+        fillColor: "#2a6ef0",
         fillOpacity: 1,
-      }).addTo(this.layer);
+      }).addTo(layer);
     } else {
-      this.searchMarker.setLatLng([lat, lng]); // bringToFront は不要（モバイル互換）
+      this.searchMarker.setLatLng([lat, lng]);
     }
+    if (typeof this.searchMarker.bringToFront === "function")
+      this.searchMarker.bringToFront();
   }
 }
