@@ -1391,4 +1391,19 @@ section.price {
   border: 0 !important;
   box-shadow: none !important;
 }
+/* ==== Tabbar icon stroke weight (thicker outlines) ==== */
+:root{
+  /* お好みで数値だけ変えれば全体を調整できます */
+  --tabbar-stroke-w: 2.2;
+  --tabbar-stroke-w-active: 2.6;
+}
+
+.tabbar .icon svg *{
+  stroke-width: var(--tabbar-stroke-w) !important;
+  vector-effect: non-scaling-stroke; /* 拡大縮小でも線の太さを保つ */
+}
+
+.tabbar a.active .icon svg *{
+  stroke-width: var(--tabbar-stroke-w-active) !important;
+}
 
