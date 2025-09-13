@@ -214,7 +214,7 @@ async function suggestJP(q) {
       return typeof window !== "undefined" &&
         window.matchMedia &&
         window.matchMedia("(max-width:480px)").matches
-        ? 36 // SP
+        ? 48 // SP
         : 32; // PC
     } catch {
       return 32;
