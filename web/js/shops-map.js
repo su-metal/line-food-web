@@ -271,18 +271,14 @@ function wireSearchUI({ onGo }) {
   };
 
   const runSuggest = debounce(async () => {
-    const q = (searchInput.value || "").trim();
-    if (q.length < 2) {
-      // ★ 追加：短すぎる入力は叩かない
-      lastSuggested = "";
+    const q = searchInput.value.trim();
+    if (!q) {
       hideSuggest();
       return;
     }
-    if (q === lastSuggested) return;
     const list = await suggest(q).catch(() => []);
-    lastSuggested = q;
     renderSuggest(list);
-  }, 450);
+  }, 350);
 
   // 入力で候補（429予防でやや長めのデバウンス）
   searchInput.addEventListener("input", runSuggest, { passive: true });
