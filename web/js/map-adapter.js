@@ -1,146 +1,156 @@
 // web/js/map-adapter.js
-// Leaflet 専用のアダプタ。shops-map.js から呼ぶ最小 API を提供。
-export function createMapAdapter(kind = "leaflet") {
+// Leaflet 専用の簡易アダプタ。ピンサイズやサイトカラー（--brand）に対応。
+
+export function createMapAdapter(provider = "leaflet") {
+  if (provider !== "leaflet") {
+    console.warn("[map-adapter] only Leaflet is implemented; falling back.");
+  }
   return new LeafletAdapter();
+}
+
+/* ---------- helpers ---------- */
+function getBrandColor() {
+  try {
+    const v = getComputedStyle(document.documentElement).getPropertyValue("--brand");
+    return (v && v.trim()) || "#2a6ef0";
+  } catch {
+    return "#2a6ef0";
+  }
 }
 
 class LeafletAdapter {
   constructor() {
     this.map = null;
     this.layer = null;
-    this._markers = [];
-    this._markerClick = null;
-    this.currentDot = null;
+    this._shopLayer = null;
+    this._lastMarkers = [];
+    this._markerClickCb = null;
+    this._currentDot = null;
     this.searchMarker = null;
   }
 
-  async init(containerId, { center = [35.681236, 139.767125], zoom = 13 } = {}) {
-    const L = window.L;
-    if (!L) throw new Error("Leaflet not loaded");
+  async init(mapId, { center = [35.681236, 139.767125], zoom = 13 } = {}) {
+    if (!window.L) throw new Error("Leaflet not loaded");
+    this.map = window.L.map(mapId, {
+      zoomControl: false,
+      attributionControl: false,
+      scrollWheelZoom: true,
+      tap: true,
+    }).setView(center, zoom);
 
-    this.map = L.map(containerId, { zoomControl: false });
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap contributors",
-      maxZoom: 19,
-    }).addTo(this.map);
+    // OSM タイル
+    window.L.tileLayer(
+      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }
+    ).addTo(this.map);
 
-    this.layer = L.layerGroup().addTo(this.map);
-    this.map.setView(center, zoom);
-    return this;
+    // まとめ用のレイヤー
+    this.layer = window.L.layerGroup().addTo(this.map);
+    this._shopLayer = window.L.layerGroup().addTo(this.layer);
+
+    // モバイル向けパン/ズーム快適化
+    this.map.on("click", () => {/* close popups if any */});
+  }
+
+  onMarkerClick(cb) {
+    this._markerClickCb = typeof cb === "function" ? cb : null;
   }
 
   setCenter(lat, lng, zoom) {
     if (!this.map) return;
-    if (Number.isFinite(zoom)) this.map.setView([lat, lng], zoom, { animate: true });
+    if (Number.isFinite(zoom)) this.map.setView([lat, lng], zoom);
     else this.map.panTo([lat, lng], { animate: true });
   }
 
-  onMarkerClick(fn) {
-    this._markerClick = fn;
-  }
-
-  // ★ 関数名は _makeShopIcon に統一（_mkShopIcon は存在しません）
-  _makeShopIcon({ size } = {}) {
-    const L = window.L;
-    const css = getComputedStyle(document.documentElement);
-    const brand =
-      (css.getPropertyValue("--brand") || css.getPropertyValue("--accent") || "#A67C52").trim() ||
-      "#A67C52";
-    const stroke = "rgba(0,0,0,.25)";
-    const isSmall = window.matchMedia("(max-width:480px)").matches;
-    const SIZE = Math.max(18, Math.min(44, Number(size) || (isSmall ? 26 : 24)));
-
-    const html = `
-      <div class="shop-pin" style="width:${SIZE}px;height:${SIZE}px;transform:translate(-50%,-100%);">
-        <svg viewBox="0 0 24 24" width="${SIZE}" height="${SIZE}" aria-hidden="true">
-          <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"
-                fill="${brand}" stroke="${stroke}" stroke-width="1"/>
-          <rect x="6.8" y="9.2" width="10.4" height="7" rx="2" ry="2" fill="#fff"/>
-          <path d="M9.2 13.6v-2.2h1.8c.5 0 .9.4.9.9v1.3h1v-1.3c0-.5.4-.9.9-.9h1.8v2.2"
-                fill="${brand}"/>
-        </svg>
-      </div>`;
-
-    return L.divIcon({
-      className: "shop-pin-wrap",
-      html,
-      iconSize: [SIZE, SIZE],
-      iconAnchor: [SIZE / 2, SIZE],
-      popupAnchor: [0, -SIZE],
-    });
-  }
-
-  async setMarkers(items = [], { chunk = 80, delay = 8, size } = {}) {
-    const L = window.L;
-    if (!this.map) return [];
-
-    // 既存をクリア
-    (this._markers || []).forEach((m) => m.remove());
-    this._markers = [];
-
-    const layer = this.layer || (this.layer = L.layerGroup().addTo(this.map));
-
-    for (let i = 0; i < items.length; i++) {
-      const it = items[i];
-      const lat = it.__lat ?? it.lat;
-      const lng = it.__lng ?? it.lng;
-      if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
-
-      const icon = this._makeShopIcon({ size }); // ← 正しい呼び出し
-      const m = L.marker([lat, lng], { icon });
-      m._boundData = it;
-      if (this._markerClick) m.on("click", () => this._markerClick(it));
-      m.addTo(layer);
-      this._markers.push(m);
-
-      if (chunk && (i % chunk === chunk - 1)) {
-        await new Promise((r) => setTimeout(r, delay));
-      }
-    }
-    return this._markers;
-  }
-
-  fitToMarkers({ padding = 56, maxZoom = 16 } = {}) {
-    const L = window.L;
-    if (!this.map || !this._markers.length) return;
-    const latlngs = this._markers.map((m) => m.getLatLng());
-    const b = L.latLngBounds(latlngs);
+  fitToMarkers({ padding = 56, maxZoom = 17 } = {}) {
+    if (!this.map || !window.L) return;
+    const all = (this._shopLayer && this._shopLayer.getLayers()) || [];
+    if (!all.length) return;
+    const latlngs = all.map((m) => m.getLatLng());
+    const b = window.L.latLngBounds(latlngs);
     if (b.isValid()) this.map.fitBounds(b, { padding: [padding, padding], maxZoom });
   }
 
-  addCurrentDot(lat, lng) {
-    const L = window.L;
-    if (!this.map) return;
-    const layer = this.layer || (this.layer = L.layerGroup().addTo(this.map));
-    if (!this.currentDot) {
-      this.currentDot = L.circleMarker([lat, lng], {
-        radius: 7,
-        color: "#2a6ef0",
+  addCurrentDot(lat, lng, { radius = 10 } = {}) {
+    if (!this.map || !window.L) return null;
+    const color = getBrandColor();
+    if (!this._currentDot) {
+      this._currentDot = window.L.circleMarker([lat, lng], {
+        radius,
+        color,
         weight: 2,
-        fillColor: "#2a6ef0",
+        fillColor: color,
         fillOpacity: 1,
-      }).addTo(layer);
+      }).addTo(this.layer || this.map);
     } else {
-      this.currentDot.setLatLng([lat, lng]);
+      this._currentDot.setLatLng([lat, lng]);
+      this._currentDot.setStyle({ radius });
     }
-    if (typeof this.currentDot.bringToFront === "function") this.currentDot.bringToFront();
+    return this._currentDot;
   }
 
   setSearchMarker(lat, lng) {
-    const L = window.L;
-    if (!this.map) return;
-    const layer = this.layer || (this.layer = L.layerGroup().addTo(this.map));
+    if (!this.map || !window.L) return null;
+    const color = getBrandColor();
     if (!this.searchMarker) {
-      this.searchMarker = L.circleMarker([lat, lng], {
-        radius: 6,
-        color: "#0e7aff",
+      this.searchMarker = window.L.circleMarker([lat, lng], {
+        radius: 7,
+        color,
         weight: 2,
-        fillColor: "#0e7aff",
-        fillOpacity: 0.9,
-      }).addTo(layer);
+        fillColor: color,
+        fillOpacity: 1,
+      }).addTo(this.layer || this.map);
     } else {
       this.searchMarker.setLatLng([lat, lng]);
     }
-    if (typeof this.searchMarker.bringToFront === "function") this.searchMarker.bringToFront();
+    try { this.searchMarker.bringToFront?.(); } catch {}
+    return this.searchMarker;
+  }
+
+  // ★ ここが統一名：_makeShopIcon（以前の _mkShopIcon は廃止）
+  _makeShopIcon(size = 28) {
+    const s = Math.max(14, Number(size) || 28);
+    const color = getBrandColor();
+    const html = `
+      <svg width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true" style="display:block">
+        <path d="M12 22s-6.5-4.2-9-8c-1.6-2.9-.6-6 1.9-7.1 1.9-.9 4.2-.4 5.5 1.2 1.3-1.6 3.6-2.1 5.5-1.2 2.5 1.1 3.5 4.2 1.9 7.1-2.4 3.8-9 8-9 8z"
+              fill="${color}" fill-opacity="0.12" stroke="${color}" stroke-width="1.5"/>
+        <rect x="7" y="9.2" width="10" height="7.6" rx="1.5" fill="white" stroke="${color}" stroke-width="1.3"/>
+        <path d="M7 9.2h10l-1.2-2.6a1.2 1.2 0 0 0-1.1-.7H9.3a1.2 1.2 0 0 0-1.1.7L7 9.2Z" fill="${color}"/>
+        <rect x="10" y="12.2" width="3.6" height="4.6" rx="0.6" fill="white" stroke="${color}" stroke-width="1.1"/>
+      </svg>
+    `;
+    return window.L.divIcon({
+      className: "lf-shop-pin",
+      html,
+      iconSize: [s, s],
+      iconAnchor: [s / 2, s - 2],
+    });
+  }
+
+  // 店舗マーカー一括セット（size を確実に反映）
+  async setMarkers(items = [], { chunk = 80, delay = 8, size = 28 } = {}) {
+    if (!this.map || !window.L) return [];
+    if (!this._shopLayer) this._shopLayer = window.L.layerGroup().addTo(this.layer || this.map);
+    this._shopLayer.clearLayers();
+    this._lastMarkers = [];
+
+    const makeOne = (d) => {
+      const m = window.L.marker([d.__lat, d.__lng], { icon: this._makeShopIcon(size) });
+      m.__data = d;
+      m.on("click", () => this._markerClickCb?.(d));
+      m.addTo(this._shopLayer);
+      this._lastMarkers.push(m);
+    };
+
+    if (items.length <= chunk) {
+      items.forEach(makeOne);
+    } else {
+      for (let i = 0; i < items.length; i += chunk) {
+        items.slice(i, i + chunk).forEach(makeOne);
+        await new Promise((r) => setTimeout(r, delay));
+      }
+    }
+    return this._lastMarkers;
   }
 }
