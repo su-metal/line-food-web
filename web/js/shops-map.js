@@ -216,7 +216,7 @@ async function suggestJP(q) {
         typeof window !== "undefined" &&
         window.matchMedia &&
         window.matchMedia("(max-width: 480px)").matches;
-      return isSP ? 54 : 48; // ← 好みで調整：SP/PC
+      return isSP ? 48 : 40; // ← 好みで調整：SP/PC
     } catch {
       return 36;
     }
