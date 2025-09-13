@@ -161,11 +161,41 @@ async function suggestJP(q) {
 
   // 最終フォールバック用（軽量・抜粋）
   const LOCAL_FALLBACK = [
-    { name: "東京駅", sub: "千代田区", lat: 35.681236, lng: 139.767125, icon: "🚉" },
-    { name: "新宿駅", sub: "新宿区",   lat: 35.690921, lng: 139.700257, icon: "🚉" },
-    { name: "渋谷駅", sub: "渋谷区",   lat: 35.658034, lng: 139.701636, icon: "🚉" },
-    { name: "大阪駅", sub: "北区",     lat: 34.702485, lng: 135.495951, icon: "🚉" },
-    { name: "名古屋駅", sub:"中村区",  lat: 35.170694, lng: 136.881637, icon: "🚉" },
+    {
+      name: "東京駅",
+      sub: "千代田区",
+      lat: 35.681236,
+      lng: 139.767125,
+      icon: "🚉",
+    },
+    {
+      name: "新宿駅",
+      sub: "新宿区",
+      lat: 35.690921,
+      lng: 139.700257,
+      icon: "🚉",
+    },
+    {
+      name: "渋谷駅",
+      sub: "渋谷区",
+      lat: 35.658034,
+      lng: 139.701636,
+      icon: "🚉",
+    },
+    {
+      name: "大阪駅",
+      sub: "北区",
+      lat: 34.702485,
+      lng: 135.495951,
+      icon: "🚉",
+    },
+    {
+      name: "名古屋駅",
+      sub: "中村区",
+      lat: 35.170694,
+      lng: 136.881637,
+      icon: "🚉",
+    },
   ];
 
   const base = "https://nominatim.openstreetmap.org/search";
@@ -179,13 +209,15 @@ async function suggestJP(q) {
   });
   let arr = [];
   try {
-    const r = await fetch(`${base}?${params.toString()}`, { headers: { Accept: "application/json" } });
+    const r = await fetch(`${base}?${params.toString()}`, {
+      headers: { Accept: "application/json" },
+    });
     if (!r.ok) throw new Error("nominatim not ok");
     arr = await r.json();
     if (!Array.isArray(arr)) arr = [];
   } catch {
     // ネットワーク同時失敗時はローカル簡易
-    return LOCAL_FALLBACK.filter(s => s.name.includes(query)).slice(0, 6);
+    return LOCAL_FALLBACK.filter((s) => s.name.includes(query)).slice(0, 6);
   }
 
   const ALLOW = {
@@ -194,9 +226,29 @@ async function suggestJP(q) {
     historic: "ANY",
     natural: new Set(["peak", "volcano", "waterfall"]),
     aeroway: new Set(["aerodrome", "terminal"]),
-    amenity: new Set(["university","college","hospital","townhall","library","theatre","stadium","bus_station"]),
+    amenity: new Set([
+      "university",
+      "college",
+      "hospital",
+      "townhall",
+      "library",
+      "theatre",
+      "stadium",
+      "bus_station",
+    ]),
   };
-  const PLACE_OK = new Set(["city","town","suburb","neighbourhood","quarter","village","hamlet","island","islet","locality"]);
+  const PLACE_OK = new Set([
+    "city",
+    "town",
+    "suburb",
+    "neighbourhood",
+    "quarter",
+    "village",
+    "hamlet",
+    "island",
+    "islet",
+    "locality",
+  ]);
 
   const iconOf = (it) => {
     const cls = it.class;
@@ -209,49 +261,74 @@ async function suggestJP(q) {
     return "📍";
   };
   const toItem = (it, icon) => {
-    const la = Number(it.lat), lo = Number(it.lon);
+    const la = Number(it.lat),
+      lo = Number(it.lon);
     if (!Number.isFinite(la) || !Number.isFinite(lo)) return null;
     const a = it.address || {};
     const name = it.name || it.display_name || "";
     const sub =
-      a.station || a.railway || a.neighbourhood || a.suburb ||
-      a.city || a.town || a.village || a.state || "";
+      a.station ||
+      a.railway ||
+      a.neighbourhood ||
+      a.suburb ||
+      a.city ||
+      a.town ||
+      a.village ||
+      a.state ||
+      "";
     return { name, sub, lat: la, lng: lo, icon };
   };
 
   // 駅/ランドマーク優先
   const primary = arr
-    .filter(it => {
+    .filter((it) => {
       const allow = ALLOW[it.class];
       return allow && (allow === "ANY" || allow.has?.(it.type));
     })
-    .map(it => toItem(it, iconOf(it)))
+    .map((it) => toItem(it, iconOf(it)))
     .filter(Boolean);
 
   // 地名フォールバック
   const places = arr
-    .filter(it => it.class === "place" && PLACE_OK.has(it.type))
-    .map(it => {
-      const la = Number(it.lat), lo = Number(it.lon);
+    .filter((it) => it.class === "place" && PLACE_OK.has(it.type))
+    .map((it) => {
+      const la = Number(it.lat),
+        lo = Number(it.lon);
       if (!Number.isFinite(la) || !Number.isFinite(lo)) return null;
       const a = it.address || {};
       const name = it.name || it.display_name || "";
-      const sub = a.prefecture || a.state || a.city || a.town || a.village || a.suburb || "";
+      const sub =
+        a.prefecture ||
+        a.state ||
+        a.city ||
+        a.town ||
+        a.village ||
+        a.suburb ||
+        "";
       return { name, sub, lat: la, lng: lo, icon: "🗺️" };
     })
     .filter(Boolean);
 
   const merged = [...primary, ...places];
   if (merged.length) return merged.slice(0, 8);
+  // ★ ここを追加：APIは成功したが、フィルタ後ゼロ件のときは generic（なんでも）を出す
+  const generic = arr.map((it) => toItem(it, iconOf(it))).filter(Boolean);
+  if (generic.length) return generic.slice(0, 6);
+
+  // それでもゼロ or API失敗 → 最終ローカル
+  return LOCAL_FALLBACK.filter((s) => s.name.includes(query)).slice(0, 6);
 
   // すべてゼロ件 → ローカル簡易
-  return LOCAL_FALLBACK.filter(s => s.name.includes(query)).slice(0, 6);
+  return LOCAL_FALLBACK.filter((s) => s.name.includes(query)).slice(0, 6);
 }
 
 /* 入力ハンドラ：1文字から候補を出す（通信負荷を抑えつつ体感UP） */
 const runSuggest = debounce(async () => {
   const q = (searchInput?.value || "").trim();
-  if (!q) { renderSuggest([]); return; }
+  if (!q) {
+    renderSuggest([]);
+    return;
+  }
   try {
     const list = await suggestJP(q);
     renderSuggest(list);
@@ -259,7 +336,6 @@ const runSuggest = debounce(async () => {
     renderSuggest([]);
   }
 }, 200);
-
 
 /* ===== Main ===== */
 (async function initShopsMap() {
