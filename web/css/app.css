@@ -1444,3 +1444,32 @@ section.price {
 .suggest-list .sugg .main { font-size: 14px; font-weight: 600; }
 .suggest-list .sugg .sub  { font-size: 12px; color: #666; }
 
+/* --- Map suggest dropdown --- */
+.map-page .map-topbar { overflow: visible; }
+.map-page .map-topbar .map-search { position: relative; z-index: 5; }
+
+.map-page .suggest-box {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid var(--border, #e6e6e9);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.08), 0 2px 8px rgba(0,0,0,.06);
+  max-height: 50vh;
+  overflow: auto;
+  z-index: 9999;
+  padding: 4px 0;
+}
+
+.map-page .suggest-list { list-style: none; margin: 0; padding: 0; }
+.map-page .suggest-list .sugg {
+  display: flex; gap: 8px; align-items: center;
+  padding: 10px 12px; cursor: pointer;
+}
+.map-page .suggest-list .sugg:hover,
+.map-page .suggest-list .sugg.is-active { background: var(--surface-2, #f7f7f9); }
+.map-page .suggest-list .sugg .ic { width: 1.25em; }
+.map-page .suggest-list .sugg .main { flex: 1; }
+.map-page .suggest-list .sugg .sub { margin-left: 8px; opacity: .65; font-size: .9em; }
