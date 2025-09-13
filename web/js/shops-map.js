@@ -7,7 +7,7 @@ const NOIMG = "./img/noimg.svg";
 const yen = (v) => (Number.isFinite(+v) ? "¥" + Number(v).toLocaleString("ja-JP") : "");
 const km = (m) => (Number.isFinite(m) ? (m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`) : "");
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
-const debounce = (fn, ms=250) => { let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; };
+const debounce = (fn, ms=400) => { let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; };
 
 function pickLatLng(obj) {
   const lat = num(obj?.lat) ?? num(obj?.latitude) ?? num(obj?.lat_deg) ??
@@ -32,24 +32,20 @@ const setLastCenter   = (lat,lng)=>{ try{localStorage.setItem(LS_LAST_CENTER,JSO
 const getCachedItems  = () => { try{ const a=JSON.parse(sessionStorage.getItem(SS_LAST_ITEMS)||"[]"); return Array.isArray(a)?a:[]; }catch{return [];} };
 const setCachedItems  = (items)=>{ try{sessionStorage.setItem(SS_LAST_ITEMS,JSON.stringify(items||[]));}catch{} };
 
-/* =============== Geocoding (same-origin proxy) =============== */
-async function fetchJSON(url) {
-  const r = await fetch(url, { headers: { "Accept": "application/json" } });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  return r.json();
-}
-/** 1点へジオコーディング */
+/* =============== Geocoding via same-origin proxy =============== */
+// 結果を正規化して返す（proxy は {hit} / {items} 形式）
 async function geocode(q) {
   if (!q) return null;
   try {
-    const params = new URLSearchParams({ op:"search", q, limit:"1", countrycodes:"jp" });
-    const arr = await fetchJSON(`/api/geo-proxy?${params.toString()}`);
-    if (!Array.isArray(arr) || !arr.length) return null;
-    const la = Number(arr[0].lat), lo = Number(arr[0].lon);
-    return (Number.isFinite(la) && Number.isFinite(lo)) ? { lat: la, lng: lo } : null;
+    const p = new URLSearchParams({ op:"search", q, limit:"1", countrycodes:"jp" });
+    const data = await apiJSON(`/api/geo-proxy?${p.toString()}`);
+    const hit = data?.hit;
+    if (!hit) return null;
+    const la = Number(hit.lat), lo = Number(hit.lng ?? hit.lon);
+    return (Number.isFinite(la) && Number.isFinite(lo)) ? { lat: la, lng: lo, name: hit.name || q } : null;
   } catch { return null; }
 }
-/** 駅・ランドマーク優先のサジェスト */
+
 async function suggest(q) {
   const LOCAL_FALLBACK = [
     { name: "東京駅", sub: "千代田区", lat: 35.681236, lng: 139.767125, icon: "🚉" },
@@ -60,29 +56,27 @@ async function suggest(q) {
   ];
   if (!q) return [];
   try {
-    const params = new URLSearchParams({ op:"suggest", q, limit:"8", countrycodes:"jp" });
-    const arr = await fetchJSON(`/api/geo-proxy?${params.toString()}`);
-    if (!Array.isArray(arr)) return [];
+    const p = new URLSearchParams({ op:"suggest", q, limit:"8", countrycodes:"jp" });
+    const data = await apiJSON(`/api/geo-proxy?${p.toString()}`);
+    const arr = Array.isArray(data?.items) ? data.items : [];
+    // proxy側で駅/ランドマークにフィルタ済み。軽くスコア順に整えるだけ。
     const score = (it) => {
-      const cls = it.class, typ = it.type;
-      if (cls === "railway" && (typ === "station" || typ === "halt")) return 100;
-      if (cls === "tourism") return 85;
-      if (cls === "amenity") return 70;
-      if (cls === "place")   return 60;
-      return 40;
+      const cls = it.class, typ = it.type; // 来ない可能性もあるので保険
+      if (it.icon === "🚉" || (cls === "railway" && (typ==="station"||typ==="halt"))) return 100;
+      if (it.icon === "✈️") return 90;
+      return 80;
     };
     return arr
-      .map((it) => {
-        const la = Number(it.lat), lo = Number(it.lon);
-        if (!Number.isFinite(la) || !Number.isFinite(lo)) return null;
-        const a = it.address || {};
-        const name = it.namedetails?.name || it.name || it.display_name || "";
-        const sub  = a.station || a.neighbourhood || a.suburb || a.city || a.town || a.village || a.county || a.state || "";
-        const icon = (it.class==="railway"?"🚉":it.class==="tourism"?"📍":it.class==="amenity"?"🏢":it.class==="place"?"🗺️":"📍");
-        return { name, sub, lat: la, lng: lo, icon, _score: score(it) };
-      })
-      .filter(Boolean)
-      .sort((a,b)=>b._score-a._score)
+      .map((it)=>({
+        name: it.name || it.display_name || "",
+        sub: it.sub || "",
+        lat: Number(it.lat),
+        lng: Number(it.lng ?? it.lon),
+        icon: it.icon || "📍",
+        _s: score(it)
+      }))
+      .filter((x)=>Number.isFinite(x.lat) && Number.isFinite(x.lng) && x.name)
+      .sort((a,b)=>b._s-a._s)
       .slice(0,8);
   } catch {
     const qn = q.normalize("NFKC");
@@ -103,6 +97,7 @@ function wireSearchUI({ onGo }) {
   let box = null, suggItems = [], suggIdx = -1;
   let composing = false;
   let pendingEnterWhileComposing = false;
+  let lastSuggested = ""; // 同一クエリの無駄打ち抑制
 
   const ensureBox = () => {
     if (box) return box;
@@ -144,7 +139,13 @@ function wireSearchUI({ onGo }) {
     const q = (searchInput.value || "").trim();
     hideSuggest();
     if (!q) return;
-    const hit = await geocode(q).catch(()=>null);
+
+    // まず geocode（1点検索）→ ダメなら suggest の先頭でフォールバック
+    let hit = await geocode(q).catch(()=>null);
+    if (!hit) {
+      const cand = await suggest(q).catch(()=>[]);
+      if (cand.length) hit = { lat: cand[0].lat, lng: cand[0].lng, name: cand[0].name };
+    }
     if (hit && onGo) onGo(hit.lat, hit.lng, q, { focusOnly: true });
   };
 
@@ -162,12 +163,13 @@ function wireSearchUI({ onGo }) {
 
   const runSuggest = debounce(async () => {
     const q = searchInput.value.trim();
-    if (!q) { hideSuggest(); return; }
+    if (!q || q === lastSuggested) { if (!q) hideSuggest(); return; }
     const list = await suggest(q).catch(()=>[]);
+    lastSuggested = q;
     renderSuggest(list);
-  }, 200);
+  }, 450);
 
-  // 入力で候補
+  // 入力で候補（429予防でやや長めのデバウンス）
   searchInput.addEventListener("input", runSuggest, { passive: true });
 
   // IME
@@ -266,10 +268,9 @@ document.getElementById("mc-close")?.addEventListener("click", () => {
 
 /* ===================== Main ===================== */
 (async function initShopsMap() {
-  // 検索 UI は真っ先に配線（地図の成否に依存しない）
+  // 1) 検索 UI は最初に配線（地図の成否に依存しない）
   wireSearchUI({
     onGo: (lat, lng, _q, { focusOnly } = {}) => {
-      // 地図が準備できてから動かすため、CustomEventで通知
       document.dispatchEvent(new CustomEvent("map:go-to", { detail: { lat, lng, focusOnly: !!focusOnly }}));
     }
   });
@@ -280,7 +281,7 @@ document.getElementById("mc-close")?.addEventListener("click", () => {
     const qParam  = (params.get("q") || "").trim();
     const SEARCH_ZOOM = 16;
 
-    // 1) 地図を先に表示
+    // 2) 地図を先に表示
     let center = getLastCenter() || [35.681236, 139.767125];
     await mapAdp.init("map", { center, zoom: 13 });
 
@@ -289,30 +290,30 @@ document.getElementById("mc-close")?.addEventListener("click", () => {
       setLastCenter(lat, lng);
       if (typeof mapAdp.setSearchMarker === "function") {
         mapAdp.setSearchMarker(lat, lng);
-      } else if (window.L && mapAdp.map) {
+      } else if (window.L && (mapAdp.layerOverlay || mapAdp.map)) {
         if (!window.__searchDot) {
           window.__searchDot = window.L.circleMarker([lat, lng], {
             radius: 7, color: "#2a6ef0", weight: 2, fillColor: "#2a6ef0", fillOpacity: 1
-          }).addTo(mapAdp.layer || mapAdp.map);
+          }).addTo(mapAdp.layerOverlay || mapAdp.map);
         } else {
           window.__searchDot.setLatLng([lat, lng]);
         }
       }
     };
 
-    // 2) キャッシュ描画
+    // 3) キャッシュ描画
     let lastData = [];
     const cached = getCachedItems().map((it) => {
       const [la, lo] = pickLatLng(it);
       return Number.isFinite(la) && Number.isFinite(lo) ? { ...it, __lat: la, __lng: lo } : null;
     }).filter(Boolean);
     if (cached.length) {
-      await mapAdp.setMarkers(cached, { chunk: 80, delay: 8 });
+      await mapAdp.setMarkers(cached, { /* chunk: 80, delay: 8 */ });
       mapAdp.fitToMarkers({ padding: 56 });
       lastData = cached;
     }
 
-    // 3) 指定地点で店舗を再読込
+    // 4) 指定地点で店舗を再読込
     const reloadAt = async (lat, lng, { focusOnly = false } = {}) => {
       mapAdp.setCenter(lat, lng, focusOnly ? SEARCH_ZOOM : 15);
       showSearchDot(lat, lng);
@@ -333,7 +334,7 @@ document.getElementById("mc-close")?.addEventListener("click", () => {
         return Number.isFinite(la) && Number.isFinite(lo) ? { ...it, __lat: la, __lng: lo } : null;
       }).filter(Boolean);
 
-      await mapAdp.setMarkers(withCoords, { chunk: 80, delay: 8 });
+      await mapAdp.setMarkers(withCoords);
       lastData = withCoords;
       setCachedItems(items);
 
@@ -342,12 +343,11 @@ document.getElementById("mc-close")?.addEventListener("click", () => {
       }
     };
 
-    // 4) 初期表示：?q= あれば検索地点へ
+    // 5) 初期表示：?q= あれば検索地点へ、なければ現在地
     if (qParam) {
       const hit = await geocode(qParam).catch(()=>null);
       if (hit) await reloadAt(hit.lat, hit.lng, { focusOnly: true });
     } else {
-      // 現在地が取れれば通常描画
       (async () => {
         try {
           const pos = await new Promise((res, rej) => {
@@ -361,10 +361,10 @@ document.getElementById("mc-close")?.addEventListener("click", () => {
       })();
     }
 
-    // 5) マーカー→カード
+    // 6) マーカー→カード
     mapAdp.onMarkerClick((shop) => fillMapCard(shop));
 
-    // 6) 「現在地へ」：現在地＋最寄り1件にフィット
+    // 7) 現在地へ（現在地＋最寄り1件にフィット）
     document.getElementById("btnLocate")?.addEventListener("click", async () => {
       let me = center;
       try {
@@ -394,7 +394,7 @@ document.getElementById("mc-close")?.addEventListener("click", () => {
       }
     });
 
-    // 7) 検索 UI からの指示を受けて移動
+    // 8) 検索 UI からの指示を受けて移動
     document.addEventListener("map:go-to", (ev) => {
       const { lat, lng, focusOnly } = ev.detail || {};
       if (Number.isFinite(lat) && Number.isFinite(lng)) {
