@@ -116,8 +116,8 @@ class LeafletAdapter {
     if (!this.map) return;
     if (!this._searchMarker) {
       this._searchMarker = L.circleMarker([lat, lng], {
-        radius: 7,
-        color: "#2a6ef0",
+        radius: 9,
+        color: "#b38b59",
         weight: 2,
         fillColor: "#ffffff",
         fillOpacity: 1,
