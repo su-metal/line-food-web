@@ -155,16 +155,27 @@ async function geocodeJP(q) {
 }
 
 /* ---- Autocomplete (Nominatim) — 駅名 & ランドマーク限定 ---- */
+/* ---- Autocomplete (Nominatim) — 駅/ランドマーク優先 + ゼロ件なら地名フォールバック ---- */
 async function suggestJP(q) {
-  if (!q) return [];
-  const url =
-    `https://nominatim.openstreetmap.org/search?` +
-    `format=jsonv2&addressdetails=1&limit=8&countrycodes=jp&accept-language=ja&` +
-    `q=${encodeURIComponent(q)}`;
+  if (!q || q.trim().length < 2) return [];
+  const query = q.trim();
+
+  const base = "https://nominatim.openstreetmap.org/search";
+  const mkUrl = () => {
+    const p = new URLSearchParams({
+      format: "jsonv2",
+      addressdetails: "1",
+      limit: "10",
+      countrycodes: "jp",
+      "accept-language": "ja",
+      q: query,
+    });
+    return `${base}?${p.toString()}`;
+  };
 
   let arr = [];
   try {
-    const r = await fetch(url, { headers: { Accept: "application/json" } });
+    const r = await fetch(mkUrl(), { headers: { Accept: "application/json" } });
     if (!r.ok) return [];
     arr = await r.json();
   } catch {
@@ -172,21 +183,11 @@ async function suggestJP(q) {
   }
   if (!Array.isArray(arr)) return [];
 
-  // フィルタ条件：駅 or ランドマーク（厳しめ）
+  // 許可クラス（駅＆ランドマーク）
   const ALLOW = {
     railway: new Set(["station", "halt", "subway_entrance", "tram_stop"]),
-    tourism: new Set([
-      "attraction",
-      "viewpoint",
-      "museum",
-      "gallery",
-      "zoo",
-      "aquarium",
-      "theme_park",
-      "artwork",
-      "hotel" // 必要なら外してください
-    ]),
-    historic: "ANY", // 史跡系は広く許可（castle, monument, memorial など）
+    tourism: "ANY",
+    historic: "ANY",
     natural: new Set(["peak", "volcano", "waterfall"]),
     aeroway: new Set(["aerodrome", "terminal"]),
     amenity: new Set([
@@ -197,33 +198,49 @@ async function suggestJP(q) {
       "library",
       "theatre",
       "stadium",
-      "bus_station"
+      "bus_station",
     ]),
   };
+  // フォールバック対象（地名のみ）
+  const PLACE_OK = new Set([
+    "city",
+    "town",
+    "suburb",
+    "neighbourhood",
+    "quarter",
+    "village",
+    "hamlet",
+  ]);
 
   const isAllowed = (it) => {
-    const cls = it.class, typ = it.type;
-    if (!cls) return false;
+    const cls = it.class;
+    const typ = it.type;
     const allow = ALLOW[cls];
     if (!allow) return false;
-    if (allow === "ANY") return true;
-    return allow.has?.(typ);
+    return allow === "ANY" ? true : allow.has?.(typ);
   };
 
-  // スコア付け（駅を最優先）
-  const score = (it) => {
-    const { class: cls, type: typ } = it;
-    if (cls === "railway" && (typ === "station" || typ === "halt" || typ === "subway_entrance")) return 100;
-    if (cls === "tourism") return 90;
-    if (cls === "historic") return 85;
-    if (cls === "natural") return 80;
-    if (cls === "aeroway") return 75;
-    if (cls === "amenity") return 70;
-    return 50;
+  const toItem = (it, icon = "📍") => {
+    const la = Number(it.lat),
+      lo = Number(it.lon);
+    if (!Number.isFinite(la) || !Number.isFinite(lo)) return null;
+    const a = it.address || {};
+    const name = it.name || it.display_name || "";
+    const sub =
+      a.station ||
+      a.railway ||
+      a.neighbourhood ||
+      a.suburb ||
+      a.city ||
+      a.town ||
+      a.village ||
+      a.state ||
+      "";
+    return { name, sub, lat: la, lng: lo, icon };
   };
 
   const iconOf = (it) => {
-    const cls = it.class, typ = it.type;
+    const cls = it.class;
     if (cls === "railway") return "🚉";
     if (cls === "tourism") return "⭐";
     if (cls === "historic") return "🏰";
@@ -233,23 +250,39 @@ async function suggestJP(q) {
     return "📍";
   };
 
-  return arr
+  // 1) 駅/ランドマーク優先
+  const primary = arr
     .filter(isAllowed)
+    .map((it) => toItem(it, iconOf(it)))
+    .filter(Boolean)
+    .slice(0, 8);
+
+  if (primary.length) return primary;
+
+  // 2) ゼロ件なら地名(place)にフォールバック
+  const places = arr
+    .filter((it) => it.class === "place" && PLACE_OK.has(it.type))
     .map((it) => {
-      const la = Number(it.lat), lo = Number(it.lon);
+      const la = Number(it.lat),
+        lo = Number(it.lon);
       if (!Number.isFinite(la) || !Number.isFinite(lo)) return null;
       const a = it.address || {};
       const name = it.name || it.display_name || "";
-      // 駅は路線や市区名をサブに
       const sub =
-        a.railway || a.station || a.suburb || a.city || a.town || a.village || a.state || "";
-      return { name, sub, lat: la, lng: lo, icon: iconOf(it), _score: score(it) };
+        a.prefecture ||
+        a.state ||
+        a.city ||
+        a.town ||
+        a.village ||
+        a.suburb ||
+        "";
+      return { name, sub, lat: la, lng: lo, icon: "🗺️" };
     })
     .filter(Boolean)
-    .sort((a, b) => b._score - a._score)
     .slice(0, 8);
-}
 
+  return places;
+}
 
 /* ===== Main ===== */
 (async function initShopsMap() {
@@ -484,15 +517,15 @@ async function suggestJP(q) {
       if (!input || !wrap) return;
 
       const runSuggest = debounce(async () => {
-        const q = input.value.trim();
-        if (!q) {
-          hideSuggest();
+        const q = (searchInput.value || "").trim();
+        if (q.length < 2) {
+          renderSuggest([]);
           return;
-        }
+        } // ★ これを必ず入れる
         try {
           renderSuggest(await suggestJP(q));
         } catch {
-          hideSuggest();
+          renderSuggest([]);
         }
       }, 200);
 
