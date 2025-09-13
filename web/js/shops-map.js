@@ -209,15 +209,16 @@ async function suggestJP(q) {
 
 /* ===== Main ===== */
 (async function initShopsMap() {
+  // ★ 追加：端末に応じたピンサイズ
   const PIN_SIZE = (() => {
     try {
-      return typeof window !== "undefined" &&
+      const isSP =
+        typeof window !== "undefined" &&
         window.matchMedia &&
-        window.matchMedia("(max-width:480px)").matches
-        ? 100 // SP
-        : 80; // PC
+        window.matchMedia("(max-width: 480px)").matches;
+      return isSP ? 54 : 48; // ← 好みで調整：SP/PC
     } catch {
-      return 32;
+      return 36;
     }
   })();
 
@@ -274,7 +275,7 @@ async function suggestJP(q) {
       })
       .filter(Boolean);
     if (cached.length) {
-      await mapAdp.setMarkers(cached, { chunk: 80, delay: 8 });
+      await mapAdp.setMarkers(cached, { chunk: 80, delay: 8, size: PIN_SIZE });
       mapAdp.fitToMarkers({ padding: 56 });
       lastData = cached;
     }
@@ -314,7 +315,7 @@ async function suggestJP(q) {
         })
         .filter(Boolean);
 
-      await mapAdp.setMarkers(withCoords, { chunk: 80, delay: 8 });
+      await mapAdp.setMarkers(withCoords, { chunk: 80, delay: 8, size: PIN_SIZE });
       lastData = withCoords;
       setCachedItems(items);
 
