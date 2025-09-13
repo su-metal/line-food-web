@@ -1,4 +1,4 @@
-// web/js/shops-map.js  （全部置き換え）
+// web/js/shops-map.js  ← すべて置き換え
 import { apiJSON } from "./http.js";
 import { createMapAdapter } from "./map-adapter.js";
 
@@ -8,6 +8,7 @@ const yen = (v) => (Number.isFinite(+v) ? "¥" + Number(v).toLocaleString("ja-JP
 const km  = (m) => (Number.isFinite(m) ? (m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`) : "");
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
 const debounce = (fn, ms=250) => { let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; };
+const log = (...a) => console.info("[search]", ...a);
 
 function pickLatLng(obj) {
   const lat = num(obj?.lat) ?? num(obj?.latitude) ?? num(obj?.lat_deg) ??
@@ -33,7 +34,6 @@ const getCachedItems  = () => { try{ const a=JSON.parse(sessionStorage.getItem(S
 const setCachedItems  = (items)=>{ try{sessionStorage.setItem(SS_LAST_ITEMS,JSON.stringify(items||[]));}catch{} };
 
 /* =============== Geocoding via same-origin proxy =============== */
-// proxy は { items: [] } / { hit: {...} } を返す
 async function geocode(q) {
   if (!q) return null;
   try {
@@ -51,78 +51,85 @@ async function geocode(q) {
     return null;
   }
 }
-
 async function suggest(q) {
   if (!q) return [];
   try {
     const params = new URLSearchParams({ op: "suggest", q, limit: "8", countrycodes: "jp" });
     const res = await apiJSON(`/api/geo-proxy?${params.toString()}`);
     const arr = Array.isArray(res?.items) ? res.items : [];
-    return arr
-      .map((it) => {
-        const la = Number(it.lat);
-        const lo = Number(it.lng ?? it.lon);
-        if (!Number.isFinite(la) || !Number.isFinite(lo)) return null;
-        return {
-          name: it.name || "",
-          sub: it.sub || "",
-          lat: la,
-          lng: lo,
-          icon: it.icon || "📍",
-        };
-      })
-      .filter(Boolean);
+    return arr.map((it) => {
+      const la = Number(it.lat), lo = Number(it.lng ?? it.lon);
+      if (!Number.isFinite(la) || !Number.isFinite(lo)) return null;
+      return { name: it.name || "", sub: it.sub || "", lat: la, lng: lo, icon: it.icon || "📍" };
+    }).filter(Boolean);
   } catch (e) {
     console.warn("[suggest] failed:", e);
     return [];
   }
 }
 
+/* =========== サジェスト：body直下へ絶対配置（クリップ対策） =========== */
+function ensureSuggestStyles() {
+  if (document.getElementById("suggest-style")) return;
+  const css = `
+  .suggest-box{position:absolute;z-index:9999;min-width:240px;max-width:80vw;
+    background:#fff;border-radius:12px;box-shadow:0 10px 24px rgba(0,0,0,.16),0 2px 6px rgba(0,0,0,.08);
+    overflow:hidden;border:1px solid rgba(0,0,0,.06)}
+  .suggest-box[hidden]{display:none!important}
+  .suggest-list{list-style:none;margin:0;padding:6px}
+  .suggest-list .sugg{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:10px;cursor:pointer}
+  .suggest-list .sugg:hover,.suggest-list .sugg.is-active{background:rgba(0,0,0,.06)}
+  .suggest-list .sugg .ic{width:1.2em}
+  .suggest-list .sugg .main{font-weight:600}
+  .suggest-list .sugg .sub{color:#666;font-size:.9em;margin-left:auto;padding-left:12px}
+  `;
+  const st = document.createElement("style");
+  st.id = "suggest-style";
+  st.textContent = css;
+  document.head.appendChild(st);
+}
+
 /* =========== 検索 UI（地図の成否に依存しない） =========== */
 function wireSearchUI({ onGo }) {
+  ensureSuggestStyles();
+
   const searchInput = document.getElementById("q");
   const wrap = searchInput?.closest(".map-search");
-  if (!searchInput || !wrap) return;
+  if (!searchInput || !wrap) { console.warn("[search] input #q not found"); return; }
 
   searchInput.setAttribute("enterkeyhint", "search");
   searchInput.setAttribute("inputmode", "search");
   searchInput.setAttribute("autocomplete", "off");
 
-  let box = null, suggItems = [], suggIdx = -1;
+  // サジェストボックスは body 直下
+  let box = document.createElement("div");
+  box.className = "suggest-box";
+  box.hidden = true;
+  document.body.appendChild(box);
+
+  let suggItems = [], suggIdx = -1;
   let composing = false;
   let pendingEnterWhileComposing = false;
 
-  const ensureBox = () => {
-    if (box) return box;
-    box = document.createElement("div");
-    box.className = "suggest-box";
-    box.hidden = true;
-    wrap.appendChild(box);
-    return box;
+  const placeBox = () => {
+    const r = searchInput.getBoundingClientRect();
+    const x = Math.round(r.left + window.scrollX);
+    const y = Math.round(r.bottom + window.scrollY + 6);
+    const w = Math.round(r.width);
+    box.style.left = x + "px";
+    box.style.top  = y + "px";
+    box.style.minWidth = Math.max(240, w) + "px";
   };
   const hideSuggest = () => {
-    const el = ensureBox();
-    el.hidden = true;
-    el.innerHTML = "";
-    suggItems = [];
-    suggIdx = -1;
+    box.hidden = true; box.innerHTML = "";
+    suggItems = []; suggIdx = -1;
   };
-
-  // ↑↓ 選択
-  const highlight = (delta) => {
-    const el = ensureBox(); if (!el || el.hidden) return;
-    const ns = [...el.querySelectorAll(".sugg")]; if (!ns.length) return;
-    suggIdx = (suggIdx + delta + ns.length) % ns.length;
-    ns.forEach((n,i)=>n.classList.toggle("is-active", i===suggIdx));
-    ns[suggIdx]?.scrollIntoView?.({ block:"nearest" });
-  };
-
   const renderSuggest = (list) => {
-    const el = ensureBox();
     suggItems = Array.isArray(list) ? list : [];
     suggIdx = -1;
     if (!suggItems.length) { hideSuggest(); return; }
-    el.innerHTML = `
+    placeBox();
+    box.innerHTML = `
       <ul class="suggest-list">
         ${suggItems.map((s,i)=>`
           <li class="sugg" data-i="${i}">
@@ -132,20 +139,32 @@ function wireSearchUI({ onGo }) {
           </li>
         `).join("")}
       </ul>`;
-    el.hidden = false;
-    el.querySelectorAll(".sugg").forEach(li=>{
+    box.hidden = false;
+    box.querySelectorAll(".sugg").forEach(li=>{
       li.addEventListener("click", () => chooseSuggest(Number(li.dataset.i)));
     });
+  };
+  const highlight = (delta) => {
+    if (box.hidden) return;
+    const ns = [...box.querySelectorAll(".sugg")]; if (!ns.length) return;
+    suggIdx = (suggIdx + delta + ns.length) % ns.length;
+    ns.forEach((n,i)=>n.classList.toggle("is-active", i===suggIdx));
+    ns[suggIdx]?.scrollIntoView?.({ block:"nearest" });
   };
 
   const commitQuery = async () => {
     const q = (searchInput.value || "").trim();
     hideSuggest();
     if (!q) return;
-    const hit = await geocode(q).catch(()=>null);
-    if (hit && onGo) onGo(hit.lat, hit.lng, q, { focusOnly: true });
+    log("commit", q);
+    // まず geocode、だめなら suggest の先頭を利用
+    let hit = await geocode(q).catch(()=>null);
+    if (!hit) {
+      const list = await suggest(q).catch(()=>[]);
+      if (list && list[0]) hit = list[0];
+    }
+    if (hit && onGo) onGo(hit.lat, hit.lng, hit.name || q, { focusOnly: true });
   };
-
   const chooseSuggest = async (i) => {
     const s = suggItems[i];
     if (!s) return;
@@ -162,8 +181,9 @@ function wireSearchUI({ onGo }) {
     const q = searchInput.value.trim();
     if (!q) { hideSuggest(); return; }
     const list = await suggest(q).catch(()=>[]);
+    log("suggest", q, list.length);
     renderSuggest(list);
-  }, 220);
+  }, 200);
 
   // 入力で候補
   searchInput.addEventListener("input", runSuggest, { passive: true });
@@ -175,6 +195,8 @@ function wireSearchUI({ onGo }) {
     if (pendingEnterWhileComposing) {
       pendingEnterWhileComposing = false;
       commitQuery();
+    } else {
+      runSuggest(); // 変換確定時にも候補更新
     }
   });
 
@@ -188,11 +210,8 @@ function wireSearchUI({ onGo }) {
     if (e.key === "ArrowDown") { e.preventDefault(); highlight(+1); return; }
     if (e.key === "ArrowUp")   { e.preventDefault(); highlight(-1); return; }
     if (e.key === "Enter") {
-      if (composing || e.isComposing) {
-        pendingEnterWhileComposing = true;
-      } else {
-        handleEnterNow(e);
-      }
+      if (composing || e.isComposing) pendingEnterWhileComposing = true;
+      else handleEnterNow(e);
     }
   });
   searchInput.addEventListener("keyup", (e) => {
@@ -204,19 +223,22 @@ function wireSearchUI({ onGo }) {
   searchInput.addEventListener("keypress", (e) => {
     if (e.key === "Enter" && !composing && !e.isComposing) handleEnterNow(e);
   });
-  searchInput.addEventListener("search", () => commitQuery());
+  searchInput.addEventListener("search", () => commitQuery()); // iOS の決定ボタン
+  searchInput.addEventListener("change", () => {/* 一応 */});
 
-  // 検索領域クリックでも発火（※このリスナーは wireSearchUI の中に置く！）
+  // 虫眼鏡や入力外側のクリックでも発火
   wrap.addEventListener("click", (ev) => {
-    // 入力欄そのもののクリックは素通し。アイコン側などのクリックで実行
     if (ev.target !== searchInput && (searchInput.value || "").trim()) {
-      const box = wrap.querySelector(".suggest-box");
-      if (!box || box.hidden) commitQuery();
+      commitQuery();
     }
   });
 
-  // 外クリック/フォーカス外れで候補を閉じる
-  document.addEventListener("click", (ev) => { if (!wrap.contains(ev.target)) hideSuggest(); });
+  // スクロール / リサイズで追従
+  window.addEventListener("scroll", () => { if (!box.hidden) placeBox(); }, { passive:true });
+  window.addEventListener("resize", () => { if (!box.hidden) placeBox(); });
+
+  // 外クリックで閉じる
+  document.addEventListener("click", (ev) => { if (!wrap.contains(ev.target) && !box.contains(ev.target)) hideSuggest(); });
   searchInput.addEventListener("blur", () => setTimeout(hideSuggest, 120));
 }
 
@@ -281,7 +303,7 @@ document.getElementById("mc-close")?.addEventListener("click", () => {
     let center = getLastCenter() || [35.681236, 139.767125];
     await mapAdp.init("map", { center, zoom: 13 });
 
-    // 検索ドット（adapter 実装があれば使う）
+    // 検索ドット
     const showSearchDot = (lat, lng) => {
       setLastCenter(lat, lng);
       if (typeof mapAdp.setSearchMarker === "function") {
@@ -304,7 +326,7 @@ document.getElementById("mc-close")?.addEventListener("click", () => {
       return Number.isFinite(la) && Number.isFinite(lo) ? { ...it, __lat: la, __lng: lo } : null;
     }).filter(Boolean);
     if (cached.length) {
-      await mapAdp.setMarkers(cached, { size: undefined, color: undefined });
+      await mapAdp.setMarkers(cached, {});
       mapAdp.fitToMarkers({ padding: 56 });
       lastData = cached;
     }
@@ -330,7 +352,7 @@ document.getElementById("mc-close")?.addEventListener("click", () => {
         return Number.isFinite(la) && Number.isFinite(lo) ? { ...it, __lat: la, __lng: lo } : null;
       }).filter(Boolean);
 
-      await mapAdp.setMarkers(withCoords, { size: undefined, color: undefined });
+      await mapAdp.setMarkers(withCoords, {});
       lastData = withCoords;
       setCachedItems(items);
 
@@ -391,7 +413,7 @@ document.getElementById("mc-close")?.addEventListener("click", () => {
       }
     });
 
-    // 7) 検索 UI からの指示を受けて移動
+    // 7) 検索 UI → 地図へ
     document.addEventListener("map:go-to", (ev) => {
       const { lat, lng, focusOnly } = ev.detail || {};
       if (Number.isFinite(lat) && Number.isFinite(lng)) {
