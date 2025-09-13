@@ -79,107 +79,53 @@ const setCachedItems = (items) => {
   } catch {}
 };
 
-/* =============== Geocoding via same-origin proxy =============== */
-// 結果を正規化して返す（proxy は {hit} / {items} 形式）
+// 旧: fetchJSON を使って配列を期待している実装は削除
+
+/** 1点へジオコーディング（proxy: { hit } 仕様） */
 async function geocode(q) {
   if (!q) return null;
   try {
-    const p = new URLSearchParams({
+    const params = new URLSearchParams({
       op: "search",
       q,
       limit: "1",
       countrycodes: "jp",
     });
-    const data = await apiJSON(`/api/geo-proxy?${p.toString()}`);
-    const hit = data?.hit;
-    if (!hit) return null;
-    const la = Number(hit.lat),
-      lo = Number(hit.lng ?? hit.lon);
+    const d = await apiJSON(`/api/geo-proxy?${params.toString()}`);
+    const h = d?.hit;
+    const la = Number(h?.lat),
+      lo = Number(h?.lng);
     return Number.isFinite(la) && Number.isFinite(lo)
-      ? { lat: la, lng: lo, name: hit.name || q }
+      ? { lat: la, lng: lo, name: h?.name || q }
       : null;
   } catch {
     return null;
   }
 }
 
+/** 駅・ランドマーク優先サジェスト（proxy: { items } 仕様） */
 async function suggest(q) {
-  const LOCAL_FALLBACK = [
-    {
-      name: "東京駅",
-      sub: "千代田区",
-      lat: 35.681236,
-      lng: 139.767125,
-      icon: "🚉",
-    },
-    {
-      name: "新宿駅",
-      sub: "新宿区",
-      lat: 35.690921,
-      lng: 139.700257,
-      icon: "🚉",
-    },
-    {
-      name: "渋谷駅",
-      sub: "渋谷区",
-      lat: 35.658034,
-      lng: 139.701636,
-      icon: "🚉",
-    },
-    {
-      name: "大阪駅",
-      sub: "北区",
-      lat: 34.702485,
-      lng: 135.495951,
-      icon: "🚉",
-    },
-    {
-      name: "名古屋駅",
-      sub: "中村区",
-      lat: 35.170694,
-      lng: 136.881637,
-      icon: "🚉",
-    },
-  ];
   if (!q) return [];
   try {
-    const p = new URLSearchParams({
+    const params = new URLSearchParams({
       op: "suggest",
       q,
       limit: "8",
       countrycodes: "jp",
     });
-    const data = await apiJSON(`/api/geo-proxy?${p.toString()}`);
-    const arr = Array.isArray(data?.items) ? data.items : [];
-    // proxy側で駅/ランドマークにフィルタ済み。軽くスコア順に整えるだけ。
-    const score = (it) => {
-      const cls = it.class,
-        typ = it.type; // 来ない可能性もあるので保険
-      if (
-        it.icon === "🚉" ||
-        (cls === "railway" && (typ === "station" || typ === "halt"))
-      )
-        return 100;
-      if (it.icon === "✈️") return 90;
-      return 80;
-    };
+    const d = await apiJSON(`/api/geo-proxy?${params.toString()}`);
+    const arr = Array.isArray(d?.items) ? d.items : [];
     return arr
       .map((it) => ({
-        name: it.name || it.display_name || "",
+        name: it.name || "",
         sub: it.sub || "",
         lat: Number(it.lat),
-        lng: Number(it.lng ?? it.lon),
+        lng: Number(it.lng),
         icon: it.icon || "📍",
-        _s: score(it),
       }))
-      .filter((x) => Number.isFinite(x.lat) && Number.isFinite(x.lng) && x.name)
-      .sort((a, b) => b._s - a._s)
-      .slice(0, 8);
+      .filter((s) => Number.isFinite(s.lat) && Number.isFinite(s.lng));
   } catch {
-    const qn = q.normalize("NFKC");
-    return LOCAL_FALLBACK.filter(
-      (x) => x.name.includes(qn) || qn.includes(x.name)
-    );
+    return [];
   }
 }
 
@@ -421,6 +367,17 @@ document.getElementById("mc-close")?.addEventListener("click", () => {
     },
   });
 
+  let pendingGoTo = null;
+  document.addEventListener("map:go-to", (ev) => {
+    const d = ev.detail || {};
+    // reloadAt がまだ無い段階は一旦キュー
+    if (typeof reloadAt === "function") {
+      reloadAt(d.lat, d.lng, { focusOnly: !!d.focusOnly });
+    } else {
+      pendingGoTo = d;
+    }
+  });
+
   try {
     const mapAdp = createMapAdapter("leaflet");
     const params = new URLSearchParams(location.search);
@@ -509,6 +466,17 @@ document.getElementById("mc-close")?.addEventListener("click", () => {
         mapAdp.fitToMarkers({ padding: 56 });
       }
     };
+
+    if (
+      pendingGoTo &&
+      Number.isFinite(pendingGoTo.lat) &&
+      Number.isFinite(pendingGoTo.lng)
+    ) {
+      reloadAt(pendingGoTo.lat, pendingGoTo.lng, {
+        focusOnly: !!pendingGoTo.focusOnly,
+      });
+      pendingGoTo = null;
+    }
 
     // 5) 初期表示：?q= あれば検索地点へ、なければ現在地
     if (qParam) {
