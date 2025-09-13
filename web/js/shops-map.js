@@ -156,6 +156,7 @@ async function geocodeJP(q) {
 
 /* ---- Autocomplete (Nominatim) — 駅/ランドマーク優先 + place フォールバック + ローカル最終フォールバック ---- */
 /* ---- Autocomplete (Nominatim) —— 駅/ランドマーク限定 ---- */
+/* ---- Autocomplete (Nominatim) —— 駅/ランドマーク限定（厳しめ） ---- */
 async function suggestJP(query) {
   const q = (query || "").trim();
   if (q.length < 2) return [];
@@ -165,110 +166,96 @@ async function suggestJP(query) {
     new URLSearchParams({
       format: "jsonv2",
       addressdetails: "1",
-      limit: "10",
+      namedetails: "1",
+      limit: "15",
       countrycodes: "jp",
       "accept-language": "ja",
-      namedetails: "1",
       q,
     }).toString();
 
   const r = await fetch(url, { headers: { Accept: "application/json" } });
-  if (!r.ok) return []; // ネットワーク失敗時は何も出さない（最終手段は LOCAL_FALLBACK 側で）
+  if (!r.ok) return [];
 
   const arr = await r.json();
   if (!Array.isArray(arr) || !arr.length) return [];
 
-  // ---- 絞り込み条件（駅 & ランドマーク）----
-  const RAIL_OK = new Set([
-    "station",
-    "halt",
-    "tram_stop",
-    "subway",
-    "light_rail",
-  ]);
-  const TOUR_OK = new Set([
-    "attraction",
-    "museum",
-    "gallery",
-    "artwork",
-    "viewpoint",
-    "theme_park",
-    "zoo",
-    "aquarium",
-  ]);
-  const HIST_OK = new Set([
-    "castle",
-    "monument",
-    "memorial",
-    "ruins",
-    "fort",
-    "archaeological_site",
-  ]);
-  const AMEN_OK = new Set(["university", "townhall", "library"]);
-  const LEIS_OK = new Set(["park", "garden"]);
+  // 駅（class/typeベース）
+  const RAIL_OK = /^(station|halt|tram_stop|subway|light_rail)$/;
 
-  const isStation = (it) => it.class === "railway" && RAIL_OK.has(it.type);
+  // ランドマーク（代表カテゴリのtype）
+  const TOUR_OK =
+    /^(attraction|museum|gallery|artwork|viewpoint|theme_park|zoo|aquarium)$/;
+  const HIST_OK = /^(castle|monument|memorial|ruins|fort|archaeological_site)$/;
+  const AMEN_OK = /^(university|townhall|library)$/;
+  const LEIS_OK = /^(park|garden)$/;
+
+  const nameOf = (it) =>
+    it.namedetails?.name ||
+    it.name ||
+    it.display_name ||
+    it.address?.station ||
+    "";
+
+  // 日本語名のヒューリスティック（駅/ランドマーク語尾・単語）
+  const NAME_LM_RE =
+    /(空港|港|城|寺|神社|タワー|美術館|博物館|動物園|水族館|大学|公園|庭園)$/;
+
+  const isStation = (it) => it.class === "railway" && RAIL_OK.test(it.type);
+  const isStationByName = (it) => /駅$/.test(nameOf(it));
+
   const isLandmark = (it) =>
-    (it.class === "tourism" && TOUR_OK.has(it.type)) ||
-    (it.class === "historic" && HIST_OK.has(it.type)) ||
-    (it.class === "amenity" && AMEN_OK.has(it.type)) ||
-    (it.class === "leisure" && LEIS_OK.has(it.type));
+    (it.class === "tourism" && TOUR_OK.test(it.type)) ||
+    (it.class === "historic" && HIST_OK.test(it.type)) ||
+    (it.class === "amenity" && AMEN_OK.test(it.type)) ||
+    (it.class === "leisure" && LEIS_OK.test(it.type)) ||
+    NAME_LM_RE.test(nameOf(it));
 
-  // 表示整形
-  const toItem = (it) => {
-    const la = Number(it.lat),
-      lo = Number(it.lon);
-    if (!Number.isFinite(la) || !Number.isFinite(lo)) return null;
+  // 駅 → ランドマークの優先順で抽出
+  const raw = arr.filter(
+    (it) => isStation(it) || isStationByName(it) || isLandmark(it)
+  );
 
-    const nm =
-      it.namedetails?.name ||
-      it.name ||
-      it.display_name ||
-      (it.address?.station ?? "") ||
-      "";
-    const a = it.address || {};
-    const sub =
-      a.station ||
-      a.neighbourhood ||
-      a.suburb ||
-      a.city ||
-      a.town ||
-      a.village ||
-      a.county ||
-      a.state ||
-      "";
+  // 整形
+  const items = raw
+    .map((it) => {
+      const lat = Number(it.lat);
+      const lng = Number(it.lon);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
 
-    const icon = isStation(it) ? "🚉" : "📍";
-    return { name: nm, sub, lat: la, lng: lo, icon };
-  };
+      const nm = nameOf(it);
+      const a = it.address || {};
+      const sub =
+        a.neighbourhood ||
+        a.suburb ||
+        a.city ||
+        a.town ||
+        a.village ||
+        a.county ||
+        a.state ||
+        "";
 
-  // 駅 → ランドマークの優先順でマージ
-  const stations = arr.filter(isStation).map(toItem).filter(Boolean);
-  const marks = arr
-    .filter((it) => !isStation(it) && isLandmark(it))
-    .map(toItem)
+      const icon = isStation(it) || isStationByName(it) ? "🚉" : "📍";
+      return { name: nm, sub, lat, lng, icon };
+    })
     .filter(Boolean);
 
-  // 近接重複を軽く除去（同名・近距離）
-  const dedup = (list) => {
-    const out = [];
-    for (const it of list) {
-      if (
-        out.some(
-          (o) =>
-            o.name === it.name &&
-            Math.hypot(o.lat - it.lat, o.lng - it.lng) < 0.0008 // ざっくり ~80m
-        )
-      ) {
-        continue;
-      }
-      out.push(it);
+  // 近接/同名の簡易重複排除
+  const out = [];
+  for (const it of items) {
+    if (
+      out.some(
+        (o) =>
+          o.name === it.name &&
+          Math.hypot(o.lat - it.lat, o.lng - it.lng) < 0.0008 // 約80m以内
+      )
+    ) {
+      continue;
     }
-    return out;
-  };
+    out.push(it);
+  }
 
-  const merged = dedup([...stations, ...marks]);
-  return merged.slice(0, 8);
+  // 上位8件
+  return out.slice(0, 8);
 }
 
 /* 入力ハンドラ：1文字から候補を出す（通信負荷を抑えつつ体感UP） */
