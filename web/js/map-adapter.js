@@ -22,58 +22,50 @@ class LeafletAdapter {
   // === Shop pin (DPR対応・サイトカラー) ===
   _; // === Shop pin (PC: divIcon / Mobile: data-URL image) ===
   // === Shop pin (小さめ、--brand色) ==========================
-  _mkShopIcon() {
-    if (this._iconShop) return this._iconShop;
+  // LeafletAdapter 内
+  _makeShopIcon(opts = {}) {
+    const L = window.L;
+    if (!L) return null;
 
-    // サイトのブランド色を使用
+    // サイト色
     const css = getComputedStyle(document.documentElement);
     const brand =
-      (css.getPropertyValue("--brand") || "#7a5a2d").trim() || "#7a5a2d";
+      (
+        css.getPropertyValue("--brand") ||
+        css.getPropertyValue("--accent") ||
+        "#A67C52"
+      ).trim() || "#A67C52";
+    const pinFill = opts.fill || brand;
+    const pinStroke = "rgba(0,0,0,.25)"; // わずかな外枠で視認性
 
-    // iOS/Android WebView は data:URL 画像にフォールバック
-    const ua = navigator.userAgent || "";
-    const isIOS = /iP(hone|ad|od)/.test(ua);
-    const isAndroidWV =
-      /\bwv\b/.test(ua) ||
-      (/Version\/\d+\.\d+/.test(ua) && /Chrome\/\d+\.\d+ Mobile/.test(ua));
-    const forceImage = isIOS || isAndroidWV;
+    // ★ ここがサイズ。ひと回り大きく（PC:28 / SP:30）。opts.size で上書き可
+    const isSmall = window.matchMedia("(max-width: 480px)").matches;
+    const SIZE = Math.max(
+      20,
+      Math.min(48, Number(opts.size) || (isSmall ? 30 : 28))
+    );
 
-    // ← 大きさはここで調整（既存より小さめに）
-    const PIN_BASE_W = 22; // 幅（px）
-    const PIN_BASE_H = 30; // 高さ（px）
-    const isSmallScreen = window.matchMedia("(max-width: 480px)").matches;
-    const PIN_SCALE = isSmallScreen ? 0.85 : 1; // モバイルはやや小さく
-    const DPR = Math.min(1.3, Math.max(1, window.devicePixelRatio || 1)); // 高DPIの肥大化を抑制
+    // 24px ベースの SVG を width/height で等倍スケール
+    const html = `
+  <div class="shop-pin" style="width:${SIZE}px;height:${SIZE}px;transform:translate(-50%,-100%);">
+    <svg viewBox="0 0 24 24" width="${SIZE}" height="${SIZE}" aria-hidden="true">
+      <!-- ピン本体 -->
+      <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"
+        fill="${pinFill}" stroke="${pinStroke}" stroke-width="1"/>
+      <!-- 中央の店アイコン（mのロゴ風） -->
+      <rect x="7" y="9" width="10" height="7" rx="2" ry="2" fill="white"/>
+      <path d="M9.2 13.7v-2.4h1.8c.5 0 .9.4.9.9v1.5h1v-1.5c0-.5.4-.9.9-.9h1.8v2.4"
+        fill="${pinFill}"/>
+    </svg>
+  </div>`;
 
-    const W = Math.round(PIN_BASE_W * PIN_SCALE * DPR);
-    const H = Math.round(PIN_BASE_H * PIN_SCALE * DPR);
-
-    // ショップを表す簡易ストアフロント（角丸の看板） ※色は --brand
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 22 30" aria-hidden="true">
-       <path d="M11 0c6 0 11 4.7 11 10.5 0 7-8.4 15.3-10.4 17.3a1 1 0 0 1-1.2 0C8.4 25.8 0 17.5 0 10.5 0 4.7 5 0 11 0Z" fill="${brand}"/>
-       <rect x="5" y="9" width="12" height="8" rx="2" ry="2" fill="#fff"/>
-       <rect x="7.2" y="11" width="3.3" height="5" rx="1" fill="${brand}"/>
-       <rect x="11.5" y="11" width="3.3" height="5" rx="1" fill="${brand}"/>
-     </svg>`;
-
-    if (forceImage) {
-      const url = "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg);
-      this._iconShop = window.L.icon({
-        iconUrl: url,
-        iconSize: [W, H],
-        iconAnchor: [W / 2, H - 2],
-        popupAnchor: [0, -H],
-      });
-    } else {
-      this._iconShop = window.L.divIcon({
-        className: "lf-pin-shop",
-        html: svg,
-        iconSize: [W, H],
-        iconAnchor: [W / 2, H - 2],
-        popupAnchor: [0, -H],
-      });
-    }
-    return this._iconShop;
+    return L.divIcon({
+      className: "shop-pin-wrap",
+      html,
+      iconSize: [SIZE, SIZE],
+      iconAnchor: [SIZE / 2, SIZE], // 先端を地物に合わせる
+      popupAnchor: [0, -SIZE],
+    });
   }
 
   // 互換（古い呼び名を使っている箇所があってもOK）
