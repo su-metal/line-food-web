@@ -74,11 +74,19 @@ async function suggest(q) {
 }
 
 /* ========== Search UI (Enter/タップ完全対応 & 429耐性) ========== */
+/* ========== Search UI (Enter/タップ完全対応 & サジェストを前面に) ========== */
 function wireSearchUI() {
   const input = document.getElementById("q");
   const wrap  = input?.closest(".map-search");
   if (!input || !wrap) return;
 
+  // 1) ラッパを“絶対配置の基準 & 最前面”に引き上げ（地図より手前へ）
+  try {
+    const cs = getComputedStyle(wrap);
+    if (cs.position === "static") wrap.style.position = "relative";
+    // Leafletのタイル/マーカーは z-index が高いので、それを越える
+    wrap.style.zIndex = "10010";
+  } catch {}
   input.setAttribute("enterkeyhint", "search");
   input.setAttribute("inputmode", "search");
   input.setAttribute("autocomplete", "off");
@@ -91,6 +99,22 @@ function wireSearchUI() {
     if (box) return box;
     box = document.createElement("div");
     box.className = "suggest-box";
+    // サジェストを**必ず見える**ように最低限のインラインCSSを付与
+    box.style.cssText = [
+      "position:absolute",
+      "left:0", "right:0",
+      "top:calc(100% + 6px)",
+      "max-height: 52vh",
+      "overflow:auto",
+      "background:#fff",
+      "border:1px solid rgba(0,0,0,.1)",
+      "border-radius:12px",
+      "box-shadow:0 8px 24px rgba(0,0,0,.12)",
+      "padding:6px",
+      "z-index:10020",
+      "font-size:14px",
+      "-webkit-overflow-scrolling:touch"
+    ].join(";");
     box.hidden = true;
     wrap.appendChild(box);
     return box;
@@ -107,12 +131,12 @@ function wireSearchUI() {
     suggIdx = -1;
     if (!suggItems.length) { hideSuggest(); return; }
     el.innerHTML = `
-      <ul class="suggest-list">
+      <ul class="suggest-list" style="list-style:none;margin:0;padding:0">
         ${suggItems.map((s,i)=>`
-          <li class="sugg" data-i="${i}">
-            <span class="ic">${s.icon || "📍"}</span>
-            <span class="main">${s.name || ""}</span>
-            ${s.sub ? `<span class="sub">${s.sub}</span>` : ""}
+          <li class="sugg" data-i="${i}" style="display:flex;gap:8px;align-items:center;padding:10px 8px;border-radius:10px;cursor:pointer">
+            <span class="ic" style="width:20px;text-align:center">${s.icon || "📍"}</span>
+            <span class="main" style="font-weight:600">${s.name || ""}</span>
+            ${s.sub ? `<span class="sub" style="margin-left:auto;opacity:.7">${s.sub}</span>` : ""}
           </li>
         `).join("")}
       </ul>`;
@@ -122,7 +146,7 @@ function wireSearchUI() {
     });
   };
 
-  // 地図側へ渡す（先にスタブ→init後に本物に差し替え）
+  // 地図側へ通知（初期化前でもペンディングで保持）
   const goTo = (lat, lng, label, opts) => {
     if (window.__mapGoTo) {
       window.__mapGoTo(lat, lng, label, opts);
@@ -131,7 +155,7 @@ function wireSearchUI() {
     }
   };
 
-  // Enter時、短時間の連打を1発に抑制
+  // Enter連打の間引き
   let lastEnterAt = 0, enterTimer = null;
   const MIN_ENTER_MS = 650;
 
@@ -172,10 +196,16 @@ function wireSearchUI() {
     if (!q) { hideSuggest(); return; }
     const list = await suggest(q);
     renderSuggest(list);
-  }, 350);
+  }, 300);
 
-  // 入力→候補
+  // 入力でサジェスト
   input.addEventListener("input", runSuggest, { passive: true });
+
+  // フォーカス時も直近のテキストで再表示（モバイルでの戻りをケア）
+  input.addEventListener("focus", () => {
+    const q = input.value.trim();
+    if (q.length >= 2) runSuggest();
+  });
 
   // IME
   input.addEventListener("compositionstart", () => { composing = true; });
@@ -187,7 +217,7 @@ function wireSearchUI() {
     }
   });
 
-  // Enter 決定（keydownで最優先）
+  // Enter / 決定
   const handleEnterNow = (e) => {
     if (e?.cancelable) e.preventDefault();
     if (suggIdx >= 0) chooseSuggest(suggIdx);
@@ -213,13 +243,24 @@ function wireSearchUI() {
   input.addEventListener("keypress", (e) => {
     if (e.key === "Enter" && !composing && !e.isComposing) handleEnterNow(e);
   });
-  input.addEventListener("search", () => commitQuery()); // iOSの「検索」ボタン
+  input.addEventListener("search", () => commitQuery()); // iOSの「検索」
 
-  // 外クリックで閉じる
-  document.addEventListener("click", (ev) => { if (!wrap.contains(ev.target)) hideSuggest(); });
+  // 2) “虫眼鏡アイコン”のタップでも検索を発火（これが無いとタップが効かない）
+  wrap.querySelector("svg")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    commitQuery();
+  });
+
+  // 3) モバイルで Enter が拾えない端末向けに change も保険で拾う
+  input.addEventListener("change", commitQuery);
+
+  // 外側クリックで閉じる（サジェスト内のクリックは除外）
+  document.addEventListener("click", (ev) => {
+    if (!wrap.contains(ev.target)) hideSuggest();
+  });
   input.addEventListener("blur", () => setTimeout(hideSuggest, 120));
 
-  // ↑↓ 選択
+  // ↑↓で候補ハイライト
   const highlight = (delta) => {
     const el = ensureBox(); if (!el || el.hidden) return;
     const ns = [...el.querySelectorAll(".sugg")]; if (!ns.length) return;
@@ -228,6 +269,7 @@ function wireSearchUI() {
     ns[suggIdx]?.scrollIntoView?.({ block:"nearest" });
   };
 }
+
 
 /* ========== Bottom Sheet ========== */
 function fillMapCard(shop = {}) {
