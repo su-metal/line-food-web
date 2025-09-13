@@ -283,6 +283,7 @@ async function suggestJP(q) {
     // 3) 共通：この地点を基準に店舗を再読込
     //    options.focusOnly=true のときは「検索クローズアップ」＝ フィットしない
     const reloadAt = async (lat, lng, { focusOnly = false } = {}) => {
+      hideSuggest();
       // まず確実にクローズアップ or 通常ズームでセンター
       mapAdp.setCenter(lat, lng, focusOnly ? SEARCH_ZOOM : 15);
       showSearchDot(lat, lng);
@@ -315,7 +316,11 @@ async function suggestJP(q) {
         })
         .filter(Boolean);
 
-      await mapAdp.setMarkers(withCoords, { chunk: 80, delay: 8, size: PIN_SIZE });
+      await mapAdp.setMarkers(withCoords, {
+        chunk: 80,
+        delay: 8,
+        size: PIN_SIZE,
+      });
       lastData = withCoords;
       setCachedItems(items);
 
@@ -355,12 +360,14 @@ async function suggestJP(q) {
     mapAdp.onMarkerClick((shop) => fillMapCard(shop));
 
     /* ====== サジェスト（Nominatim） ====== */
+    /* ====== サジェスト（Nominatim） ====== */
     let suggIdx = -1,
       suggItems = [];
     let box;
+
     const ensureBox = () => {
       if (box) return box;
-      const wrap = searchInput?.closest(".map-search");
+      const wrap = document.getElementById("q")?.closest(".map-search");
       if (!wrap) return null;
       box = document.createElement("div");
       box.className = "suggest-box";
@@ -368,37 +375,55 @@ async function suggestJP(q) {
       wrap.appendChild(box);
       return box;
     };
+
+    function hideSuggest() {
+      const el = ensureBox();
+      if (!el) return;
+      el.hidden = true;
+      el.innerHTML = "";
+      suggItems = [];
+      suggIdx = -1;
+    }
+
     function renderSuggest(list) {
       const el = ensureBox();
       if (!el) return;
-      suggItems = list || [];
-      suggIdx = -1;
-      if (!suggItems.length) {
-        el.hidden = true;
-        el.innerHTML = "";
+      if (!list || !list.length) {
+        hideSuggest();
         return;
       }
+
+      suggItems = list;
+      suggIdx = -1;
       el.innerHTML = `
-        <ul class="suggest-list">
-          ${suggItems
-            .map(
-              (s, i) => `
-            <li class="sugg" data-i="${i}">
-              <span class="ic">${s.icon}</span>
-              <span class="main">${s.name}</span>
-              ${s.sub ? `<span class="sub">${s.sub}</span>` : ""}
-            </li>`
-            )
-            .join("")}
-        </ul>`;
+    <ul class="suggest-list">
+      ${list
+        .map(
+          (s, i) => `
+        <li class="sugg" data-i="${i}">
+          <span class="ic">${s.icon}</span>
+          <span class="main">${s.name}</span>
+          ${s.sub ? `<span class="sub">${s.sub}</span>` : ""}
+        </li>`
+        )
+        .join("")}
+    </ul>
+  `;
       el.hidden = false;
+
       el.querySelectorAll(".sugg").forEach((li) => {
-        li.addEventListener("click", () => {
+        li.addEventListener("click", async () => {
           const i = Number(li.dataset.i);
-          chooseSuggest(i);
+          const s = suggItems[i];
+          if (!s) return;
+          const input = document.getElementById("q");
+          if (input) input.value = s.name;
+          hideSuggest(); // ← 選択時に即クローズ
+          await reloadAt(s.lat, s.lng, { focusOnly: true });
         });
       });
     }
+
     function highlight(delta) {
       const el = ensureBox();
       if (!el || el.hidden) return;
@@ -408,30 +433,28 @@ async function suggestJP(q) {
       ns.forEach((n, i) => n.classList.toggle("is-active", i === suggIdx));
       ns[suggIdx]?.scrollIntoView?.({ block: "nearest" });
     }
-    async function chooseSuggest(i) {
-      const s = suggItems[i];
-      if (!s) return;
-      if (searchInput) searchInput.value = s.name;
-      renderSuggest([]);
-      await reloadAt(s.lat, s.lng, { focusOnly: true }); // ← 検索はクローズアップ
-    }
 
-    if (searchInput) {
+    (function wireSuggest() {
+      const input = document.getElementById("q");
+      const wrap = input?.closest(".map-search");
+      if (!input || !wrap) return;
+
       const runSuggest = debounce(async () => {
-        const q = searchInput.value.trim();
+        const q = input.value.trim();
         if (!q) {
-          renderSuggest([]);
+          hideSuggest();
           return;
         }
         try {
           renderSuggest(await suggestJP(q));
         } catch {
-          renderSuggest([]);
+          hideSuggest();
         }
       }, 200);
 
-      searchInput.addEventListener("input", runSuggest);
-      searchInput.addEventListener("keydown", (e) => {
+      input.addEventListener("input", runSuggest);
+
+      input.addEventListener("keydown", (e) => {
         if (e.key === "ArrowDown") {
           e.preventDefault();
           highlight(+1);
@@ -440,23 +463,39 @@ async function suggestJP(q) {
           highlight(-1);
         } else if (e.key === "Enter") {
           e.preventDefault();
-          if (suggIdx >= 0) {
-            chooseSuggest(suggIdx);
+          const chosen = suggIdx >= 0 ? suggItems[suggIdx] : null;
+          hideSuggest(); // ← Enterで移動する前に確実に閉じる
+          if (chosen) {
+            reloadAt(chosen.lat, chosen.lng, { focusOnly: true });
           } else {
-            const q = searchInput.value.trim();
+            const q = input.value.trim();
             if (!q) return;
             geocodeJP(q).then((hit) => {
               if (hit) reloadAt(hit[0], hit[1], { focusOnly: true });
             });
           }
         } else if (e.key === "Escape") {
-          renderSuggest([]);
+          hideSuggest();
         }
       });
+
+      // フォーカス外れ / 画面のどこかをクリックで閉じる
+      input.addEventListener("blur", () => setTimeout(hideSuggest, 100));
       document.addEventListener("click", (ev) => {
-        if (!searchWrap?.contains(ev.target)) renderSuggest([]);
+        if (!wrap.contains(ev.target)) hideSuggest();
       });
-    }
+
+      // 地図操作が始まったら閉じる（プログラム/ユーザー操作どちらでも）
+      try {
+        const map = window.__leafletMap || (window.L && window.L.mapInstance);
+        const m = (window.mapAdp && window.mapAdp.map) || map;
+        if (m && m.on) {
+          ["movestart", "dragstart", "zoomstart", "click"].forEach((ev) =>
+            m.on(ev, hideSuggest)
+          );
+        }
+      } catch {}
+    })();
 
     // 6) 現在地へ（現在地＋最寄り1件にフィット：従来どおり）
     document
