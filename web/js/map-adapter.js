@@ -81,7 +81,6 @@ class LeafletAdapter {
     return this._mkShopIcon();
   }
 
-
   async init(
     containerId,
     { center = [35.681236, 139.767125], zoom = 13 } = {}
@@ -150,19 +149,42 @@ class LeafletAdapter {
     else this.map.panTo([lat, lng]);
   }
 
-  addCurrentDot(lat, lng) {
+  // LeafletAdapter 内に配置（既存の addCurrentDot を置き換え）
+  addCurrentDot(lat, lng, opts = {}) {
     const L = window.L;
-    if (!this.currentDot) {
-      this.currentDot = L.circleMarker([lat, lng], {
-        radius: 6,
-        color: "#2a6ef0",
-        weight: 2,
-        fillColor: "#2a6ef0",
-        fillOpacity: 1,
-      }).addTo(this.layer);
+    if (!L || !this.map) return null;
+
+    // サイトのアクセント色を使用（--accent が無ければ青）
+    const css = getComputedStyle(document.documentElement);
+    const accent =
+      (css.getPropertyValue("--accent") || "#2a6ef0").trim() || "#2a6ef0";
+
+    // デフォルトを大きめに（モバイルはさらに +α）
+    const isSmall = window.matchMedia("(max-width: 480px)").matches;
+    const size = Math.max(
+      8,
+      Math.min(18, Number(opts.size) || (isSmall ? 12 : 11)) // ← ここで大きさ調整
+    );
+
+    const style = {
+      radius: size,
+      color: "#fff", // 外枠（白）で視認性UP
+      weight: 3, // 外枠の太さ
+      fillColor: accent, // 中の色
+      fillOpacity: 1,
+    };
+
+    if (!this._meDot) {
+      this._meDot = L.circleMarker([lat, lng], style).addTo(
+        this.layer || this.map
+      );
+      this._meDot.bringToFront?.();
     } else {
-      this.currentDot.setLatLng([lat, lng]);
+      this._meDot.setLatLng([lat, lng]);
+      this._meDot.setStyle(style);
+      this._meDot.bringToFront?.();
     }
+    return this._meDot;
   }
 
   /* 検索地点の単発マーカー（更新可能） */
