@@ -1386,4 +1386,9 @@ section.price {
   content: none !important;
 }
 .leaflet-marker-icon.pin-shop svg { display: block; }
+.leaflet-marker-icon.pin-shop{
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
 

@@ -66,33 +66,60 @@ class LeafletAdapter {
   }
 
   // ---- ピンSVG（ショップ）: _makeShopIcon で統一 ---------------------------
-  _makeShopIcon(size = 32, color) {
-    const col = color || brandColor();
-    const S = Math.max(20, +size || 32);
-    const H = Math.round(S * 1.35);
-    const anchor = [Math.round(S / 2), H - 2];
+  // LeafletAdapter 内
+_makeShopIcon(size = 32, color) {
+  const col = color || brandColor();                 // ピンの塗り（--brand）
+  const S = Math.round(Math.max(24, Math.min(64, Number(size) || 32))); // 横幅
+  const H = Math.round(S * 1.42);                    // 高さ（先端まで）
+  const stroke = "#ffffff";                           // 縁取り（白）
 
-    const html = `
-<svg xmlns="http://www.w3.org/2000/svg" width="${S}" height="${H}" viewBox="0 0 24 32" aria-hidden="true">
-  <path d="M12 0C6 0 1.5 4.5 1.5 10.5 1.5 19 12 26 12 26s10.5-7 10.5-15.5C22.5 4.5 18 0 12 0Z"
-        fill="${col}" stroke="white" stroke-width="2"/>
-  <g transform="translate(4,7)" fill="white">
-    <rect x="0" y="0" width="4.2" height="4" rx="0.8"/>
-    <rect x="5.9" y="0" width="4.2" height="4" rx="0.8"/>
-    <rect x="11.8" y="0" width="4.2" height="4" rx="0.8"/>
-    <rect x="0" y="7" width="20" height="9" rx="1.2"/>
-    <rect x="9" y="7" width="2" height="9" rx="0.8"/>
+  // viewBoxは固定（64x88）。実サイズは iconSize で縮尺。
+  const svg = `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 88" aria-hidden="true">
+  <defs>
+    <filter id="pinDrop" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="1.2"/>
+      <feOffset dy="0.8"/>
+      <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .22 0"/>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- ドロップ型ピン本体 -->
+  <path d="M32 4C19.8 4 9.9 13.9 9.9 26.1c0 18 22.1 36.9 22.1 36.9S54.1 44.1 54.1 26.1C54.1 13.9 44.2 4 32 4Z"
+        fill="${col}" stroke="${stroke}" stroke-width="4" filter="url(#pinDrop)"/>
+
+  <!-- 店舗グリフ（オーニング＋建屋＋ドア＋窓） -->
+  <g transform="translate(8,16)" fill="${stroke}">
+    <!-- オーニングの帯 -->
+    <rect x="1" y="0" width="46" height="8" rx="2"/>
+    <!-- オーニングの垂れ（5連の半円） -->
+    <g transform="translate(1,8)">
+      <path d="M0 0h8a4 4 0 0 1-8 0Z"/>
+      <path d="M9 0h8a4 4 0 0 1-8 0Z"/>
+      <path d="M18 0h8a4 4 0 0 1-8 0Z"/>
+      <path d="M27 0h8a4 4 0 0 1-8 0Z"/>
+      <path d="M36 0h8a4 4 0 0 1-8 0Z"/>
+    </g>
+    <!-- 建屋躯体 -->
+    <rect x="1" y="16" width="46" height="20" rx="3"/>
+    <!-- ドア -->
+    <rect x="7" y="18" width="10" height="16" rx="2"/>
+    <!-- 窓 -->
+    <rect x="22" y="18" width="20" height="12" rx="2"/>
   </g>
 </svg>`.trim();
 
-    return {
-      html,
-      className: "pin-shop",
-      iconSize: [S, H],
-      iconAnchor: anchor,
-      popupAnchor: [0, -Math.round(S * 0.7)],
-    };
-  }
+  const url = "data:image/svg+xml;utf8," + encodeURIComponent(svg);
+
+  return window.L.icon({
+    iconUrl: url,
+    iconSize: [S, H],
+    iconAnchor: [Math.round(S / 2), H - 2],  // 先端を座標に一致
+    className: "pin-shop"
+  });
+}
+
 
   // ---- マーカー描画（click ハンドラ含む） ----------------------------------
   setMarkers(items = [], opts = {}) {
